@@ -170,3 +170,69 @@ jqRules := response["evaluator"]["rules"]
 ### Documentation
 
 User-facing documentation explains that evaluation rules are jq expressions that must return `true` for compliance. The internal transformation to the `evaluator` format is noted but not emphasized, keeping the focus on the user experience.
+
+### Schema Input Methods
+
+The `schema` attribute accepts a JSON Schema string, which can be provided in multiple ways to suit different use cases:
+
+#### 1. Inline Heredoc (Recommended for simple schemas)
+```hcl
+resource "kosli_attestation_type" "example" {
+  schema = <<-EOT
+    {
+      "type": "object",
+      "properties": {"age": {"type": "integer"}},
+      "required": ["age"]
+    }
+  EOT
+}
+```
+
+#### 2. External File (Recommended for complex schemas)
+```hcl
+resource "kosli_attestation_type" "example" {
+  schema = file("${path.module}/schemas/coverage-schema.json")
+}
+```
+
+#### 3. Schema Data Source (Recommended for reusable, type-safe schemas)
+
+Following AWS provider patterns (e.g., `aws_iam_policy_document`), a `kosli_attestation_schema` data source provides type-safe schema definition:
+
+```hcl
+data "kosli_attestation_schema" "coverage_schema" {
+  type = "object"
+  properties = {
+    line_coverage = {
+      type    = "number"
+      minimum = 0
+      maximum = 100
+    }
+    branch_coverage = {
+      type    = "number"
+      minimum = 0
+      maximum = 100
+    }
+  }
+  required = ["line_coverage"]
+}
+
+resource "kosli_attestation_type" "coverage_check" {
+  name        = "coverage-check"
+  description = "Validate test coverage"
+  schema      = data.kosli_attestation_schema.coverage_schema.json
+  jq_rules    = [".line_coverage >= 80"]
+}
+```
+
+**Benefits of the data source approach:**
+- **Reusability**: Share schemas across multiple attestation types
+- **Type safety**: Terraform validates schema structure at plan time
+- **Composability**: Build complex schemas from simpler components
+- **Terraform conventions**: Follows established patterns from AWS and other major providers
+- **No API changes required**: The data source generates a JSON string that's passed to the API like any other schema
+
+**Implementation:**
+- The data source generates valid JSON Schema from HCL structure
+- All three methods produce the same API request format
+- Users choose the method that best fits their use case
