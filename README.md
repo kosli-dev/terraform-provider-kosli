@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-> ![WARN]
+> [!WARNING]
 > This is an early-stage provider under active development. Features and APIs may change.
 > We recommend not to use this provider in production environments yet, and to pin to specific versions when you do.
 
