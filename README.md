@@ -42,50 +42,33 @@ provider "kosli" {
 
 ### Basic Configuration
 
+Here's a minimal example to get started. For complete examples with variables and multiple use cases, see the [examples](examples/) directory.
+
 ```hcl
-# Define a custom attestation type with inline schema
-resource "kosli_attestation_type" "age_verification" {
-  name        = "age-verification"
-  description = "Verify person meets age requirements"
-
-  schema = jsonencode({
-    type = "object"
-    properties = {
-      age = {
-        type = "integer"
-      }
-      name = {
-        type = "string"
-      }
-    }
-    required = ["age", "name"]
-  })
-
-  jq_rules = [
-    ".age >= 18",
-    ".age <= 65"
-  ]
-}
-
-# Define a custom attestation type using a schema file
-resource "kosli_attestation_type" "coverage_check" {
+resource "kosli_attestation_type" "example" {
   name        = "coverage-check"
   description = "Validate test coverage meets minimum threshold"
 
-  schema = file("${path.module}/schemas/coverage-schema.json")
+  schema = <<-EOT
+    {
+      "type": "object",
+      "properties": {
+        "line_coverage": {
+          "type": "number"
+        }
+      },
+      "required": ["line_coverage"]
+    }
+  EOT
 
   jq_rules = [
     ".line_coverage >= 80"
   ]
 }
-
-# Reference an existing attestation type
-data "kosli_attestation_type" "security_scan" {
-  name = "security-scan"
-}
 ```
 
-See the [examples](examples/) directory for more detailed configurations.
+**Example configurations:**
+- [Complete examples](examples/kosli_attestation_type/) - Creating, managing, and referencing attestation types
 
 ## Documentation
 
