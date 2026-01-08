@@ -56,7 +56,7 @@ resource "kosli_attestation_type" "example" {
 - Accept `jq_rules` in Terraform schema
 - Transform to `evaluator` object when calling API:
   ```go
-  evaluator := map[string]interface{}{
+  evaluator := map[string]any{
     "content_type": "jq",
     "rules": jqRules,
   }
