@@ -220,24 +220,19 @@ func NewClient(apiToken, organization string, opts ...ClientOption) (*Client, er
 	// Compute full API URL
 	client.apiURL = client.baseURL + client.apiPath
 
-	// Apply options (before retry policy to set timeout first)
+	// Store the original http client to detect if it was replaced
+	originalClient := client.httpClient
+
+	// Apply user options first
 	for _, opt := range opts {
 		if err := opt(client); err != nil {
 			return nil, fmt.Errorf("failed to apply option: %w", err)
 		}
 	}
 
-	// If no retry policy was explicitly set, apply default retry policy
-	hasRetry := false
-	for _, opt := range opts {
-		// Check if WithRetryPolicy was called by attempting to apply it with dummy values
-		// This is a bit of a hack but works for now
-		if fmt.Sprintf("%v", opt) != "" {
-			hasRetry = true
-		}
-	}
-	if !hasRetry {
-		// Apply default retry policy
+	// If the user provided a custom HTTP client (via WithHTTPClient), don't apply retry
+	// Otherwise, apply default retry policy
+	if client.httpClient == originalClient {
 		if err := WithRetryPolicy(DefaultRetryMax, DefaultRetryWaitMin, DefaultRetryWaitMax)(client); err != nil {
 			return nil, fmt.Errorf("failed to apply default retry policy: %w", err)
 		}

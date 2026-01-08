@@ -82,14 +82,33 @@ func TestNewClient_ValidationErrors(t *testing.T) {
 // TestNewClient_WithOptions tests applying client options.
 func TestNewClient_WithOptions(t *testing.T) {
 	t.Run("with timeout", func(t *testing.T) {
-		timeout := 60 * time.Second
-		client, err := NewClient("test-token", "test-org", WithTimeout(timeout))
+		// Create a server that delays response
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(200 * time.Millisecond)
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer server.Close()
+
+		// Set a very short timeout
+		timeout := 50 * time.Millisecond
+		client, err := NewClient("test-token", "test-org",
+			WithBaseURL(server.URL),
+			WithAPIPath(""),
+			WithTimeout(timeout),
+		)
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		if client.httpClient.Timeout != timeout {
-			t.Errorf("expected timeout %v, got %v", timeout, client.httpClient.Timeout)
+		// Request should timeout
+		_, err = client.Get(context.Background(), "/test")
+		if err == nil {
+			t.Fatal("expected timeout error, got nil")
+		}
+
+		// Error should contain timeout or deadline exceeded
+		if !strings.Contains(err.Error(), "timeout") && !strings.Contains(err.Error(), "deadline") && !strings.Contains(err.Error(), "context deadline exceeded") {
+			t.Errorf("expected timeout/deadline error, got: %v", err)
 		}
 	})
 
@@ -465,9 +484,12 @@ func TestClient_ErrorHandling(t *testing.T) {
 			}))
 			defer server.Close()
 
+			// Use a plain HTTP client (no retry wrapper) to test direct error responses
+			httpClient := &http.Client{Timeout: 10 * time.Second}
 			client, err := NewClient("test-token", "test-org",
 				WithBaseURL(server.URL),
 				WithAPIPath(""),
+				WithHTTPClient(httpClient), // This prevents the default retry policy from being applied
 			)
 			if err != nil {
 				t.Fatalf("failed to create client: %v", err)
