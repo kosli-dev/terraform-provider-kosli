@@ -1,9 +1,11 @@
-# ADR 001: Terraform Schema Design for Kosli Attestation Types API
-
-**Status:** In Review
-**Date:** 2025-01-07
-
 ---
+title: "ADR 001: Terraform Schema Design for Kosli Attestation Types API"
+description: "Deciding on the Terraform schema design for managing Kosli Attestation Types via the Kosli API."
+status: "Accepted"
+date: "2025-01-07"
+---
+
+# ADR 001: Terraform Schema Design for Kosli Attestation Types API
 
 ## Context
 
