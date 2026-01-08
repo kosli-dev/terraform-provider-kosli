@@ -93,3 +93,51 @@ output "existing_type_description" {
 output "existing_type_jq_rules" {
   value = data.kosli_attestation_type.existing_type.jq_rules
 }
+
+# Example 5: Schema as a data source (type-safe, reusable approach)
+# This follows AWS provider patterns for IAM policies and other structured data
+data "kosli_attestation_schema" "reusable_coverage_schema" {
+  type = "object"
+  properties = {
+    line_coverage = {
+      type    = "number"
+      minimum = 0
+      maximum = 100
+    }
+    branch_coverage = {
+      type    = "number"
+      minimum = 0
+      maximum = 100
+    }
+    total_lines = {
+      type = "integer"
+    }
+    covered_lines = {
+      type = "integer"
+    }
+  }
+  required = ["line_coverage", "total_lines", "covered_lines"]
+}
+
+resource "kosli_attestation_type" "coverage_with_data_source" {
+  name        = "coverage-check-typed"
+  description = "Type-safe coverage check using schema data source"
+  schema      = data.kosli_attestation_schema.reusable_coverage_schema.json
+
+  jq_rules = [
+    ".line_coverage >= 80",
+    ".branch_coverage >= 70"
+  ]
+}
+
+# The schema data source can be reused across multiple attestation types
+resource "kosli_attestation_type" "strict_coverage_check" {
+  name        = "strict-coverage-check"
+  description = "Stricter coverage requirements using the same schema"
+  schema      = data.kosli_attestation_schema.reusable_coverage_schema.json
+
+  jq_rules = [
+    ".line_coverage >= 90",
+    ".branch_coverage >= 85"
+  ]
+}
