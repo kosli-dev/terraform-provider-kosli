@@ -424,8 +424,40 @@ func (c *Client) CreateCustomAttestationType(ctx context.Context, req *transform
 **Testing Date**: 2026-01-09
 
 The POST `/custom-attestation-types/{org}` endpoint returns:
-- **Status Code**: `201 Created`
+- **Status Code**: `201 Created` (always, even for duplicates)
 - **Response Body**: `"OK"` (string literal)
+
+### Idempotent/Versioning Behavior
+
+The API uses an **idempotent versioning pattern**:
+- POSTing with the same name **always succeeds** (returns 201)
+- No 409 Conflict errors for duplicate names
+- A new **version** is created **only when the payload changes** (description, schema, or evaluator rules)
+- Identical POSTs are truly idempotent (do NOT create new versions)
+- The API maintains a version history (accessible via GET with `?version=N` parameter)
+
+**Tested Behavior (2026-01-10):**
+```bash
+# First POST - creates version 1
+POST /custom-attestation-types/org {"name": "test", "description": "v1", ...} → 201 "OK"
+
+# Second POST with IDENTICAL payload - idempotent, no new version
+POST /custom-attestation-types/org {"name": "test", "description": "v1", ...} → 201 "OK"
+GET /custom-attestation-types/org/test → {"version_count": 1}
+
+# Third POST with CHANGED payload - creates version 2
+POST /custom-attestation-types/org {"name": "test", "description": "v2", ...} → 201 "OK"
+GET /custom-attestation-types/org/test → {"version_count": 2}
+```
+
+**Implications:**
+- ✅ No conflict handling needed in the client
+- ✅ Safe for Terraform (idempotent creates)
+- ✅ Truly idempotent - identical payloads don't create versions
+- ✅ Version history tracks actual changes only
+- ✅ No unnecessary version proliferation from repeated identical POSTs
+
+### Response Format
 
 This means:
 - The API does not return the created object
