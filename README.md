@@ -140,22 +140,40 @@ Configure the appropriate endpoint based on where your Kosli organization is hos
 
 ## Development
 
-### Building
+### Quick Start
+
+We use **Make** to standardize development workflows:
 
 ```bash
 # Clone and navigate to repository
 git clone https://github.com/kosli-dev/terraform-provider-kosli.git
 cd terraform-provider-kosli
 
+# View available commands
+make help
+
 # Build the provider
-go build -o terraform-provider-kosli
+make build
 
-# Run tests
-go test ./...
+# Run tests with coverage
+make test
 
-# Run acceptance tests (requires KOSLI_API_TOKEN)
-TF_ACC=1 go test -v ./...
+# Install locally for development
+make install
 ```
+
+### Common Development Tasks
+
+```bash
+make fmt          # Format code
+make vet          # Run go vet
+make lint         # Run linter (requires golangci-lint)
+make test         # Run unit tests with coverage
+make testacc      # Run acceptance tests (requires KOSLI_API_TOKEN and KOSLI_ORG)
+make clean        # Remove build artifacts
+```
+
+For detailed development guides, testing procedures, and contribution guidelines, see **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
 ### Project Structure
 
@@ -183,32 +201,25 @@ TF_ACC=1 go test -v ./...
 └── main.go                                  # Provider entry point
 ```
 
-### Testing
-
-The provider includes:
-
-- **Unit Tests**: Test individual resources and data sources
-- **Acceptance Tests**: Integration tests against a test Kosli instance
-- **Documentation Examples**: Verify example configurations work correctly
-
-To run acceptance tests:
-
-```bash
-export KOSLI_API_TOKEN="test-token"
-TF_ACC=1 go test -v -cover ./...
-```
-
 ### Contributing
 
-We welcome contributions! Please:
+We welcome contributions! Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for:
+
+- Development environment setup
+- Building and testing guide
+- Code quality standards
+- Pull request process
+- Project structure overview
+
+**Quick contribution checklist:**
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/your-feature`)
 3. Make your changes and add tests
-4. Ensure tests pass (`go test ./...`)
+4. Run `make fmt && make vet && make test`
 5. Submit a pull request
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+For questions or discussions, see [GitHub Issues](https://github.com/kosli-dev/terraform-provider-kosli/issues) or [Discussions](https://github.com/kosli-dev/terraform-provider-kosli/discussions).
 
 ## Roadmap
 
