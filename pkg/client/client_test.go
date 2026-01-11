@@ -47,10 +47,10 @@ func TestNewClient_Success(t *testing.T) {
 // TestNewClient_ValidationErrors tests validation of required parameters.
 func TestNewClient_ValidationErrors(t *testing.T) {
 	tests := []struct {
-		name         string
-		token        string
-		org          string
-		expectedErr  string
+		name        string
+		token       string
+		org         string
+		expectedErr string
 	}{
 		{
 			name:        "empty token",
