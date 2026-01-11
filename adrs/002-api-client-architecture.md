@@ -1,7 +1,7 @@
 ---
 title: "ADR 002: API Client Architecture and Transformation Layer"
 description: "Deciding on the architecture for the Kosli API client and where to place transformation logic between API format and user-facing format."
-status: "In review"
+status: "Accepted"
 date: "2026-01-09"
 ---
 
@@ -470,6 +470,33 @@ This means:
 Every create operation requires:
 1. **POST** - Create the resource → returns `"OK"`
 2. **GET** - Retrieve the created resource → returns full object
+
+**Request Flow Diagram:**
+
+```mermaid
+sequenceDiagram
+    participant TF as Terraform Provider
+    participant Client as API Client
+    participant API as Kosli API
+
+    Note over TF,API: Resource Creation Flow
+
+    TF->>Client: CreateCustomAttestationType(req)
+    Note over Client: Transform: jq_rules → evaluator
+    Client->>API: POST /custom-attestation-types/{org}
+    Note over API: Create resource<br/>(or version if exists)
+    API-->>Client: 201 Created "OK"
+    Client-->>TF: error (nil if success)
+
+    Note over TF: Need full state for Terraform
+    TF->>Client: GetCustomAttestationType(name)
+    Client->>API: GET /custom-attestation-types/{org}/{name}
+    API-->>Client: 200 OK {name, schema, evaluator, ...}
+    Note over Client: Transform: evaluator → jq_rules
+    Client-->>TF: CustomAttestationType{JqRules, ...}
+
+    Note over TF: Set Terraform state
+```
 
 **Impact Assessment:**
 
