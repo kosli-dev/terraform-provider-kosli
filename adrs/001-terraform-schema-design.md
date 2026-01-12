@@ -41,7 +41,7 @@ We need to decide how to represent this in the Terraform provider schema - wheth
 
 **Terraform Schema:**
 ```hcl
-resource "kosli_attestation_type" "example" {
+resource "kosli_custom_attestation_type" "example" {
   name        = "person-over-21"
   description = "A person that is over 21 year"
   schema      = <<-EOT {...} EOT
@@ -76,7 +76,7 @@ resource "kosli_attestation_type" "example" {
 
 **Terraform Schema:**
 ```hcl
-resource "kosli_attestation_type" "example" {
+resource "kosli_custom_attestation_type" "example" {
   name        = "person-over-21"
   description = "A person that is over 21 year"
   schema      = <<-EOT {...} EOT
@@ -144,7 +144,7 @@ resource "kosli_attestation_type" "example" {
 ### Provider Schema
 
 ```hcl
-resource "kosli_attestation_type" "example" {
+resource "kosli_custom_attestation_type" "example" {
   name        = "person-over-21"
   description = "A person that is over 21 year"
   schema      = <<-EOT {...} EOT
@@ -179,7 +179,7 @@ The `schema` attribute accepts a JSON Schema string, which can be provided in mu
 
 #### 1. Inline Heredoc (Recommended for simple schemas)
 ```hcl
-resource "kosli_attestation_type" "example" {
+resource "kosli_custom_attestation_type" "example" {
   schema = <<-EOT
     {
       "type": "object",
@@ -192,7 +192,7 @@ resource "kosli_attestation_type" "example" {
 
 #### 2. External File (Recommended for complex schemas)
 ```hcl
-resource "kosli_attestation_type" "example" {
+resource "kosli_custom_attestation_type" "example" {
   schema = file("${path.module}/schemas/coverage-schema.json")
 }
 ```
@@ -219,7 +219,7 @@ data "kosli_attestation_schema" "coverage_schema" {
   required = ["line_coverage"]
 }
 
-resource "kosli_attestation_type" "coverage_check" {
+resource "kosli_custom_attestation_type" "coverage_check" {
   name        = "coverage-check"
   description = "Validate test coverage"
   schema      = data.kosli_attestation_schema.coverage_schema.json

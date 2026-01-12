@@ -45,7 +45,7 @@ provider "kosli" {
 Here's a minimal example to get started. For complete examples with variables and multiple use cases, see the [examples](examples/) directory.
 
 ```hcl
-resource "kosli_attestation_type" "example" {
+resource "kosli_custom_attestation_type" "example" {
   name        = "coverage-check"
   description = "Validate test coverage meets minimum threshold"
 
@@ -68,7 +68,7 @@ resource "kosli_attestation_type" "example" {
 ```
 
 **Example configurations:**
-- [Complete examples](examples/kosli_attestation_type/) - Creating, managing, and referencing attestation types
+- [Complete examples](examples/kosli_custom_attestation_type/) - Creating, managing, and referencing attestation types
 
 ## Documentation
 
@@ -93,10 +93,10 @@ For more details on attestation types, see the [Kosli documentation](https://doc
 ## Supported Resources
 
 ### Resources
-- `kosli_attestation_type` - Create and manage custom attestation types
+- `kosli_custom_attestation_type` - Create and manage custom attestation types
 
 ### Data Sources
-- `kosli_attestation_type` - Reference existing attestation types
+- `kosli_custom_attestation_type` - Reference existing attestation types
 
 *Additional resources will be added as the provider matures.*
 

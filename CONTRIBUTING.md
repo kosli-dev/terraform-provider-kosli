@@ -209,7 +209,7 @@ provider "kosli" {
   org       = var.kosli_org_name
 }
 
-resource "kosli_attestation_type" "test" {
+resource "kosli_custom_attestation_type" "test" {
   name        = "test-type"
   description = "Testing local provider"
 
