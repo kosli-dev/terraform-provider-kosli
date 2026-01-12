@@ -14,7 +14,7 @@ provider "kosli" {
 }
 
 # Example 1: Define a custom attestation type with inline schema using heredoc
-resource "kosli_attestation_type" "age_verification" {
+resource "kosli_custom_attestation_type" "age_verification" {
   name        = "age-verification"
   description = "Verify person meets age requirements"
 
@@ -40,7 +40,7 @@ resource "kosli_attestation_type" "age_verification" {
 }
 
 # Example 2: Define a custom attestation type using a schema file
-resource "kosli_attestation_type" "coverage_check" {
+resource "kosli_custom_attestation_type" "coverage_check" {
   name        = "coverage-check"
   description = "Validate test coverage meets minimum threshold"
 
@@ -52,7 +52,7 @@ resource "kosli_attestation_type" "coverage_check" {
 }
 
 # Example 3: Security scan attestation type with inline JSON
-resource "kosli_attestation_type" "security_scan" {
+resource "kosli_custom_attestation_type" "security_scan" {
   name        = "security-scan"
   description = "Validate security scan results"
 
@@ -81,17 +81,17 @@ resource "kosli_attestation_type" "security_scan" {
 }
 
 # Example 4: Reference an existing attestation type using a data source
-data "kosli_attestation_type" "existing_type" {
+data "kosli_custom_attestation_type" "existing_type" {
   name = "security-scan"
 }
 
 # Use the data source attributes
 output "existing_type_description" {
-  value = data.kosli_attestation_type.existing_type.description
+  value = data.kosli_custom_attestation_type.existing_type.description
 }
 
 output "existing_type_jq_rules" {
-  value = data.kosli_attestation_type.existing_type.jq_rules
+  value = data.kosli_custom_attestation_type.existing_type.jq_rules
 }
 
 # Example 5: Schema as a data source (type-safe, reusable approach)
@@ -119,7 +119,7 @@ data "kosli_attestation_schema" "reusable_coverage_schema" {
   required = ["line_coverage", "total_lines", "covered_lines"]
 }
 
-resource "kosli_attestation_type" "coverage_with_data_source" {
+resource "kosli_custom_attestation_type" "coverage_with_data_source" {
   name        = "coverage-check-typed"
   description = "Type-safe coverage check using schema data source"
   schema      = data.kosli_attestation_schema.reusable_coverage_schema.json
@@ -131,7 +131,7 @@ resource "kosli_attestation_type" "coverage_with_data_source" {
 }
 
 # The schema data source can be reused across multiple attestation types
-resource "kosli_attestation_type" "strict_coverage_check" {
+resource "kosli_custom_attestation_type" "strict_coverage_check" {
   name        = "strict-coverage-check"
   description = "Stricter coverage requirements using the same schema"
   schema      = data.kosli_attestation_schema.reusable_coverage_schema.json

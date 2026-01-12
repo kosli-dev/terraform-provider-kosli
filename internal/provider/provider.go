@@ -144,7 +144,7 @@ func (p *KosliProvider) Configure(ctx context.Context, req provider.ConfigureReq
 // Resources defines the resources implemented in the provider.
 func (p *KosliProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		// Custom attestation type resource will be added in issue #15
+		NewCustomAttestationTypeResource,
 	}
 }
 
