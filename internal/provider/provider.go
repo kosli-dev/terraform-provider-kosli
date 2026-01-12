@@ -151,7 +151,7 @@ func (p *KosliProvider) Resources(ctx context.Context) []func() resource.Resourc
 // DataSources defines the data sources implemented in the provider.
 func (p *KosliProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		// Custom attestation type data source will be added in issue #16
+		NewCustomAttestationTypeDataSource,
 	}
 }
 
