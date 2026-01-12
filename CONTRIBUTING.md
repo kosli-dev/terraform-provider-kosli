@@ -350,6 +350,42 @@ When implementing Terraform resources:
 4. Add acceptance tests
 5. Update examples and documentation
 
+### Example Development
+
+When adding or updating Terraform examples in the `examples/` directory:
+
+1. **Follow the standard structure:**
+   - `examples/resources/<resource_name>/` - Resource usage examples
+   - `examples/data-sources/<data_source_name>/` - Data source examples
+   - `examples/complete/` - Comprehensive examples with multiple resources
+
+2. **Include a README.md** for each example explaining:
+   - What the example demonstrates
+   - Prerequisites (API tokens, organization setup)
+   - How to run the example
+   - Expected outcomes
+
+3. **Validate all examples** before committing:
+   ```bash
+   terraform validate examples/resources/kosli_custom_attestation_type/
+   terraform validate examples/data-sources/kosli_custom_attestation_type/
+   terraform validate examples/complete/
+   ```
+
+4. **Example requirements:**
+   - Must include `terraform.tfvars.example` for any required variables
+   - Should demonstrate best practices (schema definition methods, error handling)
+   - Must be syntactically correct and pass `terraform validate`
+   - Should include comments explaining non-obvious configuration
+
+5. **Testing examples locally:**
+   - Set up provider development overrides in `~/.terraformrc`
+   - Skip `terraform init` (use dev overrides)
+   - Run `terraform plan` to verify configuration
+   - For complete testing: `terraform apply` (requires valid Kosli credentials)
+
+**Note:** The CI pipeline automatically validates all examples on every PR to ensure they remain correct as the provider evolves.
+
 ### Running Tests During Development
 
 Keep tests running in watch mode (requires external tool like `watchexec`):

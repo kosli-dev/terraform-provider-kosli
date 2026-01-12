@@ -1,0 +1,31 @@
+{
+  "type": "object",
+  "properties": {
+    "response_time_p50": {
+      "type": "number",
+      "minimum": 0
+    },
+    "response_time_p95": {
+      "type": "number",
+      "minimum": 0
+    },
+    "response_time_p99": {
+      "type": "number",
+      "minimum": 0
+    },
+    "throughput": {
+      "type": "number",
+      "minimum": 0
+    },
+    "error_rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "test_duration_seconds": {
+      "type": "integer",
+      "minimum": 1
+    }
+  },
+  "required": ["response_time_p95", "error_rate", "test_duration_seconds"]
+}
