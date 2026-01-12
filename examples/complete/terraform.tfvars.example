@@ -1,0 +1,8 @@
+# Copy this file to terraform.tfvars and fill in your values
+# DO NOT commit terraform.tfvars to version control
+
+kosli_api_token = "your-kosli-api-token-here"
+kosli_org       = "your-organization-name"
+
+# Optional: Specify US region endpoint
+# kosli_api_url = "https://app.us.kosli.com"
