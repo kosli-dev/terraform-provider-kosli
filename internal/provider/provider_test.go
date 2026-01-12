@@ -195,7 +195,7 @@ func TestGetConfigValue(t *testing.T) {
 			}
 
 			// Create a types.String value
-			var configValue interface{}
+			var configValue any
 			if tt.configVal != "" {
 				// We can't easily create types.String in tests without Terraform context
 				// This is tested implicitly through integration tests

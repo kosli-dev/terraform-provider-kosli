@@ -1,0 +1,65 @@
+# Schema: https://golangci-lint.run/jsonschema/golangci.jsonschema.json
+
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+
+linters:
+  enable:
+    - errcheck      # Check for unchecked errors
+    - govet         # Go vet analysis
+    - ineffassign   # Detect ineffectual assignments
+    - misspell      # Spell checker
+    - staticcheck   # Static analysis
+    - unused        # Detect unused code
+
+  settings:
+    errcheck:
+      # Report errors in type assertions: `a := b.(MyStruct)`
+      check-type-assertions: false
+      # Report errors in blank assignments: `num, _ := strconv.Atoi(numStr)`
+      check-blank: false
+      # List of functions to exclude from checking
+      exclude-functions:
+        # Deferred Body.Close() errors are typically not actionable
+        - (io.Closer).Close
+        # Test helper writes don't need error checking in tests
+        - (io.Writer).Write
+        - (*os.File).Close
+
+    staticcheck:
+      checks: ["-ST1005"]  # Ignore capitalized error strings
+
+  exclusions:
+    rules:
+      # Exclude errcheck for test files entirely
+      - path: '.*_test\.go$'
+        linters:
+          - errcheck
+          - unused
+
+formatters:
+  enable:
+    - gofmt         # Check code formatting
+
+  settings:
+    gofmt:
+      # Simplify code: gofmt with `-s` option.
+      # Default: true
+      simplify: false
+
+      # Apply the rewrite rules to the source before reformatting.
+      # https://pkg.go.dev/cmd/gofmt
+      # Default: []
+      rewrite-rules:
+        - pattern: 'interface{}'
+          replacement: 'any'
+
+issues:
+  # Maximum issues count per one linter
+  max-issues-per-linter: 0
+  # Maximum count of issues with the same text
+  max-same-issues: 0
