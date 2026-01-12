@@ -59,3 +59,40 @@ jobs:
             exit 1
           fi
           echo "Binary built successfully"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.0"
+          terraform_wrapper: false
+
+      - name: Install provider for example validation
+        run: |
+          # Install the built provider to local Terraform plugins directory
+          make install
+          echo "Provider installed to local plugins directory"
+
+      - name: Validate examples
+        run: |
+          echo "Validating Terraform examples..."
+
+          # Find all example directories containing .tf files
+          EXAMPLE_DIRS=$(find examples -type f -name "*.tf" -exec dirname {} \; | sort -u)
+
+          if [ -z "$EXAMPLE_DIRS" ]; then
+            echo "No example directories found"
+            exit 1
+          fi
+
+          # Validate each example directory
+          for dir in $EXAMPLE_DIRS; do
+            echo "Validating $dir..."
+            (cd "$dir" && terraform init -backend=false && terraform validate)
+            if [ $? -ne 0 ]; then
+              echo "Validation failed for $dir"
+              exit 1
+            fi
+            echo "✓ $dir validated successfully"
+          done
+
+          echo "All examples validated successfully"
