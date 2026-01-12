@@ -14,6 +14,14 @@ import (
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
 
+const (
+	// DefaultAPIURL is the default Kosli API URL (EU region).
+	DefaultAPIURL = "https://app.kosli.com"
+
+	// DefaultTimeout is the default HTTP timeout in seconds.
+	DefaultTimeout = 30
+)
+
 // Ensure KosliProvider satisfies various provider interfaces.
 var _ provider.Provider = &KosliProvider{}
 
@@ -80,7 +88,7 @@ func (p *KosliProvider) Configure(ctx context.Context, req provider.ConfigureReq
 
 	// Set default API URL if not provided
 	if apiURL == "" {
-		apiURL = "https://app.kosli.com"
+		apiURL = DefaultAPIURL
 	}
 
 	// Validate required fields
@@ -103,7 +111,7 @@ func (p *KosliProvider) Configure(ctx context.Context, req provider.ConfigureReq
 	}
 
 	// Determine timeout
-	timeout := 30 * time.Second
+	timeout := DefaultTimeout * time.Second
 	if !config.Timeout.IsNull() {
 		timeout = time.Duration(config.Timeout.ValueInt64()) * time.Second
 	}
@@ -112,7 +120,7 @@ func (p *KosliProvider) Configure(ctx context.Context, req provider.ConfigureReq
 	var opts []client.ClientOption
 
 	// Set base URL if not default
-	if apiURL != "https://app.kosli.com" {
+	if apiURL != DefaultAPIURL {
 		opts = append(opts, client.WithBaseURL(apiURL))
 	}
 
