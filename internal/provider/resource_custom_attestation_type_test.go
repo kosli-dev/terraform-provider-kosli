@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -16,7 +17,7 @@ func TestCustomAttestationTypeResource_Metadata(t *testing.T) {
 	}
 	resp := &resource.MetadataResponse{}
 
-	r.Metadata(nil, req, resp)
+	r.Metadata(context.TODO(), req, resp)
 
 	expectedTypeName := "kosli_custom_attestation_type"
 	if resp.TypeName != expectedTypeName {
@@ -30,7 +31,7 @@ func TestCustomAttestationTypeResource_Schema(t *testing.T) {
 	req := resource.SchemaRequest{}
 	resp := &resource.SchemaResponse{}
 
-	r.Schema(nil, req, resp)
+	r.Schema(context.TODO(), req, resp)
 
 	// Verify schema has description
 	if resp.Schema.MarkdownDescription == "" {
@@ -92,7 +93,7 @@ func TestCustomAttestationTypeResource_Configure(t *testing.T) {
 	}
 	resp := &resource.ConfigureResponse{}
 
-	r.Configure(nil, req, resp)
+	r.Configure(context.TODO(), req, resp)
 
 	if resp.Diagnostics.HasError() {
 		t.Error("Expected no errors when provider data is nil")
@@ -112,7 +113,7 @@ func TestCustomAttestationTypeResource_Configure_WrongType(t *testing.T) {
 	}
 	resp := &resource.ConfigureResponse{}
 
-	r.Configure(nil, req, resp)
+	r.Configure(context.TODO(), req, resp)
 
 	if !resp.Diagnostics.HasError() {
 		t.Error("Expected error when provider data is wrong type")
