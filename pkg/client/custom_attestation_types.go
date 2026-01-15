@@ -12,15 +12,24 @@ import (
 )
 
 // CustomAttestationType represents a custom attestation type in Kosli.
-// Contains both API format (Evaluator) and user-facing format (JqRules).
+// Contains both API format (Versions) and user-facing format (Schema, JqRules).
 type CustomAttestationType struct {
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	Schema      string     `json:"schema"`
-	JqRules     []string   `json:"-"`         // User-facing (not serialized)
-	Evaluator   *Evaluator `json:"evaluator"` // API format (for transformation)
-	Archived    bool       `json:"archived"`
-	Org         string     `json:"org"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Schema      string    `json:"-"`        // User-facing (extracted from latest version)
+	JqRules     []string  `json:"-"`        // User-facing (extracted from latest version)
+	Versions    []Version `json:"versions"` // API format (contains schema and evaluator)
+	Archived    bool      `json:"archived"`
+	Org         string    `json:"org"`
+}
+
+// Version represents a version of a custom attestation type.
+type Version struct {
+	Version    int        `json:"version"`
+	Timestamp  float64    `json:"timestamp"`
+	TypeSchema string     `json:"type_schema"`
+	Evaluator  *Evaluator `json:"evaluator"`
+	CreatedBy  string     `json:"created_by"`
 }
 
 // Evaluator represents the API's evaluator structure.
@@ -55,10 +64,21 @@ func (req *CreateCustomAttestationTypeRequest) toAPIFormat() map[string]any {
 }
 
 // fromAPIFormat converts API response to user-facing format.
+// Extracts schema and jq_rules from the latest version in the versions array.
 func (at *CustomAttestationType) fromAPIFormat() {
-	if at.Evaluator != nil && at.Evaluator.ContentType == "jq" {
-		at.JqRules = at.Evaluator.Rules
-		at.Evaluator = nil // Clear API field after transformation
+	// Get the latest version (first element in the array - newest is first)
+	if len(at.Versions) > 0 {
+		latestVersion := at.Versions[0]
+
+		// Extract schema as-is from API
+		// jsontypes.Normalized in the Terraform provider handles semantic equality,
+		// so we don't need to normalize the format here
+		at.Schema = latestVersion.TypeSchema
+
+		// Extract jq_rules from evaluator
+		if latestVersion.Evaluator != nil && latestVersion.Evaluator.ContentType == "jq" {
+			at.JqRules = latestVersion.Evaluator.Rules
+		}
 	}
 }
 

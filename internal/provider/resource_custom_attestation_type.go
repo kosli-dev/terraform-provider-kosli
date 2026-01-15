@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -29,12 +30,12 @@ type customAttestationTypeResource struct {
 
 // customAttestationTypeResourceModel describes the resource data model.
 type customAttestationTypeResourceModel struct {
-	Name        types.String `tfsdk:"name"`
-	Description types.String `tfsdk:"description"`
-	Schema      types.String `tfsdk:"schema"`
-	JqRules     types.List   `tfsdk:"jq_rules"`
-	Archived    types.Bool   `tfsdk:"archived"`
-	Org         types.String `tfsdk:"org"`
+	Name        types.String         `tfsdk:"name"`
+	Description types.String         `tfsdk:"description"`
+	Schema      jsontypes.Normalized `tfsdk:"schema"`
+	JqRules     types.List           `tfsdk:"jq_rules"`
+	Archived    types.Bool           `tfsdk:"archived"`
+	Org         types.String         `tfsdk:"org"`
 }
 
 // Metadata returns the resource type name.
@@ -60,8 +61,9 @@ func (r *customAttestationTypeResource) Schema(ctx context.Context, req resource
 				Optional:            true,
 			},
 			"schema": schema.StringAttribute{
-				MarkdownDescription: "JSON Schema definition that defines the structure of attestation data. Can be provided inline using heredoc syntax or loaded from a file using `file()`.",
+				MarkdownDescription: "JSON Schema definition that defines the structure of attestation data. Can be provided inline using heredoc syntax or loaded from a file using `file()`. Semantic equality is used for comparison, so formatting differences are ignored.",
 				Required:            true,
+				CustomType:          jsontypes.NormalizedType{},
 			},
 			"jq_rules": schema.ListAttribute{
 				MarkdownDescription: "List of jq evaluation rules. Each rule is a jq expression that must evaluate to true for the attestation to be considered compliant. Example: `[\".coverage >= 80\"]`",
@@ -116,6 +118,7 @@ func (r *customAttestationTypeResource) Create(ctx context.Context, req resource
 	}
 
 	// Create API request
+	// jsontypes.Normalized handles semantic equality, so we send schema as-is
 	createReq := &client.CreateCustomAttestationTypeRequest{
 		Name:        data.Name.ValueString(),
 		Description: data.Description.ValueString(),
@@ -144,7 +147,7 @@ func (r *customAttestationTypeResource) Create(ctx context.Context, req resource
 
 	// Map API response to Terraform state
 	data.Description = types.StringValue(attestationType.Description)
-	data.Schema = types.StringValue(attestationType.Schema)
+	data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
 	data.Archived = types.BoolValue(attestationType.Archived)
 	data.Org = types.StringValue(attestationType.Org)
 
@@ -182,7 +185,7 @@ func (r *customAttestationTypeResource) Read(ctx context.Context, req resource.R
 
 	// Map API response to Terraform state
 	data.Description = types.StringValue(attestationType.Description)
-	data.Schema = types.StringValue(attestationType.Schema)
+	data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
 	data.Archived = types.BoolValue(attestationType.Archived)
 	data.Org = types.StringValue(attestationType.Org)
 
@@ -217,6 +220,7 @@ func (r *customAttestationTypeResource) Update(ctx context.Context, req resource
 	}
 
 	// Create API request (updates create a new version)
+	// jsontypes.Normalized handles semantic equality, so we send schema as-is
 	createReq := &client.CreateCustomAttestationTypeRequest{
 		Name:        data.Name.ValueString(),
 		Description: data.Description.ValueString(),
@@ -245,7 +249,7 @@ func (r *customAttestationTypeResource) Update(ctx context.Context, req resource
 
 	// Map API response to Terraform state
 	data.Description = types.StringValue(attestationType.Description)
-	data.Schema = types.StringValue(attestationType.Schema)
+	data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
 	data.Archived = types.BoolValue(attestationType.Archived)
 	data.Org = types.StringValue(attestationType.Org)
 
