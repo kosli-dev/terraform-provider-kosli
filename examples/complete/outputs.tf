@@ -5,10 +5,9 @@ output "security_scan_name" {
   value       = kosli_custom_attestation_type.security_scan.name
 }
 
-output "security_scan_org" {
-  description = "Organization of the security scan attestation type"
-  value       = kosli_custom_attestation_type.security_scan.org
-}
+# Note: The 'org' field was removed from the resource schema per ADR-003.
+# Organization context is configured at the provider level, not per-resource.
+# If you need the organization name, reference the provider configuration directly.
 
 output "code_coverage_rules" {
   description = "JQ rules for code coverage attestation type"
