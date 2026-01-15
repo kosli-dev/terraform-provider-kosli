@@ -397,17 +397,19 @@ func TestListCustomAttestationTypes_Success(t *testing.T) {
 		t.Fatalf("expected 2 items, got %d", len(result))
 	}
 
-	// Verify transformation for first item (JSON normalization compacts the output)
-	if result[0].Schema != `{"properties":{"x":{"type":"number"}},"type":"object"}` {
-		t.Errorf("expected first item schema, got %s", result[0].Schema)
+	// Verify transformation for first item (schema is preserved as-is from API)
+	expectedSchema1 := `{"type":"object","properties":{"x":{"type":"number"}}}`
+	if result[0].Schema != expectedSchema1 {
+		t.Errorf("expected first item schema %s, got %s", expectedSchema1, result[0].Schema)
 	}
 	if len(result[0].JqRules) != 1 || result[0].JqRules[0] != ".x > 0" {
 		t.Errorf("expected first item jq_rules ['.x > 0'], got %v", result[0].JqRules)
 	}
 
-	// Verify transformation for second item (JSON normalization compacts the output)
-	if result[1].Schema != `{"properties":{"y":{"type":"number"}},"type":"object"}` {
-		t.Errorf("expected second item schema, got %s", result[1].Schema)
+	// Verify transformation for second item (schema is preserved as-is from API)
+	expectedSchema2 := `{"type":"object","properties":{"y":{"type":"number"}}}`
+	if result[1].Schema != expectedSchema2 {
+		t.Errorf("expected second item schema %s, got %s", expectedSchema2, result[1].Schema)
 	}
 	if len(result[1].JqRules) != 1 || result[1].JqRules[0] != ".y > 0" {
 		t.Errorf("expected second item jq_rules ['.y > 0'], got %v", result[1].JqRules)
@@ -569,9 +571,9 @@ func TestTransformation_FromAPIFormat(t *testing.T) {
 
 	at.fromAPIFormat()
 
-	// Verify schema extraction and normalization (JSON gets compacted)
-	if at.Schema != `{"type":"object"}` {
-		t.Errorf("expected schema to be normalized, got %s", at.Schema)
+	// Verify schema extraction (preserved as-is from API)
+	if at.Schema != `{"type": "object"}` {
+		t.Errorf("expected schema to be preserved as-is, got %s", at.Schema)
 	}
 
 	// Verify jq_rules extraction
@@ -605,9 +607,9 @@ func TestTransformation_FromAPIFormat_NonJQ(t *testing.T) {
 
 	at.fromAPIFormat()
 
-	// Verify schema is still extracted and normalized even for non-jq types
-	if at.Schema != `{"type":"object"}` {
-		t.Errorf("expected schema to be normalized, got %s", at.Schema)
+	// Verify schema is extracted as-is even for non-jq types
+	if at.Schema != `{"type": "object"}` {
+		t.Errorf("expected schema to be preserved as-is, got %s", at.Schema)
 	}
 
 	// Verify no jq_rules for non-jq types
@@ -616,16 +618,17 @@ func TestTransformation_FromAPIFormat_NonJQ(t *testing.T) {
 	}
 }
 
-// TestTransformation_PythonStyleSchema tests schema normalization from Python dict notation
+// TestTransformation_PythonStyleSchema tests that schema is preserved as-is from API
 func TestTransformation_PythonStyleSchema(t *testing.T) {
-	// This tests the actual API behavior - it returns Python-style dict notation with single quotes
+	// This tests that we preserve whatever format the API returns
+	// The API may return Python-style dict notation with single quotes
 	at := &CustomAttestationType{
 		Name:        "test-type",
 		Description: "test description",
 		Versions: []Version{
 			{
 				Version: 1,
-				// Python-style dict notation with single quotes (what the API actually returns)
+				// Python-style dict notation with single quotes (what the API might return)
 				TypeSchema: `{'type': 'object', 'properties': {'x': {'type': 'number'}}}`,
 				Evaluator: &Evaluator{
 					ContentType: "jq",
@@ -637,10 +640,10 @@ func TestTransformation_PythonStyleSchema(t *testing.T) {
 
 	at.fromAPIFormat()
 
-	// Should be normalized to proper JSON with double quotes
-	expected := `{"properties":{"x":{"type":"number"}},"type":"object"}`
+	// Schema is preserved as-is from API - jsontypes.Normalized in Terraform handles semantic equality
+	expected := `{'type': 'object', 'properties': {'x': {'type': 'number'}}}`
 	if at.Schema != expected {
-		t.Errorf("expected normalized schema %s, got %s", expected, at.Schema)
+		t.Errorf("expected schema to be preserved as-is %s, got %s", expected, at.Schema)
 	}
 }
 

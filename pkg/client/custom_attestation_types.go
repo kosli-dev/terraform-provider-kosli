@@ -9,7 +9,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	"strings"
 )
 
 // CustomAttestationType represents a custom attestation type in Kosli.
@@ -71,53 +70,16 @@ func (at *CustomAttestationType) fromAPIFormat() {
 	if len(at.Versions) > 0 {
 		latestVersion := at.Versions[0]
 
-		// Extract and normalize schema
-		// The API returns Python-style dict notation with single quotes,
-		// but we need proper JSON with double quotes for Terraform consistency
-		at.Schema = normalizeJSONSchema(latestVersion.TypeSchema)
+		// Extract schema as-is from API
+		// jsontypes.Normalized in the Terraform provider handles semantic equality,
+		// so we don't need to normalize the format here
+		at.Schema = latestVersion.TypeSchema
 
 		// Extract jq_rules from evaluator
 		if latestVersion.Evaluator != nil && latestVersion.Evaluator.ContentType == "jq" {
 			at.JqRules = latestVersion.Evaluator.Rules
 		}
 	}
-}
-
-// normalizeJSONSchema converts Python-style dict notation (single quotes)
-// to proper JSON (double quotes) to ensure Terraform state consistency.
-func normalizeJSONSchema(schema string) string {
-	if schema == "" {
-		return schema
-	}
-
-	// Parse the Python-style JSON (which uses single quotes) and re-marshal
-	// to get proper JSON with double quotes
-	var data any
-
-	// Replace single quotes with double quotes for JSON parsing
-	// This handles the API's Python dict notation: {'key': 'value'}
-	normalized := schema
-
-	// Try to parse as-is first (in case it's already valid JSON)
-	if err := json.Unmarshal([]byte(normalized), &data); err != nil {
-		// If parsing fails, try converting single quotes to double quotes
-		// This is a simple approach that works for the schema format returned by the API
-		normalized = strings.ReplaceAll(normalized, "'", "\"")
-
-		// Try parsing again
-		if err := json.Unmarshal([]byte(normalized), &data); err != nil {
-			// If it still fails, return original (best effort)
-			return schema
-		}
-	}
-
-	// Re-marshal to get consistent formatting
-	result, err := json.Marshal(data)
-	if err != nil {
-		return schema
-	}
-
-	return string(result)
 }
 
 // createMultipartRequest builds multipart/form-data request for POST.
