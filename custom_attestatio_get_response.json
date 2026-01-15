@@ -1,0 +1,21 @@
+{
+  "name": "code-coverage",
+  "description": "Validates code coverage metrics",
+  "archived": false,
+  "versions": [
+    {
+      "version": 1,
+      "timestamp": 1768247330.112509,
+      "type_schema": "{'type': 'object', 'properties': {'line_coverage': {'type': 'number', 'minimum': 0, 'maximum': 100}, 'branch_coverage': {'type': 'number', 'minimum': 0, 'maximum': 100}, 'total_lines': {'type': 'integer'}, 'covered_lines': {'type': 'integer'}}, 'required': ['line_coverage', 'total_lines', 'covered_lines']}",
+      "evaluator": {
+        "content_type": "jq",
+        "rules": [
+          ".line_coverage >= 80",
+          ".branch_coverage >= 70"
+        ]
+      },
+      "created_by": "Dan Grøndahl"
+    }
+  ],
+  "org": "dangrondahl"
+}
