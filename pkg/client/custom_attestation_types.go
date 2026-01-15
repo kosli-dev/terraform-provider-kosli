@@ -9,18 +9,28 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 // CustomAttestationType represents a custom attestation type in Kosli.
-// Contains both API format (Evaluator) and user-facing format (JqRules).
+// Contains both API format (Versions) and user-facing format (Schema, JqRules).
 type CustomAttestationType struct {
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	Schema      string     `json:"schema"`
-	JqRules     []string   `json:"-"`         // User-facing (not serialized)
-	Evaluator   *Evaluator `json:"evaluator"` // API format (for transformation)
-	Archived    bool       `json:"archived"`
-	Org         string     `json:"org"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Schema      string    `json:"-"`        // User-facing (extracted from latest version)
+	JqRules     []string  `json:"-"`        // User-facing (extracted from latest version)
+	Versions    []Version `json:"versions"` // API format (contains schema and evaluator)
+	Archived    bool      `json:"archived"`
+	Org         string    `json:"org"`
+}
+
+// Version represents a version of a custom attestation type.
+type Version struct {
+	Version    int        `json:"version"`
+	Timestamp  float64    `json:"timestamp"`
+	TypeSchema string     `json:"type_schema"`
+	Evaluator  *Evaluator `json:"evaluator"`
+	CreatedBy  string     `json:"created_by"`
 }
 
 // Evaluator represents the API's evaluator structure.
@@ -55,11 +65,59 @@ func (req *CreateCustomAttestationTypeRequest) toAPIFormat() map[string]any {
 }
 
 // fromAPIFormat converts API response to user-facing format.
+// Extracts schema and jq_rules from the latest version in the versions array.
 func (at *CustomAttestationType) fromAPIFormat() {
-	if at.Evaluator != nil && at.Evaluator.ContentType == "jq" {
-		at.JqRules = at.Evaluator.Rules
-		at.Evaluator = nil // Clear API field after transformation
+	// Get the latest version (first element in the array - newest is first)
+	if len(at.Versions) > 0 {
+		latestVersion := at.Versions[0]
+
+		// Extract and normalize schema
+		// The API returns Python-style dict notation with single quotes,
+		// but we need proper JSON with double quotes for Terraform consistency
+		at.Schema = normalizeJSONSchema(latestVersion.TypeSchema)
+
+		// Extract jq_rules from evaluator
+		if latestVersion.Evaluator != nil && latestVersion.Evaluator.ContentType == "jq" {
+			at.JqRules = latestVersion.Evaluator.Rules
+		}
 	}
+}
+
+// normalizeJSONSchema converts Python-style dict notation (single quotes)
+// to proper JSON (double quotes) to ensure Terraform state consistency.
+func normalizeJSONSchema(schema string) string {
+	if schema == "" {
+		return schema
+	}
+
+	// Parse the Python-style JSON (which uses single quotes) and re-marshal
+	// to get proper JSON with double quotes
+	var data any
+
+	// Replace single quotes with double quotes for JSON parsing
+	// This handles the API's Python dict notation: {'key': 'value'}
+	normalized := schema
+
+	// Try to parse as-is first (in case it's already valid JSON)
+	if err := json.Unmarshal([]byte(normalized), &data); err != nil {
+		// If parsing fails, try converting single quotes to double quotes
+		// This is a simple approach that works for the schema format returned by the API
+		normalized = strings.ReplaceAll(normalized, "'", "\"")
+
+		// Try parsing again
+		if err := json.Unmarshal([]byte(normalized), &data); err != nil {
+			// If it still fails, return original (best effort)
+			return schema
+		}
+	}
+
+	// Re-marshal to get consistent formatting
+	result, err := json.Marshal(data)
+	if err != nil {
+		return schema
+	}
+
+	return string(result)
 }
 
 // createMultipartRequest builds multipart/form-data request for POST.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -129,7 +130,7 @@ func TestCustomAttestationTypeDataSourceModel_Structure(t *testing.T) {
 	model := customAttestationTypeDataSourceModel{
 		Name:        types.StringValue("test-attestation"),
 		Description: types.StringValue("Test description"),
-		Schema:      types.StringValue(`{"type": "object"}`),
+		Schema:      jsontypes.NewNormalizedValue(`{"type": "object"}`),
 		JqRules:     types.ListNull(types.StringType),
 		Archived:    types.BoolValue(false),
 		Org:         types.StringValue("test-org"),
@@ -144,7 +145,7 @@ func TestCustomAttestationTypeDataSourceModel_Structure(t *testing.T) {
 	}
 
 	if model.Schema.ValueString() != `{"type": "object"}` {
-		t.Error("Expected Schema to be set correctly")
+		t.Errorf("Expected Schema to be set correctly, got %q", model.Schema.ValueString())
 	}
 
 	if model.Archived.ValueBool() != false {

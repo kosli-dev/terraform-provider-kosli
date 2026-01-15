@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -25,12 +26,12 @@ type customAttestationTypeDataSource struct {
 
 // customAttestationTypeDataSourceModel describes the data source data model.
 type customAttestationTypeDataSourceModel struct {
-	Name        types.String `tfsdk:"name"`
-	Description types.String `tfsdk:"description"`
-	Schema      types.String `tfsdk:"schema"`
-	JqRules     types.List   `tfsdk:"jq_rules"`
-	Archived    types.Bool   `tfsdk:"archived"`
-	Org         types.String `tfsdk:"org"`
+	Name        types.String         `tfsdk:"name"`
+	Description types.String         `tfsdk:"description"`
+	Schema      jsontypes.Normalized `tfsdk:"schema"`
+	JqRules     types.List           `tfsdk:"jq_rules"`
+	Archived    types.Bool           `tfsdk:"archived"`
+	Org         types.String         `tfsdk:"org"`
 }
 
 // Metadata returns the data source type name.
@@ -54,6 +55,7 @@ func (d *customAttestationTypeDataSource) Schema(ctx context.Context, req dataso
 			},
 			"schema": schema.StringAttribute{
 				Computed:            true,
+				CustomType:          jsontypes.NormalizedType{},
 				MarkdownDescription: "JSON Schema that defines the structure of attestation data.",
 			},
 			"jq_rules": schema.ListAttribute{
@@ -116,7 +118,7 @@ func (d *customAttestationTypeDataSource) Read(ctx context.Context, req datasour
 	// Map response to model
 	data.Name = types.StringValue(attestationType.Name)
 	data.Description = types.StringValue(attestationType.Description)
-	data.Schema = types.StringValue(attestationType.Schema)
+	data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
 	data.Archived = types.BoolValue(attestationType.Archived)
 	data.Org = types.StringValue(attestationType.Org)
 

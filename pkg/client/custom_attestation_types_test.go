@@ -220,17 +220,24 @@ func TestGetCustomAttestationType_Success(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 
-		// Return response
+		// Return response matching actual API structure
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{
 			"name": "test-type",
 			"description": "test description",
-			"schema": "{\"type\":\"object\"}",
-			"evaluator": {
-				"content_type": "jq",
-				"rules": [".age > 21"]
-			},
 			"archived": false,
+			"versions": [
+				{
+					"version": 1,
+					"timestamp": 1768247330.112509,
+					"type_schema": "{\"type\":\"object\"}",
+					"evaluator": {
+						"content_type": "jq",
+						"rules": [".age > 21"]
+					},
+					"created_by": "Test User"
+				}
+			],
 			"org": "test-org"
 		}`))
 	}))
@@ -250,11 +257,11 @@ func TestGetCustomAttestationType_Success(t *testing.T) {
 	}
 
 	// Verify transformation from API format to user format
+	if result.Schema != `{"type":"object"}` {
+		t.Errorf("expected schema '{\"type\":\"object\"}', got %s", result.Schema)
+	}
 	if len(result.JqRules) != 1 || result.JqRules[0] != ".age > 21" {
 		t.Errorf("expected jq_rules ['.age > 21'], got %v", result.JqRules)
-	}
-	if result.Evaluator != nil {
-		t.Error("expected evaluator to be nil after transformation")
 	}
 	if result.Name != "test-type" {
 		t.Errorf("expected name 'test-type', got %s", result.Name)
@@ -335,21 +342,37 @@ func TestListCustomAttestationTypes_Success(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 
-		// Return array of attestation types
+		// Return array of attestation types matching actual API structure
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`[
 			{
 				"name": "type-1",
 				"description": "first type",
-				"evaluator": {"content_type": "jq", "rules": [".x > 0"]},
 				"archived": false,
+				"versions": [
+					{
+						"version": 1,
+						"timestamp": 1768247330.112509,
+						"type_schema": "{\"type\":\"object\",\"properties\":{\"x\":{\"type\":\"number\"}}}",
+						"evaluator": {"content_type": "jq", "rules": [".x > 0"]},
+						"created_by": "Test User"
+					}
+				],
 				"org": "test-org"
 			},
 			{
 				"name": "type-2",
 				"description": "second type",
-				"evaluator": {"content_type": "jq", "rules": [".y > 0"]},
 				"archived": true,
+				"versions": [
+					{
+						"version": 1,
+						"timestamp": 1768247330.112509,
+						"type_schema": "{\"type\":\"object\",\"properties\":{\"y\":{\"type\":\"number\"}}}",
+						"evaluator": {"content_type": "jq", "rules": [".y > 0"]},
+						"created_by": "Test User"
+					}
+				],
 				"org": "test-org"
 			}
 		]`))
@@ -374,20 +397,20 @@ func TestListCustomAttestationTypes_Success(t *testing.T) {
 		t.Fatalf("expected 2 items, got %d", len(result))
 	}
 
-	// Verify transformation for first item
+	// Verify transformation for first item (JSON normalization compacts the output)
+	if result[0].Schema != `{"properties":{"x":{"type":"number"}},"type":"object"}` {
+		t.Errorf("expected first item schema, got %s", result[0].Schema)
+	}
 	if len(result[0].JqRules) != 1 || result[0].JqRules[0] != ".x > 0" {
 		t.Errorf("expected first item jq_rules ['.x > 0'], got %v", result[0].JqRules)
 	}
-	if result[0].Evaluator != nil {
-		t.Error("expected evaluator to be nil after transformation")
-	}
 
-	// Verify transformation for second item
+	// Verify transformation for second item (JSON normalization compacts the output)
+	if result[1].Schema != `{"properties":{"y":{"type":"number"}},"type":"object"}` {
+		t.Errorf("expected second item schema, got %s", result[1].Schema)
+	}
 	if len(result[1].JqRules) != 1 || result[1].JqRules[0] != ".y > 0" {
 		t.Errorf("expected second item jq_rules ['.y > 0'], got %v", result[1].JqRules)
-	}
-	if result[1].Evaluator != nil {
-		t.Error("expected evaluator to be nil after transformation")
 	}
 
 	// Verify archived status
@@ -532,15 +555,26 @@ func TestTransformation_FromAPIFormat(t *testing.T) {
 	at := &CustomAttestationType{
 		Name:        "test-type",
 		Description: "test description",
-		Evaluator: &Evaluator{
-			ContentType: "jq",
-			Rules:       []string{".age > 21", ".name != null"},
+		Versions: []Version{
+			{
+				Version:    1,
+				TypeSchema: `{"type": "object"}`,
+				Evaluator: &Evaluator{
+					ContentType: "jq",
+					Rules:       []string{".age > 21", ".name != null"},
+				},
+			},
 		},
 	}
 
 	at.fromAPIFormat()
 
-	// Verify transformation
+	// Verify schema extraction and normalization (JSON gets compacted)
+	if at.Schema != `{"type":"object"}` {
+		t.Errorf("expected schema to be normalized, got %s", at.Schema)
+	}
+
+	// Verify jq_rules extraction
 	if len(at.JqRules) != 2 {
 		t.Fatalf("expected 2 jq rules, got %d", len(at.JqRules))
 	}
@@ -550,11 +584,6 @@ func TestTransformation_FromAPIFormat(t *testing.T) {
 	if at.JqRules[1] != ".name != null" {
 		t.Errorf("expected second rule '.name != null', got %s", at.JqRules[1])
 	}
-
-	// Verify evaluator is cleared
-	if at.Evaluator != nil {
-		t.Error("expected evaluator to be nil after transformation")
-	}
 }
 
 // TestTransformation_FromAPIFormat_NonJQ tests transformation with non-jq content type
@@ -562,21 +591,56 @@ func TestTransformation_FromAPIFormat_NonJQ(t *testing.T) {
 	at := &CustomAttestationType{
 		Name:        "test-type",
 		Description: "test description",
-		Evaluator: &Evaluator{
-			ContentType: "default",
-			Rules:       nil,
+		Versions: []Version{
+			{
+				Version:    1,
+				TypeSchema: `{"type": "object"}`,
+				Evaluator: &Evaluator{
+					ContentType: "default",
+					Rules:       nil,
+				},
+			},
 		},
 	}
 
 	at.fromAPIFormat()
 
-	// Verify no transformation for non-jq types
+	// Verify schema is still extracted and normalized even for non-jq types
+	if at.Schema != `{"type":"object"}` {
+		t.Errorf("expected schema to be normalized, got %s", at.Schema)
+	}
+
+	// Verify no jq_rules for non-jq types
 	if len(at.JqRules) != 0 {
 		t.Errorf("expected empty jq_rules for non-jq type, got %v", at.JqRules)
 	}
-	// Evaluator should not be cleared for non-jq types
-	if at.Evaluator == nil {
-		t.Error("expected evaluator to remain for non-jq content type")
+}
+
+// TestTransformation_PythonStyleSchema tests schema normalization from Python dict notation
+func TestTransformation_PythonStyleSchema(t *testing.T) {
+	// This tests the actual API behavior - it returns Python-style dict notation with single quotes
+	at := &CustomAttestationType{
+		Name:        "test-type",
+		Description: "test description",
+		Versions: []Version{
+			{
+				Version: 1,
+				// Python-style dict notation with single quotes (what the API actually returns)
+				TypeSchema: `{'type': 'object', 'properties': {'x': {'type': 'number'}}}`,
+				Evaluator: &Evaluator{
+					ContentType: "jq",
+					Rules:       []string{".x > 0"},
+				},
+			},
+		},
+	}
+
+	at.fromAPIFormat()
+
+	// Should be normalized to proper JSON with double quotes
+	expected := `{"properties":{"x":{"type":"number"}},"type":"object"}`
+	if at.Schema != expected {
+		t.Errorf("expected normalized schema %s, got %s", expected, at.Schema)
 	}
 }
 
