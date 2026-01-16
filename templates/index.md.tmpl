@@ -1,0 +1,41 @@
+---
+page_title: "Provider: Kosli"
+description: |-
+  The Kosli provider allows you to manage Kosli resources using Terraform.
+---
+
+# Kosli Provider
+
+The Kosli provider allows you to manage Kosli resources as Infrastructure-as-Code using Terraform. Use it to define and manage custom attestation types and integrate Kosli into your compliance workflows.
+
+## Example Usage
+
+{{tffile "examples/provider/provider.tf"}}
+
+## Authentication
+
+The provider requires a Kosli API token and organization name for authentication. These can be configured in three ways (in order of precedence):
+
+1. **Provider configuration** - Set directly in your Terraform configuration
+2. **Environment variables** - Use `KOSLI_API_TOKEN` and `KOSLI_ORG`
+3. **Kosli CLI configuration** - Falls back to credentials configured via `kosli` CLI
+
+### Creating an API Token
+
+To create an API token:
+
+1. Log in to [Kosli](https://app.kosli.com)
+2. Navigate to **Settings** → **API Tokens**
+3. Click **Create Token**
+4. Copy the token and store it securely
+
+~> **Warning:** API tokens grant full access to your Kosli organization. Store them securely and never commit them to version control.
+
+## Regional Endpoints
+
+Kosli operates in multiple regions. Configure the `api_url` to match your organization's region:
+
+- **EU (Default)**: `https://app.kosli.com`
+- **US**: `https://app.us.kosli.com`
+
+{{ .SchemaMarkdown | trimspace }}

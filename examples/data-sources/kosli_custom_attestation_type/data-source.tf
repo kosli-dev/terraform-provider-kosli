@@ -1,55 +1,36 @@
-terraform {
-  required_providers {
-    kosli = {
-      source  = "kosli-dev/kosli"
-      version = "~> 0.1"
-    }
-  }
-}
-
-provider "kosli" {
-  # Configuration can be provided via:
-  # - Environment variables: KOSLI_API_TOKEN, KOSLI_ORG, KOSLI_API_URL
-  # - Provider block attributes (shown below)
-
-  # api_token = var.kosli_api_token
-  # org       = var.kosli_org
-  # api_url   = "https://app.kosli.com" # Optional, defaults to EU region
-}
-
-# Fetch details of an existing custom attestation type
-data "kosli_custom_attestation_type" "existing" {
+# Query an existing custom attestation type
+data "kosli_custom_attestation_type" "security" {
   name = "security-scan"
 }
 
-# Use the data source attributes in outputs
-output "attestation_type_description" {
-  description = "Description of the attestation type"
-  value       = data.kosli_custom_attestation_type.existing.description
-}
+# Use the queried schema in a new attestation type
+resource "kosli_custom_attestation_type" "security_strict" {
+  name        = "security-scan-strict"
+  description = "Stricter security requirements"
 
-output "attestation_type_rules" {
-  description = "JQ evaluation rules for the attestation type"
-  value       = data.kosli_custom_attestation_type.existing.jq_rules
-}
+  # Reuse the schema from the existing type
+  schema = data.kosli_custom_attestation_type.security.schema
 
-output "attestation_type_archived" {
-  description = "Whether the attestation type is archived"
-  value       = data.kosli_custom_attestation_type.existing.archived
-}
-
-# Example: Use data source to reference in another resource
-resource "kosli_custom_attestation_type" "variant" {
-  name        = "${data.kosli_custom_attestation_type.existing.name}-strict"
-  description = "Stricter variant of ${data.kosli_custom_attestation_type.existing.name}"
-
-  # Reuse the same schema
-  schema = data.kosli_custom_attestation_type.existing.schema
-
-  # But with stricter rules
+  # Apply stricter validation rules
   jq_rules = [
     ".critical_vulnerabilities == 0",
-    ".high_vulnerabilities == 0",  # Stricter: no high vulnerabilities allowed
+    ".high_vulnerabilities == 0",
     ".medium_vulnerabilities < 3"
   ]
+}
+
+# Reference attestation type metadata
+output "security_scan_description" {
+  description = "Description of the security scan attestation type"
+  value       = data.kosli_custom_attestation_type.security.description
+}
+
+output "security_scan_rules" {
+  description = "JQ rules for the security scan attestation type"
+  value       = data.kosli_custom_attestation_type.security.jq_rules
+}
+
+output "security_scan_archived" {
+  description = "Whether the security scan attestation type is archived"
+  value       = data.kosli_custom_attestation_type.security.archived
 }
