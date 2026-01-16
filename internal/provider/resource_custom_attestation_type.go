@@ -34,8 +34,6 @@ type customAttestationTypeResourceModel struct {
 	Description types.String         `tfsdk:"description"`
 	Schema      jsontypes.Normalized `tfsdk:"schema"`
 	JqRules     types.List           `tfsdk:"jq_rules"`
-	Archived    types.Bool           `tfsdk:"archived"`
-	Org         types.String         `tfsdk:"org"`
 }
 
 // Metadata returns the resource type name.
@@ -69,14 +67,6 @@ func (r *customAttestationTypeResource) Schema(ctx context.Context, req resource
 				MarkdownDescription: "List of jq evaluation rules. Each rule is a jq expression that must evaluate to true for the attestation to be considered compliant. Example: `[\".coverage >= 80\"]`",
 				Required:            true,
 				ElementType:         types.StringType,
-			},
-			"archived": schema.BoolAttribute{
-				MarkdownDescription: "Whether the attestation type is archived. Archived types cannot be used for new attestations.",
-				Computed:            true,
-			},
-			"org": schema.StringAttribute{
-				MarkdownDescription: "Organization name. This is automatically set from the provider configuration.",
-				Computed:            true,
 			},
 		},
 	}
@@ -148,8 +138,6 @@ func (r *customAttestationTypeResource) Create(ctx context.Context, req resource
 	// Map API response to Terraform state
 	data.Description = types.StringValue(attestationType.Description)
 	data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
-	data.Archived = types.BoolValue(attestationType.Archived)
-	data.Org = types.StringValue(attestationType.Org)
 
 	// Convert jq_rules back to list
 	jqRulesList, diags := types.ListValueFrom(ctx, types.StringType, attestationType.JqRules)
@@ -186,8 +174,6 @@ func (r *customAttestationTypeResource) Read(ctx context.Context, req resource.R
 	// Map API response to Terraform state
 	data.Description = types.StringValue(attestationType.Description)
 	data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
-	data.Archived = types.BoolValue(attestationType.Archived)
-	data.Org = types.StringValue(attestationType.Org)
 
 	// Convert jq_rules back to list
 	jqRulesList, diags := types.ListValueFrom(ctx, types.StringType, attestationType.JqRules)
@@ -250,8 +236,6 @@ func (r *customAttestationTypeResource) Update(ctx context.Context, req resource
 	// Map API response to Terraform state
 	data.Description = types.StringValue(attestationType.Description)
 	data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
-	data.Archived = types.BoolValue(attestationType.Archived)
-	data.Org = types.StringValue(attestationType.Org)
 
 	// Convert jq_rules back to list
 	jqRulesList, diags := types.ListValueFrom(ctx, types.StringType, attestationType.JqRules)

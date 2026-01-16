@@ -41,7 +41,7 @@ func TestCustomAttestationTypeDataSource_Schema(t *testing.T) {
 
 	// Verify required attributes exist
 	attrs := resp.Schema.Attributes
-	requiredAttrs := []string{"name", "description", "schema", "jq_rules", "archived", "org"}
+	requiredAttrs := []string{"name", "description", "schema", "jq_rules", "archived"}
 	for _, attr := range requiredAttrs {
 		if _, exists := attrs[attr]; !exists {
 			t.Errorf("Expected attribute %q to exist in schema", attr)
@@ -76,12 +76,6 @@ func TestCustomAttestationTypeDataSource_Schema(t *testing.T) {
 	archivedAttr := attrs["archived"]
 	if archivedAttr.IsComputed() == false {
 		t.Error("Expected 'archived' attribute to be computed")
-	}
-
-	// Verify org is computed
-	orgAttr := attrs["org"]
-	if orgAttr.IsComputed() == false {
-		t.Error("Expected 'org' attribute to be computed")
 	}
 }
 
@@ -133,7 +127,6 @@ func TestCustomAttestationTypeDataSourceModel_Structure(t *testing.T) {
 		Schema:      jsontypes.NewNormalizedValue(`{"type": "object"}`),
 		JqRules:     types.ListNull(types.StringType),
 		Archived:    types.BoolValue(false),
-		Org:         types.StringValue("test-org"),
 	}
 
 	if model.Name.ValueString() != "test-attestation" {
@@ -150,10 +143,6 @@ func TestCustomAttestationTypeDataSourceModel_Structure(t *testing.T) {
 
 	if model.Archived.ValueBool() != false {
 		t.Error("Expected Archived to be false")
-	}
-
-	if model.Org.ValueString() != "test-org" {
-		t.Error("Expected Org to be set correctly")
 	}
 }
 

@@ -41,7 +41,7 @@ func TestCustomAttestationTypeResource_Schema(t *testing.T) {
 
 	// Verify required attributes exist
 	attrs := resp.Schema.Attributes
-	requiredAttrs := []string{"name", "description", "schema", "jq_rules", "archived", "org"}
+	requiredAttrs := []string{"name", "description", "schema", "jq_rules"}
 	for _, attr := range requiredAttrs {
 		if _, exists := attrs[attr]; !exists {
 			t.Errorf("Expected attribute %q to exist in schema", attr)
@@ -70,18 +70,6 @@ func TestCustomAttestationTypeResource_Schema(t *testing.T) {
 	jqRulesAttr := attrs["jq_rules"]
 	if jqRulesAttr.IsRequired() == false {
 		t.Error("Expected 'jq_rules' attribute to be required")
-	}
-
-	// Verify archived is computed
-	archivedAttr := attrs["archived"]
-	if archivedAttr.IsComputed() == false {
-		t.Error("Expected 'archived' attribute to be computed")
-	}
-
-	// Verify org is computed
-	orgAttr := attrs["org"]
-	if orgAttr.IsComputed() == false {
-		t.Error("Expected 'org' attribute to be computed")
 	}
 }
 
@@ -132,8 +120,6 @@ func TestCustomAttestationTypeResourceModel_Structure(t *testing.T) {
 		Description: types.StringValue("Test description"),
 		Schema:      jsontypes.NewNormalizedValue(`{"type": "object"}`),
 		JqRules:     types.ListNull(types.StringType),
-		Archived:    types.BoolValue(false),
-		Org:         types.StringValue("test-org"),
 	}
 
 	if model.Name.ValueString() != "test-attestation" {
@@ -146,14 +132,6 @@ func TestCustomAttestationTypeResourceModel_Structure(t *testing.T) {
 
 	if model.Schema.ValueString() != `{"type": "object"}` {
 		t.Errorf("Expected Schema to be set correctly, got %q", model.Schema.ValueString())
-	}
-
-	if model.Archived.ValueBool() != false {
-		t.Error("Expected Archived to be false")
-	}
-
-	if model.Org.ValueString() != "test-org" {
-		t.Error("Expected Org to be set correctly")
 	}
 }
 

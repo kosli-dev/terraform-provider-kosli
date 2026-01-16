@@ -5,11 +5,6 @@ output "security_scan_name" {
   value       = kosli_custom_attestation_type.security_scan.name
 }
 
-output "security_scan_org" {
-  description = "Organization of the security scan attestation type"
-  value       = kosli_custom_attestation_type.security_scan.org
-}
-
 output "code_coverage_rules" {
   description = "JQ rules for code coverage attestation type"
   value       = kosli_custom_attestation_type.code_coverage.jq_rules

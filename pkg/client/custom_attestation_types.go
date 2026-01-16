@@ -9,6 +9,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 // CustomAttestationType represents a custom attestation type in Kosli.
@@ -65,21 +66,41 @@ func (req *CreateCustomAttestationTypeRequest) toAPIFormat() map[string]any {
 
 // fromAPIFormat converts API response to user-facing format.
 // Extracts schema and jq_rules from the latest version in the versions array.
-func (at *CustomAttestationType) fromAPIFormat() {
+func (at *CustomAttestationType) fromAPIFormat() error {
 	// Get the latest version (first element in the array - newest is first)
 	if len(at.Versions) > 0 {
 		latestVersion := at.Versions[0]
 
-		// Extract schema as-is from API
-		// jsontypes.Normalized in the Terraform provider handles semantic equality,
-		// so we don't need to normalize the format here
-		at.Schema = latestVersion.TypeSchema
+		// Extract and normalize schema from API
+		// The API returns Python-style string representation (single quotes),
+		// so we need to convert it to valid RFC 7159 JSON (double quotes)
+		schemaStr := latestVersion.TypeSchema
+
+		// Convert Python-style single quotes to JSON double quotes
+		// This handles the API's Python string representation format
+		schemaStr = strings.ReplaceAll(schemaStr, "'", "\"")
+
+		// Validate that it's valid JSON by unmarshaling and remarshaling
+		var schemaObj any
+		if err := json.Unmarshal([]byte(schemaStr), &schemaObj); err != nil {
+			return fmt.Errorf("invalid JSON in type_schema after normalization: %w", err)
+		}
+
+		// Re-marshal to ensure proper JSON formatting
+		normalizedJSON, err := json.Marshal(schemaObj)
+		if err != nil {
+			return fmt.Errorf("failed to normalize schema JSON: %w", err)
+		}
+
+		at.Schema = string(normalizedJSON)
 
 		// Extract jq_rules from evaluator
 		if latestVersion.Evaluator != nil && latestVersion.Evaluator.ContentType == "jq" {
 			at.JqRules = latestVersion.Evaluator.Rules
 		}
 	}
+
+	return nil
 }
 
 // createMultipartRequest builds multipart/form-data request for POST.
@@ -188,7 +209,9 @@ func (c *Client) GetCustomAttestationType(ctx context.Context, name string, opts
 	}
 
 	// Transform from API format to user format
-	result.fromAPIFormat()
+	if err := result.fromAPIFormat(); err != nil {
+		return nil, fmt.Errorf("failed to transform API response: %w", err)
+	}
 
 	return &result, nil
 }
@@ -212,7 +235,9 @@ func (c *Client) ListCustomAttestationTypes(ctx context.Context) ([]CustomAttest
 
 	// Transform each item from API format to user format
 	for i := range result {
-		result[i].fromAPIFormat()
+		if err := result[i].fromAPIFormat(); err != nil {
+			return nil, fmt.Errorf("failed to transform item %d: %w", i, err)
+		}
 	}
 
 	return result, nil

@@ -397,19 +397,26 @@ func TestListCustomAttestationTypes_Success(t *testing.T) {
 		t.Fatalf("expected 2 items, got %d", len(result))
 	}
 
-	// Verify transformation for first item (schema is preserved as-is from API)
-	expectedSchema1 := `{"type":"object","properties":{"x":{"type":"number"}}}`
-	if result[0].Schema != expectedSchema1 {
-		t.Errorf("expected first item schema %s, got %s", expectedSchema1, result[0].Schema)
+	// Verify transformation for first item (schema is normalized from API)
+	// Note: json.Marshal may reorder properties, so we unmarshal and compare
+	var schema1 map[string]any
+	if err := json.Unmarshal([]byte(result[0].Schema), &schema1); err != nil {
+		t.Errorf("failed to unmarshal first item schema: %v", err)
+	}
+	if schema1["type"] != "object" {
+		t.Errorf("expected type 'object', got %v", schema1["type"])
 	}
 	if len(result[0].JqRules) != 1 || result[0].JqRules[0] != ".x > 0" {
 		t.Errorf("expected first item jq_rules ['.x > 0'], got %v", result[0].JqRules)
 	}
 
-	// Verify transformation for second item (schema is preserved as-is from API)
-	expectedSchema2 := `{"type":"object","properties":{"y":{"type":"number"}}}`
-	if result[1].Schema != expectedSchema2 {
-		t.Errorf("expected second item schema %s, got %s", expectedSchema2, result[1].Schema)
+	// Verify transformation for second item (schema is normalized from API)
+	var schema2 map[string]any
+	if err := json.Unmarshal([]byte(result[1].Schema), &schema2); err != nil {
+		t.Errorf("failed to unmarshal second item schema: %v", err)
+	}
+	if schema2["type"] != "object" {
+		t.Errorf("expected type 'object', got %v", schema2["type"])
 	}
 	if len(result[1].JqRules) != 1 || result[1].JqRules[0] != ".y > 0" {
 		t.Errorf("expected second item jq_rules ['.y > 0'], got %v", result[1].JqRules)
@@ -571,9 +578,11 @@ func TestTransformation_FromAPIFormat(t *testing.T) {
 
 	at.fromAPIFormat()
 
-	// Verify schema extraction (preserved as-is from API)
-	if at.Schema != `{"type": "object"}` {
-		t.Errorf("expected schema to be preserved as-is, got %s", at.Schema)
+	// Verify schema extraction (normalized from API)
+	// Note: json.Marshal removes extra whitespace and may reorder properties
+	expected := `{"type":"object"}`
+	if at.Schema != expected {
+		t.Errorf("expected normalized schema %s, got %s", expected, at.Schema)
 	}
 
 	// Verify jq_rules extraction
@@ -607,9 +616,10 @@ func TestTransformation_FromAPIFormat_NonJQ(t *testing.T) {
 
 	at.fromAPIFormat()
 
-	// Verify schema is extracted as-is even for non-jq types
-	if at.Schema != `{"type": "object"}` {
-		t.Errorf("expected schema to be preserved as-is, got %s", at.Schema)
+	// Verify schema is normalized even for non-jq types
+	expected := `{"type":"object"}`
+	if at.Schema != expected {
+		t.Errorf("expected normalized schema %s, got %s", expected, at.Schema)
 	}
 
 	// Verify no jq_rules for non-jq types
@@ -618,9 +628,9 @@ func TestTransformation_FromAPIFormat_NonJQ(t *testing.T) {
 	}
 }
 
-// TestTransformation_PythonStyleSchema tests that schema is preserved as-is from API
+// TestTransformation_PythonStyleSchema tests that Python-style schema is normalized to JSON
 func TestTransformation_PythonStyleSchema(t *testing.T) {
-	// This tests that we preserve whatever format the API returns
+	// This tests that we normalize Python-style dict notation from the API
 	// The API may return Python-style dict notation with single quotes
 	at := &CustomAttestationType{
 		Name:        "test-type",
@@ -638,12 +648,34 @@ func TestTransformation_PythonStyleSchema(t *testing.T) {
 		},
 	}
 
-	at.fromAPIFormat()
+	err := at.fromAPIFormat()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 
-	// Schema is preserved as-is from API - jsontypes.Normalized in Terraform handles semantic equality
-	expected := `{'type': 'object', 'properties': {'x': {'type': 'number'}}}`
-	if at.Schema != expected {
-		t.Errorf("expected schema to be preserved as-is %s, got %s", expected, at.Schema)
+	// Schema is normalized to RFC 7159 JSON format (double quotes, no whitespace)
+	// Note: json.Marshal may reorder properties, so we unmarshal and verify structure
+	var schema map[string]any
+	if err := json.Unmarshal([]byte(at.Schema), &schema); err != nil {
+		t.Fatalf("failed to unmarshal normalized schema: %v", err)
+	}
+
+	if schema["type"] != "object" {
+		t.Errorf("expected type 'object', got %v", schema["type"])
+	}
+
+	properties, ok := schema["properties"].(map[string]any)
+	if !ok {
+		t.Errorf("expected properties to be an object")
+	}
+
+	x, ok := properties["x"].(map[string]any)
+	if !ok {
+		t.Errorf("expected x property to be an object")
+	}
+
+	if x["type"] != "number" {
+		t.Errorf("expected x.type to be 'number', got %v", x["type"])
 	}
 }
 

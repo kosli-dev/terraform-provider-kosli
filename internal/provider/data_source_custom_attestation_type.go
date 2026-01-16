@@ -31,7 +31,6 @@ type customAttestationTypeDataSourceModel struct {
 	Schema      jsontypes.Normalized `tfsdk:"schema"`
 	JqRules     types.List           `tfsdk:"jq_rules"`
 	Archived    types.Bool           `tfsdk:"archived"`
-	Org         types.String         `tfsdk:"org"`
 }
 
 // Metadata returns the data source type name.
@@ -66,10 +65,6 @@ func (d *customAttestationTypeDataSource) Schema(ctx context.Context, req dataso
 			"archived": schema.BoolAttribute{
 				Computed:            true,
 				MarkdownDescription: "Whether this attestation type has been archived.",
-			},
-			"org": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "The organization this attestation type belongs to.",
 			},
 		},
 	}
@@ -120,7 +115,6 @@ func (d *customAttestationTypeDataSource) Read(ctx context.Context, req datasour
 	data.Description = types.StringValue(attestationType.Description)
 	data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
 	data.Archived = types.BoolValue(attestationType.Archived)
-	data.Org = types.StringValue(attestationType.Org)
 
 	// Convert jq_rules (API client already transformed from evaluator format)
 	jqRules := make([]types.String, 0, len(attestationType.JqRules))
