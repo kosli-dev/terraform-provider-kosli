@@ -20,7 +20,7 @@ INSTALL_DIR=~/.terraform.d/plugins/registry.terraform.io/kosli-dev/kosli/0.1.0/$
 # Coverage output
 COVERAGE_OUT=coverage.out
 
-.PHONY: all build clean test test-coverage testacc fmt vet lint install help default
+.PHONY: all build clean test test-coverage testacc fmt vet lint install docs help default
 
 # Default target
 default: build
@@ -89,6 +89,18 @@ lint:
 		exit 1; \
 	fi
 
+# Generate documentation using tfplugindocs
+docs:
+	@echo "Generating documentation..."
+	@if command -v tfplugindocs >/dev/null 2>&1; then \
+		tfplugindocs generate; \
+		echo "Documentation generated successfully in docs/"; \
+	else \
+		echo "tfplugindocs not installed. Install it with:"; \
+		echo "  go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest"; \
+		exit 1; \
+	fi
+
 # Alias for all
 all: build
 
@@ -110,6 +122,9 @@ help:
 	@echo "  fmt           Format Go code"
 	@echo "  vet           Run go vet"
 	@echo "  lint          Run linter (requires golangci-lint)"
+	@echo ""
+	@echo "Documentation targets:"
+	@echo "  docs          Generate provider documentation (requires tfplugindocs)"
 	@echo ""
 	@echo "Other targets:"
 	@echo "  help          Display this help information"

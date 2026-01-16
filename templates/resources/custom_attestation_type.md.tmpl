@@ -1,0 +1,63 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+Custom attestation types define the structure and validation rules for attestations in Kosli. They consist of:
+
+- A JSON Schema that defines the expected structure of attestation data
+- JQ rules that evaluate the attestation data for compliance
+
+## Example Usage
+
+{{tffile "examples/resources/kosli_custom_attestation_type/resource.tf"}}
+
+## Schema Validation
+
+The `schema` attribute must contain a valid JSON Schema (draft-07) that defines the structure of attestation data. Common schema types:
+
+- **Security Scans**: Define vulnerability counts and scan metadata
+- **Code Coverage**: Define coverage percentages and test metrics
+- **Performance Tests**: Define response times and error rates
+
+### Schema Example
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "critical_vulnerabilities": { "type": "integer" },
+    "high_vulnerabilities": { "type": "integer" },
+    "scan_date": { "type": "string" }
+  },
+  "required": ["critical_vulnerabilities", "high_vulnerabilities", "scan_date"]
+}
+```
+
+## JQ Rules
+
+The `jq_rules` attribute contains an array of JQ expressions that must ALL evaluate to `true` for an attestation to be considered compliant. Each rule is evaluated against the attestation data that matches the defined schema.
+
+### JQ Rules Examples
+
+```hcl
+jq_rules = [
+  ".critical_vulnerabilities == 0",     # No critical vulnerabilities allowed
+  ".high_vulnerabilities < 5",          # Less than 5 high vulnerabilities
+  ".scan_date != null"                  # Scan date must be present
+]
+```
+
+## Import
+
+Custom attestation types can be imported using their name:
+
+{{codefile "shell" "examples/resources/kosli_custom_attestation_type/import.sh"}}
+
+{{ .SchemaMarkdown | trimspace }}

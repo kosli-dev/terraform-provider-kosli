@@ -1,0 +1,28 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+Use this data source to retrieve information about an existing custom attestation type. This is useful for:
+
+- Referencing existing attestation types in other configurations
+- Creating variants of existing types with modified rules
+- Querying attestation type metadata and schemas
+
+## Example Usage
+
+{{tffile "examples/data-sources/kosli_custom_attestation_type/data-source.tf"}}
+
+## Querying Archived Types
+
+By default, the data source retrieves active (non-archived) attestation types. Archived types can be queried but are read-only and typically represent historical configurations.
+
+The `archived` attribute indicates whether an attestation type has been deleted/archived in Kosli. Archived types cannot be modified through Terraform.
+
+{{ .SchemaMarkdown | trimspace }}

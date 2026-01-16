@@ -1,41 +1,26 @@
 terraform {
   required_providers {
     kosli = {
-      source  = "kosli-dev/kosli"
-      version = "~> 0.1"
+      source = "kosli-dev/kosli"
     }
   }
 }
 
-provider "kosli" {
-  # Configuration can be provided via:
-  # - Environment variables: KOSLI_API_TOKEN, KOSLI_ORG, KOSLI_API_URL
-  # - Provider block attributes (shown below)
-
-  # api_token = var.kosli_api_token
-  # org       = var.kosli_org
-  # api_url   = "https://app.kosli.com" # Optional, defaults to EU region
-}
-
-# Basic example: Custom attestation type with inline JSON schema
+# Security scan attestation type
 resource "kosli_custom_attestation_type" "security_scan" {
   name        = "security-scan"
-  description = "Validates security scan results meet compliance requirements"
+  description = "Validates security scan results"
 
   schema = jsonencode({
     type = "object"
     properties = {
-      critical_vulnerabilities = {
-        type = "integer"
-      }
-      high_vulnerabilities = {
-        type = "integer"
-      }
-      scan_date = {
-        type = "string"
-      }
+      critical_vulnerabilities = { type = "integer" }
+      high_vulnerabilities     = { type = "integer" }
+      medium_vulnerabilities   = { type = "integer" }
+      scan_date                = { type = "string" }
+      scanner_version          = { type = "string" }
     }
-    required = ["critical_vulnerabilities", "high_vulnerabilities"]
+    required = ["critical_vulnerabilities", "high_vulnerabilities", "scan_date"]
   })
 
   jq_rules = [
@@ -44,29 +29,29 @@ resource "kosli_custom_attestation_type" "security_scan" {
   ]
 }
 
-# Example with heredoc for better readability
+# Code coverage attestation type
 resource "kosli_custom_attestation_type" "code_coverage" {
-  name        = "code-coverage-check"
-  description = "Validates test coverage meets minimum thresholds"
+  name        = "code-coverage"
+  description = "Validates code coverage metrics"
 
-  schema = <<-EOT
-    {
-      "type": "object",
-      "properties": {
-        "line_coverage": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 100
-        },
-        "branch_coverage": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 100
-        }
-      },
-      "required": ["line_coverage"]
+  schema = jsonencode({
+    type = "object"
+    properties = {
+      line_coverage = {
+        type    = "number"
+        minimum = 0
+        maximum = 100
+      }
+      branch_coverage = {
+        type    = "number"
+        minimum = 0
+        maximum = 100
+      }
+      total_lines   = { type = "integer" }
+      covered_lines = { type = "integer" }
     }
-  EOT
+    required = ["line_coverage", "total_lines", "covered_lines"]
+  })
 
   jq_rules = [
     ".line_coverage >= 80",
