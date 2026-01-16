@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    kosli = {
+      source = "kosli-dev/kosli"
+    }
+  }
+}
+
 # Query an existing custom attestation type
 data "kosli_custom_attestation_type" "security" {
   name = "security-scan"

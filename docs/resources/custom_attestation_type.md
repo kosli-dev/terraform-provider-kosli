@@ -17,6 +17,14 @@ Custom attestation types define the structure and validation rules for attestati
 ## Example Usage
 
 ```terraform
+terraform {
+  required_providers {
+    kosli = {
+      source = "kosli-dev/kosli"
+    }
+  }
+}
+
 # Security scan attestation type
 resource "kosli_custom_attestation_type" "security_scan" {
   name        = "security-scan"
@@ -67,19 +75,6 @@ resource "kosli_custom_attestation_type" "code_coverage" {
   jq_rules = [
     ".line_coverage >= 80",
     ".branch_coverage >= 70"
-  ]
-}
-
-# Load schema from external file
-resource "kosli_custom_attestation_type" "from_file" {
-  name        = "performance-test"
-  description = "Validates performance test results"
-
-  schema = file("${path.module}/performance-schema.json")
-
-  jq_rules = [
-    ".response_time_p95 < 200",
-    ".error_rate < 0.01"
   ]
 }
 ```
