@@ -20,7 +20,7 @@ INSTALL_DIR=~/.terraform.d/plugins/registry.terraform.io/kosli-dev/kosli/0.1.0/$
 # Coverage output
 COVERAGE_OUT=coverage.out
 
-.PHONY: all build clean test test-coverage testacc fmt vet lint install docs help default
+.PHONY: all build clean test test-coverage testacc testacc-custom-attestation-type testacc-custom-attestation-type-datasource check-testacc-env fmt vet lint install docs help default
 
 # Default target
 default: build
@@ -64,9 +64,8 @@ test-coverage: test
 	@echo "Generating coverage report..."
 	$(GOCMD) tool cover -html=$(COVERAGE_OUT)
 
-# Run acceptance tests (requires KOSLI_API_TOKEN and KOSLI_ORG)
-testacc:
-	@echo "Running acceptance tests..."
+# Check that required environment variables are set for acceptance tests
+check-testacc-env:
 	@if [ -z "$$KOSLI_API_TOKEN" ]; then \
 		echo "Error: KOSLI_API_TOKEN environment variable is not set"; \
 		echo "Export your API token: export KOSLI_API_TOKEN=your-token"; \
@@ -77,20 +76,21 @@ testacc:
 		echo "Export your org name: export KOSLI_ORG=terraform-test"; \
 		exit 1; \
 	fi
+
+# Run acceptance tests (requires KOSLI_API_TOKEN and KOSLI_ORG)
+testacc: check-testacc-env
+	@echo "Running acceptance tests..."
 	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAcc' -timeout 30m
 
-# Run acceptance tests for a specific resource
-testacc-custom-attestation-type:
-	@echo "Running acceptance tests for custom_attestation_type..."
-	@if [ -z "$$KOSLI_API_TOKEN" ]; then \
-		echo "Error: KOSLI_API_TOKEN environment variable is not set"; \
-		exit 1; \
-	fi
-	@if [ -z "$$KOSLI_ORG" ]; then \
-		echo "Error: KOSLI_ORG environment variable is not set"; \
-		exit 1; \
-	fi
+# Run acceptance tests for custom attestation type resource
+testacc-custom-attestation-type: check-testacc-env
+	@echo "Running acceptance tests for custom_attestation_type resource..."
 	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccCustomAttestationType' -timeout 30m
+
+# Run acceptance tests for custom attestation type data source
+testacc-custom-attestation-type-datasource: check-testacc-env
+	@echo "Running acceptance tests for custom_attestation_type data source..."
+	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccCustomAttestationTypeDataSource' -timeout 30m
 
 # Format Go code
 fmt:
@@ -142,6 +142,8 @@ help:
 	@echo "  testacc       Run acceptance tests (with TF_ACC=1)"
 	@echo "  testacc-custom-attestation-type"
 	@echo "                Run acceptance tests for custom_attestation_type resource"
+	@echo "  testacc-custom-attestation-type-datasource"
+	@echo "                Run acceptance tests for custom_attestation_type data source"
 	@echo ""
 	@echo "Code quality targets:"
 	@echo "  fmt           Format Go code"
