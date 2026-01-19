@@ -64,10 +64,33 @@ test-coverage: test
 	@echo "Generating coverage report..."
 	$(GOCMD) tool cover -html=$(COVERAGE_OUT)
 
-# Run acceptance tests
+# Run acceptance tests (requires KOSLI_API_TOKEN and KOSLI_ORG)
 testacc:
 	@echo "Running acceptance tests..."
-	TF_ACC=1 $(GOTEST) -v ./...
+	@if [ -z "$$KOSLI_API_TOKEN" ]; then \
+		echo "Error: KOSLI_API_TOKEN environment variable is not set"; \
+		echo "Export your API token: export KOSLI_API_TOKEN=your-token"; \
+		exit 1; \
+	fi
+	@if [ -z "$$KOSLI_ORG" ]; then \
+		echo "Error: KOSLI_ORG environment variable is not set"; \
+		echo "Export your org name: export KOSLI_ORG=terraform-test"; \
+		exit 1; \
+	fi
+	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAcc' -timeout 30m
+
+# Run acceptance tests for a specific resource
+testacc-custom-attestation-type:
+	@echo "Running acceptance tests for custom_attestation_type..."
+	@if [ -z "$$KOSLI_API_TOKEN" ]; then \
+		echo "Error: KOSLI_API_TOKEN environment variable is not set"; \
+		exit 1; \
+	fi
+	@if [ -z "$$KOSLI_ORG" ]; then \
+		echo "Error: KOSLI_ORG environment variable is not set"; \
+		exit 1; \
+	fi
+	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccCustomAttestationType' -timeout 30m
 
 # Format Go code
 fmt:
@@ -117,6 +140,8 @@ help:
 	@echo "  test          Run unit tests with coverage enabled"
 	@echo "  test-coverage Generate and display coverage report"
 	@echo "  testacc       Run acceptance tests (with TF_ACC=1)"
+	@echo "  testacc-custom-attestation-type"
+	@echo "                Run acceptance tests for custom_attestation_type resource"
 	@echo ""
 	@echo "Code quality targets:"
 	@echo "  fmt           Format Go code"
