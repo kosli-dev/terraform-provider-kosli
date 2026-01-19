@@ -35,11 +35,10 @@ provider "kosli" {
 
 ## Authentication
 
-The provider requires a Kosli API token and organization name for authentication. These can be configured in three ways (in order of precedence):
+The provider requires a Kosli API token and organization name for authentication. These can be configured in two ways (in order of precedence):
 
 1. **Provider configuration** - Set directly in your Terraform configuration
 2. **Environment variables** - Use `KOSLI_API_TOKEN` and `KOSLI_ORG`
-3. **Kosli CLI configuration** - Falls back to credentials configured via `kosli` CLI
 
 ### Creating an API Token
 
