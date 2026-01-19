@@ -5,7 +5,7 @@ description: |-
   Manages a custom attestation type in Kosli. Custom attestation types define how Kosli validates and evaluates evidence from proprietary tools, custom metrics, or specialized compliance requirements.
 ---
 
-# kosli_custom_attestation_type (Resource)
+# Resource: kosli_custom_attestation_type
 
 Manages a custom attestation type in Kosli. Custom attestation types define how Kosli validates and evaluates evidence from proprietary tools, custom metrics, or specialized compliance requirements.
 
