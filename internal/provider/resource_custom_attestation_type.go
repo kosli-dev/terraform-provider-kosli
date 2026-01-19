@@ -136,7 +136,12 @@ func (r *customAttestationTypeResource) Create(ctx context.Context, req resource
 	}
 
 	// Map API response to Terraform state
-	data.Description = types.StringValue(attestationType.Description)
+	// Handle empty description as null to avoid inconsistency when not provided in config
+	if attestationType.Description == "" {
+		data.Description = types.StringNull()
+	} else {
+		data.Description = types.StringValue(attestationType.Description)
+	}
 	data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
 
 	// Convert jq_rules back to list
@@ -172,7 +177,12 @@ func (r *customAttestationTypeResource) Read(ctx context.Context, req resource.R
 	}
 
 	// Map API response to Terraform state
-	data.Description = types.StringValue(attestationType.Description)
+	// Handle empty description as null to avoid inconsistency when not provided in config
+	if attestationType.Description == "" {
+		data.Description = types.StringNull()
+	} else {
+		data.Description = types.StringValue(attestationType.Description)
+	}
 	data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
 
 	// Convert jq_rules back to list

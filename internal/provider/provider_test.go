@@ -19,7 +19,7 @@ var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServe
 }
 
 func TestKosliProvider_Metadata(t *testing.T) {
-	p := &KosliProvider{version: "1.0.0"}
+	p := &KosliProvider{version: "test"}
 	ctx := context.Background()
 	req := provider.MetadataRequest{}
 	resp := &provider.MetadataResponse{}
@@ -30,8 +30,8 @@ func TestKosliProvider_Metadata(t *testing.T) {
 		t.Errorf("Expected TypeName 'kosli', got '%s'", resp.TypeName)
 	}
 
-	if resp.Version != "1.0.0" {
-		t.Errorf("Expected Version '1.0.0', got '%s'", resp.Version)
+	if resp.Version != "test" {
+		t.Errorf("Expected Version 'test', got '%s'", resp.Version)
 	}
 }
 
@@ -133,7 +133,7 @@ func TestKosliProvider_DataSources(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
-	version := "1.2.3"
+	version := "test"
 	providerFunc := New(version)
 
 	if providerFunc == nil {
