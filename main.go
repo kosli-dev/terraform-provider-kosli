@@ -13,6 +13,9 @@ import (
 // See GoReleaser configuration for details.
 var version = "dev"
 
+// commit is set via ldflags during the build process.
+var commit = "none"
+
 func main() {
 	var debug bool
 

@@ -11,25 +11,39 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - "-s -w -X main.version={{.Version}}"
+      - '-s -w -X main.version={{.Version}} -X main.commit={{.Commit}}'
     goos:
-      - darwin
-      - linux
+      - freebsd
       - windows
+      - linux
+      - darwin
     goarch:
       - amd64
+      - '386'
+      - arm
       - arm64
     ignore:
+      - goos: darwin
+        goarch: '386'
+      - goos: windows
+        goarch: arm
       - goos: windows
         goarch: arm64
+      - goos: freebsd
+        goarch: arm
     binary: "{{ .ProjectName }}_v{{ .Version }}"
 
 archives:
-  - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  - formats:
+      - zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
 checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_SHA256SUMS"
   algorithm: sha256
+  extra_files:
+    - glob: 'terraform-registry-manifest.json'
+      name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
 
 signs:
   - artifacts: checksum
@@ -76,6 +90,9 @@ changelog:
       - Merge branch
 
 release:
+  extra_files:
+    - glob: 'terraform-registry-manifest.json'
+      name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
   github:
     owner: kosli-dev
     name: terraform-provider-kosli
