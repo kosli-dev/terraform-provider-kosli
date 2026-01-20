@@ -14,7 +14,7 @@ import (
 var version = "dev"
 
 // commit is set via ldflags during the build process.
-var commit = "none"
+var commit = "none" //nolint:unused // Set via ldflags
 
 func main() {
 	var debug bool
