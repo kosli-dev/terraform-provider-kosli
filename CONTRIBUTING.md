@@ -410,6 +410,69 @@ Binary naming follows Terraform provider conventions:
 - Binary: `terraform-provider-kosli_v{version}`
 - Archive: `terraform-provider-kosli_{version}_{os}_{arch}.tar.gz`
 
+### Pre-release Testing with Release Candidates
+
+Release candidates allow testing versions before official releases.
+
+#### Creating Release Candidates
+
+```bash
+# Create release candidate tag
+git tag -a v0.1.0-rc.1 -m "Release candidate 1 for v0.1.0"
+git push origin v0.1.0-rc.1
+```
+
+The tag format uses a hyphen followed by `rc.N` where N is the release candidate number.
+
+#### GoReleaser Behavior
+
+Our `.goreleaser.yml` includes `prerelease: auto`, which automatically:
+- Detects release candidate tags (e.g., `v0.1.0-rc.1`)
+- Marks the GitHub Release as "Pre-release"
+- Generates release notes using the same changelog groups
+
+No additional configuration is needed for release candidates.
+
+#### Terraform Registry Implications
+
+**✅ Supported**: Release candidate versions work with Terraform Registry.
+
+**⚠️ Not Auto-selected**: Users must explicitly specify the RC version:
+
+```hcl
+terraform {
+  required_providers {
+    kosli = {
+      source  = "kosli-dev/kosli"
+      version = "0.1.0-rc.1"  # Must specify RC explicitly
+    }
+  }
+}
+```
+
+**Version Constraint Behavior**:
+- `version = ">= 0.1.0"` will **not** match `0.1.0-rc.1` (pre-releases excluded)
+- `version = "0.1.0-rc.1"` matches exactly
+- `version = "~> 0.1.0-rc"` matches `rc.1`, `rc.2`, etc.
+
+#### Testing Workflow
+
+```bash
+# 1. Create first release candidate
+git tag -a v0.1.0-rc.1 -m "Release candidate 1"
+git push origin v0.1.0-rc.1
+
+# 2. Test with explicit RC version in Terraform configurations
+
+# 3. If issues found, create additional RCs
+git tag -a v0.1.0-rc.2 -m "Release candidate 2"
+git push origin v0.1.0-rc.2
+
+# 4. When stable, create final release
+git tag -a v0.1.0 -m "Release v0.1.0"
+git push origin v0.1.0
+```
+
 ## Project Structure
 
 ```

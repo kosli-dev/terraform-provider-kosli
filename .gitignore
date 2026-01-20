@@ -5,6 +5,7 @@
 *.so
 *.dylib
 terraform-provider-kosli
+dist/
 
 # Test binary
 *.test
