@@ -1,0 +1,84 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - "-s -w -X main.version={{.Version}}"
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    binary: "{{ .ProjectName }}_v{{ .Version }}"
+
+archives:
+  - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_SHA256SUMS"
+  algorithm: sha256
+
+signs:
+  - artifacts: checksum
+    args:
+      - "--batch"
+      - "--local-user"
+      - "{{ .Env.GPG_FINGERPRINT }}"
+      - "--output"
+      - "${signature}"
+      - "--detach-sign"
+      - "${artifact}"
+
+changelog:
+  use: github
+  sort: asc
+  groups:
+    - title: Features
+      regexp: '^feat(\(.+\))?: .+$'
+      order: 0
+    - title: Bug Fixes
+      regexp: '^fix(\(.+\))?: .+$'
+      order: 1
+    - title: Documentation
+      regexp: '^docs(\(.+\))?: .+$'
+      order: 2
+    - title: Refactoring
+      regexp: '^refactor(\(.+\))?: .+$'
+      order: 3
+    - title: Testing
+      regexp: '^test(\(.+\))?: .+$'
+      order: 4
+    - title: Build & CI
+      regexp: '^(build|ci)(\(.+\))?: .+$'
+      order: 5
+    - title: Other Changes
+      order: 999
+  filters:
+    exclude:
+      - '^chore:'
+      - '^style:'
+      - 'merge conflict'
+      - Merge pull request
+      - Merge remote-tracking branch
+      - Merge branch
+
+release:
+  github:
+    owner: kosli-dev
+    name: terraform-provider-kosli
+  draft: false
+  prerelease: auto
+  name_template: "v{{ .Version }}"

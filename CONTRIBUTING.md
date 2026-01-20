@@ -300,6 +300,116 @@ test: add coverage for error handling
 
 4. **Address review feedback** and update your PR as needed
 
+## Release Process
+
+This project uses [GoReleaser](https://goreleaser.com/) to automate multi-platform binary builds and GitHub releases.
+
+### Prerequisites for Releases
+
+#### Install GoReleaser
+
+```bash
+# macOS
+brew install goreleaser
+
+# Linux/Windows
+go install github.com/goreleaser/goreleaser/v2@latest
+```
+
+#### GPG Signing Setup
+
+Terraform Registry requires signed binaries. Set up GPG if releasing:
+
+1. **Generate GPG key** (if needed):
+   ```bash
+   gpg --full-generate-key
+   # Choose: RSA and RSA, 4096 bits, no expiration
+   # Use your GitHub email
+   ```
+
+2. **Get GPG fingerprint**:
+   ```bash
+   gpg --list-secret-keys --keyid-format LONG
+   # Copy the 40-character fingerprint
+   ```
+
+3. **Export for GitHub Actions**:
+   ```bash
+   # Public key (for Terraform Registry)
+   gpg --armor --export your-email@example.com > public-key.asc
+
+   # Private key (for GitHub Secrets)
+   gpg --armor --export-secret-keys your-email@example.com
+   ```
+
+4. **Configure environment**:
+   ```bash
+   export GPG_FINGERPRINT=<your-40-char-fingerprint>
+   ```
+
+### Testing Release Locally
+
+Test the release configuration without publishing:
+
+```bash
+# Validate configuration
+goreleaser check
+
+# Build snapshot (no release, no git tags required)
+goreleaser build --snapshot --clean
+
+# Full release dry-run
+goreleaser release --snapshot --clean
+```
+
+Built binaries will be in the `dist/` directory.
+
+### Release Workflow
+
+Releases are typically automated via GitHub Actions, but can be done manually:
+
+1. **Update CHANGELOG.md** with release notes for the version
+2. **Create and push tag**:
+   ```bash
+   git tag -a v0.1.0 -m "Release v0.1.0"
+   git push origin v0.1.0
+   ```
+3. **GitHub Actions triggers GoReleaser** automatically
+4. **Binaries published to GitHub Releases** with generated changelog
+
+### Conventional Commits & Release Notes
+
+GoReleaser automatically organizes release notes using conventional commits:
+
+- `feat:` → **Features** section
+- `fix:` → **Bug Fixes** section
+- `docs:` → **Documentation** section
+- `refactor:` → **Refactoring** section
+- `test:` → **Testing** section
+- `build:` or `ci:` → **Build & CI** section
+
+Commits starting with `chore:`, `style:`, or merge commits are excluded from release notes.
+
+**Example:**
+```bash
+git commit -m "feat: add custom attestation type resource"
+git commit -m "fix: handle nil pointer in API client"
+git commit -m "docs: update installation guide"
+```
+
+These will be automatically grouped in the release notes under their respective sections.
+
+### Multi-Platform Builds
+
+GoReleaser builds binaries for:
+- **macOS**: Intel (amd64) and Apple Silicon (arm64)
+- **Linux**: x64 (amd64) and ARM64 (arm64)
+- **Windows**: x64 (amd64)
+
+Binary naming follows Terraform provider conventions:
+- Binary: `terraform-provider-kosli_v{version}`
+- Archive: `terraform-provider-kosli_{version}_{os}_{arch}.tar.gz`
+
 ## Project Structure
 
 ```
