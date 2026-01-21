@@ -278,16 +278,31 @@ func (r *customAttestationTypeResource) Update(ctx context.Context, req resource
 	}
 
 	// Map API response to Terraform state
-	data.Description = types.StringValue(attestationType.Description)
-	data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
-
-	// Convert jq_rules back to list
-	jqRulesList, diags := types.ListValueFrom(ctx, types.StringType, attestationType.JqRules)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
+	// Handle empty description as null to avoid inconsistency when not provided in config
+	if attestationType.Description == "" {
+		data.Description = types.StringNull()
+	} else {
+		data.Description = types.StringValue(attestationType.Description)
 	}
-	data.JqRules = jqRulesList
+
+	// Handle empty schema as null (similar to description handling)
+	if attestationType.Schema == "" || attestationType.Schema == "None" {
+		data.Schema = jsontypes.NewNormalizedNull()
+	} else {
+		data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
+	}
+
+	// Convert jq_rules back to list, handling empty list as null
+	if len(attestationType.JqRules) == 0 {
+		data.JqRules = types.ListNull(types.StringType)
+	} else {
+		jqRulesList, diags := types.ListValueFrom(ctx, types.StringType, attestationType.JqRules)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		data.JqRules = jqRulesList
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
