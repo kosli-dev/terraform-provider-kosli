@@ -286,7 +286,6 @@ func TestAccCustomAttestationTypeResource_optionalJqRules(t *testing.T) {
 	})
 }
 
-
 // TestAccCustomAttestationTypeResource_updateRemoveSchema tests updating resource to remove schema
 func TestAccCustomAttestationTypeResource_updateRemoveSchema(t *testing.T) {
 	rName := acctest.RandomWithPrefix("tf-acc-test")
@@ -346,4 +345,3 @@ resource "kosli_custom_attestation_type" "test" {
 }
 `, name)
 }
-
