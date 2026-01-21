@@ -409,12 +409,6 @@ Before creating a release, ensure the following secrets are configured in the re
    - GPG signatures
    - Auto-generated changelog
 
-#### Manual Workflow Trigger
-
-The release workflow can also be triggered manually from the GitHub Actions UI for testing purposes:
-1. Navigate to **Actions** → **Release** workflow
-2. Click **Run workflow**
-3. Select the branch and click **Run workflow**
 
 ### Conventional Commits & Release Notes
 
