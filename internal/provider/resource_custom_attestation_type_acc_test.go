@@ -286,27 +286,6 @@ func TestAccCustomAttestationTypeResource_optionalJqRules(t *testing.T) {
 	})
 }
 
-// TestAccCustomAttestationTypeResource_minimal tests creating resource with neither schema nor jq_rules
-func TestAccCustomAttestationTypeResource_minimal(t *testing.T) {
-	rName := acctest.RandomWithPrefix("tf-acc-test")
-	resourceName := "kosli_custom_attestation_type.test"
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCustomAttestationTypeResourceConfigMinimal(rName),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "name", rName),
-					resource.TestCheckResourceAttr(resourceName, "description", "Minimal attestation type"),
-					resource.TestCheckNoResourceAttr(resourceName, "schema"),
-					resource.TestCheckNoResourceAttr(resourceName, "jq_rules"),
-				),
-			},
-		},
-	})
-}
 
 // TestAccCustomAttestationTypeResource_updateRemoveSchema tests updating resource to remove schema
 func TestAccCustomAttestationTypeResource_updateRemoveSchema(t *testing.T) {
@@ -368,12 +347,3 @@ resource "kosli_custom_attestation_type" "test" {
 `, name)
 }
 
-// testAccCustomAttestationTypeResourceConfigMinimal returns configuration with only name and description
-func testAccCustomAttestationTypeResourceConfigMinimal(name string) string {
-	return fmt.Sprintf(`
-resource "kosli_custom_attestation_type" "test" {
-  name        = %[1]q
-  description = "Minimal attestation type"
-}
-`, name)
-}

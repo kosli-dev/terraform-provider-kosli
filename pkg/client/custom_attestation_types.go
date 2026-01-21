@@ -54,14 +54,20 @@ type GetCustomAttestationTypeOptions struct {
 
 // toAPIFormat converts user-facing jq_rules to API's evaluator format.
 func (req *CreateCustomAttestationTypeRequest) toAPIFormat() map[string]any {
-	return map[string]any{
+	data := map[string]any{
 		"name":        req.Name,
 		"description": req.Description,
-		"evaluator": map[string]any{
+	}
+
+	// Only include evaluator if jq_rules are provided
+	if len(req.JqRules) > 0 {
+		data["evaluator"] = map[string]any{
 			"content_type": "jq",
 			"rules":        req.JqRules,
-		},
+		}
 	}
+
+	return data
 }
 
 // fromAPIFormat converts API response to user-facing format.
@@ -76,23 +82,28 @@ func (at *CustomAttestationType) fromAPIFormat() error {
 		// so we need to convert it to valid RFC 7159 JSON (double quotes)
 		schemaStr := latestVersion.TypeSchema
 
-		// Convert Python-style single quotes to JSON double quotes
-		// This handles the API's Python string representation format
-		schemaStr = strings.ReplaceAll(schemaStr, "'", "\"")
+		// Handle empty schema or "None" from API
+		if schemaStr == "" || schemaStr == "None" {
+			at.Schema = ""
+		} else {
+			// Convert Python-style single quotes to JSON double quotes
+			// This handles the API's Python string representation format
+			schemaStr = strings.ReplaceAll(schemaStr, "'", "\"")
 
-		// Validate that it's valid JSON by unmarshaling and remarshaling
-		var schemaObj any
-		if err := json.Unmarshal([]byte(schemaStr), &schemaObj); err != nil {
-			return fmt.Errorf("invalid JSON in type_schema after normalization: %w", err)
+			// Validate that it's valid JSON by unmarshaling and remarshaling
+			var schemaObj any
+			if err := json.Unmarshal([]byte(schemaStr), &schemaObj); err != nil {
+				return fmt.Errorf("invalid JSON in type_schema after normalization: %w", err)
+			}
+
+			// Re-marshal to ensure proper JSON formatting
+			normalizedJSON, err := json.Marshal(schemaObj)
+			if err != nil {
+				return fmt.Errorf("failed to normalize schema JSON: %w", err)
+			}
+
+			at.Schema = string(normalizedJSON)
 		}
-
-		// Re-marshal to ensure proper JSON formatting
-		normalizedJSON, err := json.Marshal(schemaObj)
-		if err != nil {
-			return fmt.Errorf("failed to normalize schema JSON: %w", err)
-		}
-
-		at.Schema = string(normalizedJSON)
 
 		// Extract jq_rules from evaluator
 		if latestVersion.Evaluator != nil && latestVersion.Evaluator.ContentType == "jq" {

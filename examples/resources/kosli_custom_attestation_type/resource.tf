@@ -77,17 +77,11 @@ resource "kosli_custom_attestation_type" "schema_validation" {
     properties = {
       timestamp = { type = "string" }
       metadata  = { type = "object" }
-      status    = { 
+      status    = {
         type = "string"
         enum = ["pass", "fail", "skip"]
       }
     }
     required = ["timestamp", "status"]
   })
-}
-
-# Minimal attestation type with only name and description
-resource "kosli_custom_attestation_type" "minimal" {
-  name        = "minimal-attestation"
-  description = "Minimal attestation type without schema or evaluation rules"
 }

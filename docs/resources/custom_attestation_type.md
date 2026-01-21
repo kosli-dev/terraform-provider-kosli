@@ -14,7 +14,7 @@ Custom attestation types define the structure and validation rules for attestati
 - A JSON Schema (optional) that defines the expected structure of attestation data
 - JQ rules (optional) that evaluate the attestation data for compliance
 
-At least one of `schema` or `jq_rules` should be provided to make the attestation type useful, though both are technically optional.
+**Note**: While both `schema` and `jq_rules` are optional attributes in Terraform, the Kosli API requires at least one of them to be provided when creating or updating a custom attestation type.
 
 ## Example Usage
 
@@ -105,12 +105,6 @@ resource "kosli_custom_attestation_type" "schema_validation" {
     }
     required = ["timestamp", "status"]
   })
-}
-
-# Minimal attestation type with only name and description
-resource "kosli_custom_attestation_type" "minimal" {
-  name        = "minimal-attestation"
-  description = "Minimal attestation type without schema or evaluation rules"
 }
 ```
 
