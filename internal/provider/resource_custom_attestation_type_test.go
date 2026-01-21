@@ -60,16 +60,16 @@ func TestCustomAttestationTypeResource_Schema(t *testing.T) {
 		t.Error("Expected 'description' attribute to be optional")
 	}
 
-	// Verify schema is required
+	// Verify schema is optional
 	schemaAttr := attrs["schema"]
-	if schemaAttr.IsRequired() == false {
-		t.Error("Expected 'schema' attribute to be required")
+	if schemaAttr.IsOptional() == false {
+		t.Error("Expected 'schema' attribute to be optional")
 	}
 
-	// Verify jq_rules is required
+	// Verify jq_rules is optional
 	jqRulesAttr := attrs["jq_rules"]
-	if jqRulesAttr.IsRequired() == false {
-		t.Error("Expected 'jq_rules' attribute to be required")
+	if jqRulesAttr.IsOptional() == false {
+		t.Error("Expected 'jq_rules' attribute to be optional")
 	}
 }
 

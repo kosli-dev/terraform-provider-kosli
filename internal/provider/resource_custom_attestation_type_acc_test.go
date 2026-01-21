@@ -240,3 +240,140 @@ resource "kosli_custom_attestation_type" "test" {
 }
 `, name)
 }
+
+// TestAccCustomAttestationTypeResource_optionalSchema tests creating resource with only jq_rules (no schema)
+func TestAccCustomAttestationTypeResource_optionalSchema(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc-test")
+	resourceName := "kosli_custom_attestation_type.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCustomAttestationTypeResourceConfigOptionalSchema(rName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+					resource.TestCheckResourceAttr(resourceName, "description", "Attestation type with only jq rules"),
+					resource.TestCheckNoResourceAttr(resourceName, "schema"),
+					resource.TestCheckResourceAttr(resourceName, "jq_rules.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "jq_rules.0", ".age > 21"),
+				),
+			},
+		},
+	})
+}
+
+// TestAccCustomAttestationTypeResource_optionalJqRules tests creating resource with only schema (no jq_rules)
+func TestAccCustomAttestationTypeResource_optionalJqRules(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc-test")
+	resourceName := "kosli_custom_attestation_type.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCustomAttestationTypeResourceConfigOptionalJqRules(rName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+					resource.TestCheckResourceAttr(resourceName, "description", "Attestation type with only schema"),
+					resource.TestCheckResourceAttrSet(resourceName, "schema"),
+					resource.TestCheckNoResourceAttr(resourceName, "jq_rules"),
+				),
+			},
+		},
+	})
+}
+
+// TestAccCustomAttestationTypeResource_minimal tests creating resource with neither schema nor jq_rules
+func TestAccCustomAttestationTypeResource_minimal(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc-test")
+	resourceName := "kosli_custom_attestation_type.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCustomAttestationTypeResourceConfigMinimal(rName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+					resource.TestCheckResourceAttr(resourceName, "description", "Minimal attestation type"),
+					resource.TestCheckNoResourceAttr(resourceName, "schema"),
+					resource.TestCheckNoResourceAttr(resourceName, "jq_rules"),
+				),
+			},
+		},
+	})
+}
+
+// TestAccCustomAttestationTypeResource_updateRemoveSchema tests updating resource to remove schema
+func TestAccCustomAttestationTypeResource_updateRemoveSchema(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc-test")
+	resourceName := "kosli_custom_attestation_type.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1: Create with schema
+			{
+				Config: testAccCustomAttestationTypeResourceConfig(rName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+					resource.TestCheckResourceAttrSet(resourceName, "schema"),
+					resource.TestCheckResourceAttr(resourceName, "jq_rules.#", "1"),
+				),
+			},
+			// Step 2: Remove schema, keep jq_rules
+			{
+				Config: testAccCustomAttestationTypeResourceConfigOptionalSchema(rName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+					resource.TestCheckNoResourceAttr(resourceName, "schema"),
+					resource.TestCheckResourceAttr(resourceName, "jq_rules.#", "1"),
+				),
+			},
+		},
+	})
+}
+
+// testAccCustomAttestationTypeResourceConfigOptionalSchema returns configuration with only jq_rules
+func testAccCustomAttestationTypeResourceConfigOptionalSchema(name string) string {
+	return fmt.Sprintf(`
+resource "kosli_custom_attestation_type" "test" {
+  name        = %[1]q
+  description = "Attestation type with only jq rules"
+  jq_rules    = [".age > 21"]
+}
+`, name)
+}
+
+// testAccCustomAttestationTypeResourceConfigOptionalJqRules returns configuration with only schema
+func testAccCustomAttestationTypeResourceConfigOptionalJqRules(name string) string {
+	return fmt.Sprintf(`
+resource "kosli_custom_attestation_type" "test" {
+  name        = %[1]q
+  description = "Attestation type with only schema"
+  schema = jsonencode({
+    type = "object"
+    properties = {
+      age = {
+        type = "number"
+      }
+    }
+  })
+}
+`, name)
+}
+
+// testAccCustomAttestationTypeResourceConfigMinimal returns configuration with only name and description
+func testAccCustomAttestationTypeResourceConfigMinimal(name string) string {
+	return fmt.Sprintf(`
+resource "kosli_custom_attestation_type" "test" {
+  name        = %[1]q
+  description = "Minimal attestation type"
+}
+`, name)
+}

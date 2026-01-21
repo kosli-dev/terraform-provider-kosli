@@ -59,13 +59,13 @@ func (r *customAttestationTypeResource) Schema(ctx context.Context, req resource
 				Optional:            true,
 			},
 			"schema": schema.StringAttribute{
-				MarkdownDescription: "JSON Schema definition that defines the structure of attestation data. Can be provided inline using heredoc syntax or loaded from a file using `file()`. Semantic equality is used for comparison, so formatting differences are ignored.",
-				Required:            true,
+				MarkdownDescription: "JSON Schema definition that defines the structure of attestation data. Can be provided inline using heredoc syntax or loaded from a file using `file()`. If omitted, no schema validation is performed. Semantic equality is used for comparison, so formatting differences are ignored.",
+				Optional:            true,
 				CustomType:          jsontypes.NormalizedType{},
 			},
 			"jq_rules": schema.ListAttribute{
-				MarkdownDescription: "List of jq evaluation rules. Each rule is a jq expression that must evaluate to true for the attestation to be considered compliant. Example: `[\".coverage >= 80\"]`",
-				Required:            true,
+				MarkdownDescription: "List of jq evaluation rules. Each rule is a jq expression that must evaluate to true for the attestation to be considered compliant. Example: `[\".coverage >= 80\"]`. If omitted, no evaluation is performed.",
+				Optional:            true,
 				ElementType:         types.StringType,
 			},
 		},
@@ -100,19 +100,26 @@ func (r *customAttestationTypeResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	// Extract jq_rules from the list
+	// Extract jq_rules from the list if not null
 	var jqRules []string
-	resp.Diagnostics.Append(data.JqRules.ElementsAs(ctx, &jqRules, false)...)
-	if resp.Diagnostics.HasError() {
-		return
+	if !data.JqRules.IsNull() {
+		resp.Diagnostics.Append(data.JqRules.ElementsAs(ctx, &jqRules, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+
+	// Get schema value, handling null
+	var schemaValue string
+	if !data.Schema.IsNull() {
+		schemaValue = data.Schema.ValueString()
 	}
 
 	// Create API request
-	// jsontypes.Normalized handles semantic equality, so we send schema as-is
 	createReq := &client.CreateCustomAttestationTypeRequest{
 		Name:        data.Name.ValueString(),
 		Description: data.Description.ValueString(),
-		Schema:      data.Schema.ValueString(),
+		Schema:      schemaValue,
 		JqRules:     jqRules,
 	}
 
@@ -142,15 +149,25 @@ func (r *customAttestationTypeResource) Create(ctx context.Context, req resource
 	} else {
 		data.Description = types.StringValue(attestationType.Description)
 	}
-	data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
 
-	// Convert jq_rules back to list
-	jqRulesList, diags := types.ListValueFrom(ctx, types.StringType, attestationType.JqRules)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
+	// Handle empty schema as null (similar to description handling)
+	if attestationType.Schema == "" || attestationType.Schema == "None" {
+		data.Schema = jsontypes.NewNormalizedNull()
+	} else {
+		data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
 	}
-	data.JqRules = jqRulesList
+
+	// Convert jq_rules back to list, handling empty list as null
+	if len(attestationType.JqRules) == 0 {
+		data.JqRules = types.ListNull(types.StringType)
+	} else {
+		jqRulesList, diags := types.ListValueFrom(ctx, types.StringType, attestationType.JqRules)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		data.JqRules = jqRulesList
+	}
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -183,15 +200,25 @@ func (r *customAttestationTypeResource) Read(ctx context.Context, req resource.R
 	} else {
 		data.Description = types.StringValue(attestationType.Description)
 	}
-	data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
 
-	// Convert jq_rules back to list
-	jqRulesList, diags := types.ListValueFrom(ctx, types.StringType, attestationType.JqRules)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
+	// Handle empty schema as null (similar to description handling)
+	if attestationType.Schema == "" || attestationType.Schema == "None" {
+		data.Schema = jsontypes.NewNormalizedNull()
+	} else {
+		data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
 	}
-	data.JqRules = jqRulesList
+
+	// Convert jq_rules back to list, handling empty list as null
+	if len(attestationType.JqRules) == 0 {
+		data.JqRules = types.ListNull(types.StringType)
+	} else {
+		jqRulesList, diags := types.ListValueFrom(ctx, types.StringType, attestationType.JqRules)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		data.JqRules = jqRulesList
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -208,19 +235,26 @@ func (r *customAttestationTypeResource) Update(ctx context.Context, req resource
 		return
 	}
 
-	// Extract jq_rules from the list
+	// Extract jq_rules from the list if not null
 	var jqRules []string
-	resp.Diagnostics.Append(data.JqRules.ElementsAs(ctx, &jqRules, false)...)
-	if resp.Diagnostics.HasError() {
-		return
+	if !data.JqRules.IsNull() {
+		resp.Diagnostics.Append(data.JqRules.ElementsAs(ctx, &jqRules, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+
+	// Get schema value, handling null
+	var schemaValue string
+	if !data.Schema.IsNull() {
+		schemaValue = data.Schema.ValueString()
 	}
 
 	// Create API request (updates create a new version)
-	// jsontypes.Normalized handles semantic equality, so we send schema as-is
 	createReq := &client.CreateCustomAttestationTypeRequest{
 		Name:        data.Name.ValueString(),
 		Description: data.Description.ValueString(),
-		Schema:      data.Schema.ValueString(),
+		Schema:      schemaValue,
 		JqRules:     jqRules,
 	}
 
