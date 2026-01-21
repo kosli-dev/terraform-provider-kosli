@@ -688,10 +688,9 @@ func TestTransformation_EmptyRules(t *testing.T) {
 	}
 
 	result := req.toAPIFormat()
-	evaluator := result["evaluator"].(map[string]any)
-	rules := evaluator["rules"].([]string)
 
-	if len(rules) != 0 {
-		t.Errorf("expected empty rules, got %v", rules)
+	// When jq_rules is empty, evaluator should not be included
+	if _, ok := result["evaluator"]; ok {
+		t.Error("expected evaluator to be absent when jq_rules is empty")
 	}
 }
