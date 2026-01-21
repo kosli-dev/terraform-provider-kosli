@@ -58,3 +58,36 @@ resource "kosli_custom_attestation_type" "code_coverage" {
     ".branch_coverage >= 70"
   ]
 }
+
+# Age verification attestation type with only jq rules (no schema)
+resource "kosli_custom_attestation_type" "age_verification" {
+  name        = "age-verification"
+  description = "Verifies age is over 21 using only jq rules without schema validation"
+
+  jq_rules = [".age > 21"]
+}
+
+# Schema-only attestation type (no jq rules)
+resource "kosli_custom_attestation_type" "schema_validation" {
+  name        = "data-structure-validation"
+  description = "Validates data structure using schema without evaluation rules"
+
+  schema = jsonencode({
+    type = "object"
+    properties = {
+      timestamp = { type = "string" }
+      metadata  = { type = "object" }
+      status    = { 
+        type = "string"
+        enum = ["pass", "fail", "skip"]
+      }
+    }
+    required = ["timestamp", "status"]
+  })
+}
+
+# Minimal attestation type with only name and description
+resource "kosli_custom_attestation_type" "minimal" {
+  name        = "minimal-attestation"
+  description = "Minimal attestation type without schema or evaluation rules"
+}
