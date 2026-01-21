@@ -325,22 +325,33 @@ Terraform Registry requires signed binaries. Set up GPG if releasing:
    gpg --full-generate-key
    # Choose: RSA and RSA, 4096 bits, no expiration
    # Use your GitHub email
+   # Passphrase: Leave empty (press Enter twice) for CI/CD automation
    ```
 
-2. **Get GPG fingerprint**:
+2. **List your GPG keys and get the fingerprint**:
    ```bash
    gpg --list-secret-keys --keyid-format LONG
-   # Copy the 40-character fingerprint
    ```
 
-3. **Export for GitHub Actions**:
+   This will output something like:
+   ```
+   sec   rsa4096/ABCD1234EFGH5678 2024-01-20 [SC]
+         1234567890ABCDEF1234567890ABCDEF12345678
+   uid                 [ultimate] Your Name <your-email@example.com>
+   ```
+
+   The 40-character string is the fingerprint. Copy it for step 4.
+
+3. **Export the specific key for GitHub Actions** (replace `FINGERPRINT` with your actual 40-character fingerprint):
    ```bash
    # Public key (for Terraform Registry)
-   gpg --armor --export your-email@example.com > public-key.asc
+   gpg --armor --export FINGERPRINT > public-key.asc
 
-   # Private key (for GitHub Secrets)
-   gpg --armor --export-secret-keys your-email@example.com
+   # Private key (for GitHub Secrets) - this will output to console, copy the entire output
+   gpg --armor --export-secret-keys FINGERPRINT
    ```
+
+   **Tip**: If you prefer using email and have multiple keys with the same email, use the fingerprint to be specific.
 
 4. **Configure environment**:
    ```bash
@@ -373,7 +384,7 @@ Releases are fully automated via GitHub Actions using the workflow at `.github/w
 Before creating a release, ensure the following secrets are configured in the repository:
 
 - `GPG_PRIVATE_KEY` - Your GPG private key (exported with `gpg --armor --export-secret-keys`)
-- `GPG_PASSPHRASE` - The passphrase for your GPG key
+- `GPG_PASSPHRASE` - (Optional) The passphrase for your GPG key. If you generated the key without a passphrase for CI/CD automation, you can omit this secret or set it to an empty string.
 - `GITHUB_TOKEN` - Automatically provided by GitHub Actions (no configuration needed)
 
 #### Creating a Release
