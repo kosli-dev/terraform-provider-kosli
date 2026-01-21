@@ -366,16 +366,45 @@ Built binaries will be in the `dist/` directory.
 
 ### Release Workflow
 
-Releases are typically automated via GitHub Actions, but can be done manually:
+Releases are fully automated via GitHub Actions using the workflow at `.github/workflows/release.yml`.
+
+#### Required GitHub Secrets
+
+Before creating a release, ensure the following secrets are configured in the repository:
+
+- `GPG_PRIVATE_KEY` - Your GPG private key (exported with `gpg --armor --export-secret-keys`)
+- `GPG_PASSPHRASE` - The passphrase for your GPG key
+- `GITHUB_TOKEN` - Automatically provided by GitHub Actions (no configuration needed)
+
+#### Creating a Release
 
 1. **Update CHANGELOG.md** with release notes for the version
-2. **Create and push tag**:
+2. **Create and push a version tag**:
    ```bash
    git tag -a v0.1.0 -m "Release v0.1.0"
    git push origin v0.1.0
    ```
-3. **GitHub Actions triggers GoReleaser** automatically
-4. **Binaries published to GitHub Releases** with generated changelog
+3. **GitHub Actions workflow automatically**:
+   - Checks out code with full git history
+   - Sets up Go using the version from `go.mod`
+   - Imports GPG key for signing
+   - Runs GoReleaser to build multi-platform binaries
+   - Signs all artifacts with GPG
+   - Creates GitHub Release with changelog
+   - Publishes binaries and checksums
+
+4. **Release artifacts** are published to GitHub Releases with:
+   - Multi-platform binaries (macOS, Linux, Windows)
+   - SHA256 checksums
+   - GPG signatures
+   - Auto-generated changelog
+
+#### Manual Workflow Trigger
+
+The release workflow can also be triggered manually from the GitHub Actions UI for testing purposes:
+1. Navigate to **Actions** → **Release** workflow
+2. Click **Run workflow**
+3. Select the branch and click **Run workflow**
 
 ### Conventional Commits & Release Notes
 
