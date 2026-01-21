@@ -384,7 +384,6 @@ Releases are fully automated via GitHub Actions using the workflow at `.github/w
 Before creating a release, ensure the following secrets are configured in the repository:
 
 - `GPG_PRIVATE_KEY` - Your GPG private key (exported with `gpg --armor --export-secret-keys`)
-- `GPG_PASSPHRASE` - (Optional) The passphrase for your GPG key. If you generated the key without a passphrase for CI/CD automation, you can omit this secret or set it to an empty string.
 - `GITHUB_TOKEN` - Automatically provided by GitHub Actions (no configuration needed)
 
 #### Creating a Release
