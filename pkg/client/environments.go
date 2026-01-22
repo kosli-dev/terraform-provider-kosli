@@ -11,15 +11,15 @@ type Environment struct {
 	Name              string            `json:"name"`
 	Type              string            `json:"type"`
 	Description       string            `json:"description"`
-	LastModifiedAt    float64             `json:"last_modified_at"`
-	LastReportedAt    *float64           `json:"last_reported_at"`   // nullable
-	State             any               `json:"state"`              // any JSON type
+	LastModifiedAt    float64           `json:"last_modified_at"`
+	LastReportedAt    *float64          `json:"last_reported_at"` // nullable
+	State             any               `json:"state"`            // any JSON type
 	IncludeScaling    bool              `json:"include_scaling"`
 	RequireProvenance bool              `json:"require_provenance"`
 	Tags              map[string]string `json:"tags"`
 	Policies          []any             `json:"policies"`
 	// Logical environments only:
-	IncludedEnvironments []string       `json:"included_environments,omitempty"`
+	IncludedEnvironments []string `json:"included_environments,omitempty"`
 }
 
 // CreateEnvironmentRequest represents the user-facing request format for creating or updating an environment
