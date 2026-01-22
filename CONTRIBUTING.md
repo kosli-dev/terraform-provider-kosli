@@ -244,21 +244,6 @@ terraform apply
 
 ## Submitting Changes
 
-### Branching Strategy
-
-1. Create a feature branch from `main`:
-   ```bash
-   git checkout -b feature/your-feature-name
-   # or
-   git checkout -b fix/issue-description
-   ```
-
-2. Make your changes and commit:
-   ```bash
-   git add .
-   git commit -m "feat: add new feature"
-   ```
-
 ### Commit Message Convention
 
 Follow conventional commits:
@@ -280,25 +265,85 @@ test: add coverage for error handling
 
 ### Pull Request Process
 
-1. **Ensure all checks pass:**
+1. **Search for existing issues** or create a new one to discuss the change before starting work
+   - This helps avoid duplicate efforts and ensures alignment with project goals
+   - For bug fixes: Search existing bug reports
+   - For features: Create a feature request issue first
+
+2. **Create a feature branch:**
    ```bash
-   make fmt
-   make vet
-   make test
+   git switch -c feature/your-feature-name
+   # or
+   git switch -c fix/bug-description
    ```
 
-2. **Push your branch:**
+3. **Make your changes** following the development workflow above:
+   - Write tests first (TDD approach preferred)
+   - Implement the feature or fix
+   - Ensure all tests pass: `make test`
+   - Run linters: `make fmt && make vet && make lint`
+   - Test locally: `make install` and validate with Terraform
+
+4. **Commit your changes** using conventional commit format:
+   ```bash
+   git add .
+   git commit -m "feat: add support for new resource"
+   ```
+
+5. **Push your branch:**
    ```bash
    git push origin feature/your-feature-name
    ```
 
-3. **Create a Pull Request** on GitHub with:
-   - Clear title describing the change
-   - Description of what changed and why
-   - Reference to any related issues (e.g., "Closes #123")
-   - Test results or screenshots if applicable
+6. **Create a Pull Request** on GitHub with:
+   - **Clear title** following conventional commits format
+   - **Detailed description** including:
+     - What changed and why
+     - How the change was tested
+     - Any breaking changes or migration notes
+   - **Link to related issue** (e.g., "Closes #123" or "Relates to #456")
+   - **Test results** - paste output showing tests pass
+   - **Screenshots or examples** if applicable (especially for documentation changes)
 
-4. **Address review feedback** and update your PR as needed
+7. **Address review feedback** promptly:
+   - Respond to comments and questions
+   - Make requested changes and push updates
+   - Mark conversations as resolved once addressed
+   - Request re-review when ready
+
+### What to Expect After Submission
+
+**Review Process:**
+1. **Automated checks** run immediately (tests, linting, validation)
+2. **Maintainer review** includes:
+   - Code quality and style
+   - Test coverage
+   - Documentation completeness
+   - Compatibility with existing features
+   - Security considerations
+
+3. **Feedback and iterations**:
+   - Reviewers may request changes or improvements
+   - You'll receive clear, actionable feedback
+   - Multiple review rounds may be needed for complex changes
+
+4. **Approval and merge**:
+   - PRs require approval from at least one maintainer
+   - Once approved, maintainers will merge your PR
+   - Your contribution will be included in the next release
+
+**PR Lifecycle:**
+- **Draft PRs** are welcome for early feedback
+- **Stale PRs** (no activity for 30 days) may be closed
+- **Breaking changes** require special attention and may be delayed until a major release
+
+### Communication Guidelines
+
+- **Be respectful and professional** in all interactions
+- **Provide context** when asking questions or requesting reviews
+- **Be patient** - maintainers are often balancing multiple priorities
+- **Be responsive** - timely responses help move PRs forward
+- **Ask questions** if requirements or feedback are unclear
 
 ## Release Process
 
@@ -315,48 +360,6 @@ brew install goreleaser
 # Linux/Windows
 go install github.com/goreleaser/goreleaser/v2@latest
 ```
-
-#### GPG Signing Setup
-
-Terraform Registry requires signed binaries. Set up GPG if releasing:
-
-1. **Generate GPG key** (if needed):
-   ```bash
-   gpg --full-generate-key
-   # Choose: RSA and RSA, 4096 bits, no expiration
-   # Use your GitHub email
-   # Passphrase: Leave empty (press Enter twice) for CI/CD automation
-   ```
-
-2. **List your GPG keys and get the fingerprint**:
-   ```bash
-   gpg --list-secret-keys --keyid-format LONG
-   ```
-
-   This will output something like:
-   ```
-   sec   rsa4096/ABCD1234EFGH5678 2024-01-20 [SC]
-         1234567890ABCDEF1234567890ABCDEF12345678
-   uid                 [ultimate] Your Name <your-email@example.com>
-   ```
-
-   The 40-character string is the fingerprint. Copy it for step 4.
-
-3. **Export the specific key for GitHub Actions** (replace `FINGERPRINT` with your actual 40-character fingerprint):
-   ```bash
-   # Public key (for Terraform Registry)
-   gpg --armor --export FINGERPRINT > public-key.asc
-
-   # Private key (for GitHub Secrets) - this will output to console, copy the entire output
-   gpg --armor --export-secret-keys FINGERPRINT
-   ```
-
-   **Tip**: If you prefer using email and have multiple keys with the same email, use the fingerprint to be specific.
-
-4. **Configure environment**:
-   ```bash
-   export GPG_FINGERPRINT=<your-40-char-fingerprint>
-   ```
 
 ### Testing Release Locally
 
@@ -378,13 +381,6 @@ Built binaries will be in the `dist/` directory.
 ### Release Workflow
 
 Releases are fully automated via GitHub Actions using the workflow at `.github/workflows/release.yml`.
-
-#### Required GitHub Secrets
-
-Before creating a release, ensure the following secrets are configured in the repository:
-
-- `GPG_PRIVATE_KEY` - Your GPG private key (exported with `gpg --armor --export-secret-keys`)
-- `GITHUB_TOKEN` - Automatically provided by GitHub Actions (no configuration needed)
 
 #### Creating a Release
 
@@ -442,69 +438,6 @@ GoReleaser builds binaries for:
 Binary naming follows Terraform provider conventions:
 - Binary: `terraform-provider-kosli_v{version}`
 - Archive: `terraform-provider-kosli_{version}_{os}_{arch}.tar.gz`
-
-### Pre-release Testing with Release Candidates
-
-Release candidates allow testing versions before official releases.
-
-#### Creating Release Candidates
-
-```bash
-# Create release candidate tag
-git tag -a v0.1.0-rc.1 -m "Release candidate 1 for v0.1.0"
-git push origin v0.1.0-rc.1
-```
-
-The tag format uses a hyphen followed by `rc.N` where N is the release candidate number.
-
-#### GoReleaser Behavior
-
-Our `.goreleaser.yml` includes `prerelease: auto`, which automatically:
-- Detects release candidate tags (e.g., `v0.1.0-rc.1`)
-- Marks the GitHub Release as "Pre-release"
-- Generates release notes using the same changelog groups
-
-No additional configuration is needed for release candidates.
-
-#### Terraform Registry Implications
-
-**✅ Supported**: Release candidate versions work with Terraform Registry.
-
-**⚠️ Not Auto-selected**: Users must explicitly specify the RC version:
-
-```hcl
-terraform {
-  required_providers {
-    kosli = {
-      source  = "kosli-dev/kosli"
-      version = "0.1.0-rc.1"  # Must specify RC explicitly
-    }
-  }
-}
-```
-
-**Version Constraint Behavior**:
-- `version = ">= 0.1.0"` will **not** match `0.1.0-rc.1` (pre-releases excluded)
-- `version = "0.1.0-rc.1"` matches exactly
-- `version = "~> 0.1.0-rc"` matches `rc.1`, `rc.2`, etc.
-
-#### Testing Workflow
-
-```bash
-# 1. Create first release candidate
-git tag -a v0.1.0-rc.1 -m "Release candidate 1"
-git push origin v0.1.0-rc.1
-
-# 2. Test with explicit RC version in Terraform configurations
-
-# 3. If issues found, create additional RCs
-git tag -a v0.1.0-rc.2 -m "Release candidate 2"
-git push origin v0.1.0-rc.2
-
-# 4. When stable, create final release
-git tag -a v0.1.0 -m "Release v0.1.0"
-git push origin v0.1.0
-```
 
 ## Project Structure
 
@@ -592,22 +525,9 @@ When adding or updating Terraform examples in the `examples/` directory:
 
 **Note:** The CI pipeline automatically validates all examples on every PR to ensure they remain correct as the provider evolves.
 
-### Running Tests During Development
-
-Keep tests running in watch mode (requires external tool like `watchexec`):
-
-```bash
-# Install watchexec
-brew install watchexec  # macOS
-
-# Run tests on file changes
-watchexec -e go -r "make test"
-```
-
 ## Getting Help
 
 - **Issues**: [GitHub Issues](https://github.com/kosli-dev/terraform-provider-kosli/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/kosli-dev/terraform-provider-kosli/discussions)
 - **Kosli Docs**: [docs.kosli.com](https://docs.kosli.com)
 
 ## Code of Conduct
