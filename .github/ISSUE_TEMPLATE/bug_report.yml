@@ -1,0 +1,132 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in the Terraform Kosli Provider
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Please confirm before submitting
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Community Note
+
+        * Please vote on this issue by adding a 👍 [reaction](https://blog.github.com/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) to the original issue to help the community and maintainers prioritize this request
+        * Please do not leave "+1" or other comments that do not add relevant new information or questions, they generate extra noise for issue followers and do not help prioritize the request
+        * If you are interested in working on this issue or have submitted a pull request, please leave a comment
+
+  - type: input
+    id: terraform-version
+    attributes:
+      label: Terraform Version
+      description: Run `terraform version` to show the version
+      placeholder: e.g., Terraform v1.9.0
+    validations:
+      required: true
+
+  - type: input
+    id: provider-version
+    attributes:
+      label: Provider Version
+      description: Version of the Kosli provider you are using
+      placeholder: e.g., v0.1.0
+    validations:
+      required: true
+
+  - type: input
+    id: affected-resources
+    attributes:
+      label: Affected Resource(s)/Data Source(s)
+      description: Which resources or data sources are affected?
+      placeholder: e.g., kosli_flow, kosli_environment
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What should have happened?
+      placeholder: Describe the expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: Describe what actually happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this behavior?
+      placeholder: |
+        1. Configure the provider...
+        2. Create a resource...
+        3. Run terraform apply...
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: terraform-config
+    attributes:
+      label: Terraform Configuration
+      description: Paste the relevant Terraform configuration that causes the issue
+      placeholder: |
+        terraform {
+          required_providers {
+            kosli = {
+              source = "kosli-dev/kosli"
+            }
+          }
+        }
+
+        provider "kosli" {
+          # Configuration here
+        }
+
+        resource "kosli_flow" "example" {
+          # Resource configuration here
+        }
+      render: hcl
+    validations:
+      required: true
+
+  - type: textarea
+    id: debug-output
+    attributes:
+      label: Debug Output/Panic Log
+      description: |
+        If applicable, provide debug output or panic logs.
+        For full debug output, run: `TF_LOG=DEBUG terraform apply`
+        Please use [Gist](https://gist.github.com/) for large logs and paste the link here.
+      placeholder: Paste debug output or link to Gist
+      render: shell
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other information that might be relevant to this bug report
+      placeholder: Add any other context about the problem here
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Links to related issues, documentation, or external references
+      placeholder: |
+        * #123
+        * https://docs.kosli.com/...
