@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Kosli Documentation
+    url: https://docs.kosli.com/
+    about: Official Kosli documentation and guides
+  - name: Terraform Provider Documentation
+    url: https://registry.terraform.io/providers/kosli-dev/kosli/latest/docs
+    about: Terraform Kosli Provider documentation on the Terraform Registry
+  - name: Kosli Community
+    url: https://www.kosli.com/community/
+    about: Join the Kosli Community for support and discussions

@@ -13,15 +13,15 @@ The Terraform provider enables you to automate the management of Kosli resources
 
 ## Requirements
 
-- [Terraform](https://www.terraform.io/downloads.html) >= 1.0
-- [Go](https://golang.org/doc/install) 1.21 or later (for development)
+- [Terraform](https://www.terraform.io/downloads.html) >= 1.8
+- [Go](https://golang.org/doc/install) 1.23 or later (for development)
 - Kosli account and API credentials
 
 ## Quick Start
 
 ### Installation
 
-The provider will be available on the [Terraform Registry](https://registry.terraform.io/providers/kosli-dev/kosli/). Add it to your Terraform configuration:
+The provider is available on the [Terraform Registry](https://registry.terraform.io/providers/kosli-dev/kosli/latest). Add it to your Terraform configuration:
 
 ```hcl
 terraform {
@@ -68,7 +68,9 @@ resource "kosli_custom_attestation_type" "example" {
 ```
 
 **Example configurations:**
-- [Complete examples](examples/kosli_custom_attestation_type/) - Creating, managing, and referencing attestation types
+- [Resource examples](examples/resources/) - Creating and managing resources
+- [Data source examples](examples/data-sources/) - Referencing existing resources
+- [Complete examples](examples/complete/) - End-to-end scenarios
 
 ## Documentation
 
@@ -86,7 +88,7 @@ Common use cases include:
 - Code quality checks (e.g., no failing tests)
 - Custom compliance criteria specific to your organization
 
-Full documentation will be published on the [Terraform Registry](https://registry.terraform.io/providers/kosli-dev/kosli/).
+Full documentation is available on the [Terraform Registry](https://registry.terraform.io/providers/kosli-dev/kosli/latest/docs) and in the [docs/](docs/) directory.
 
 For more details on attestation types, see the [Kosli documentation](https://docs.kosli.com/client_reference/kosli_create_attestation-type/).
 
@@ -102,24 +104,38 @@ For more details on attestation types, see the [Kosli documentation](https://doc
 
 ## Configuration
 
-The Kosli provider requires authentication via API token and organization name:
+The Kosli provider requires authentication via API token and organization name.
 
-```hcl
-provider "kosli" {
-  api_token = var.kosli_api_token
-  org       = var.kosli_org_name
-  # api_url is optional, defaults to https://app.kosli.com (EU region)
-  # For US region, use: https://app.us.kosli.com
-  # timeout is optional, defaults to 30s
-}
-```
+### Using Environment Variables (Recommended)
 
-Alternatively, use environment variables:
+The recommended approach is to use environment variables, especially for sensitive credentials:
 
 ```bash
 export KOSLI_API_TOKEN="your-api-token"
 export KOSLI_ORG="your-org-name"
-export KOSLI_API_URL="https://app.kosli.com"  # Optional, EU (default) or US region
+export KOSLI_API_URL="https://app.kosli.com"  # Optional, defaults to EU region
+```
+
+Then configure the provider without hardcoded credentials:
+
+```hcl
+provider "kosli" {
+  # Credentials are read from environment variables:
+  # KOSLI_API_TOKEN, KOSLI_ORG, KOSLI_API_URL
+}
+```
+
+### Using Terraform Variables
+
+Alternatively, use Terraform variables (ensure you manage secrets securely):
+
+```hcl
+provider "kosli" {
+  api_token = var.kosli_api_token  # Use secure variable management
+  org       = var.kosli_org_name
+  api_url   = "https://app.kosli.com"  # Optional, defaults to EU region
+  timeout   = 30                        # Optional, defaults to 30s
+}
 ```
 
 ### Regional Endpoints
@@ -133,85 +149,28 @@ Configure the appropriate endpoint based on where your Kosli organization is hos
 
 ### Getting API Credentials
 
+**Recommended: Use Service Accounts**
+
+Service accounts provide secure, programmatic access to Kosli without tying credentials to individual users:
+
 1. Log in to your [Kosli account](https://app.kosli.com)
-2. Navigate to Settings → API Tokens
-3. Create a new API token with appropriate scopes
-4. Store securely (use Terraform variables or secrets management)
+2. Navigate to **Settings → Service Accounts**
+3. Click **Add New Service Account**
+4. Give it a descriptive name (e.g., "Terraform Automation")
+5. Click the **"..."** menu on the service account
+6. Select **Add API Key**
+7. Copy the API key and store it securely
 
-## Development
+**Store credentials securely:**
+- Use environment variables (see Configuration above)
+- For CI/CD: Use your platform's secrets management (GitHub Secrets, GitLab CI/CD variables, etc.)
+- For local development: Use a `.envrc` file (with direnv) or similar - **never commit credentials to version control**
 
-### Quick Start
+## Contributing
 
-We use **Make** to standardize development workflows:
+We welcome contributions! Whether you're fixing a bug, adding a feature, or improving documentation, your help is appreciated.
 
-```bash
-# Clone and navigate to repository
-git clone https://github.com/kosli-dev/terraform-provider-kosli.git
-cd terraform-provider-kosli
-
-# View available commands
-make help
-
-# Build the provider
-make build
-
-# Run tests with coverage
-make test
-
-# Install locally for development
-make install
-```
-
-### Common Development Tasks
-
-```bash
-make fmt          # Format code
-make vet          # Run go vet
-make lint         # Run linter (requires golangci-lint)
-make test         # Run unit tests with coverage
-make testacc      # Run acceptance tests (requires KOSLI_API_TOKEN and KOSLI_ORG)
-make clean        # Remove build artifacts
-```
-
-For detailed development guides, testing procedures, and contribution guidelines, see **[CONTRIBUTING.md](CONTRIBUTING.md)**.
-
-### Project Structure
-
-```
-.
-├── .github/
-│   └── workflows/                          # GitHub Actions workflows
-│       ├── test.yml                        # Test workflow
-│       └── release.yml                     # Release workflow
-├── docs/                                    # Generated documentation
-├── examples/                                # Terraform configuration examples
-├── internal/
-│   ├── provider/
-│   │   ├── data_source_attestation_type.go # Attestation type data source
-│   │   ├── provider.go                     # Provider configuration
-│   │   └── resource_attestation_type.go    # Attestation type resource
-│   └── utils/                              # Helper functions
-├── pkg/
-│   └── client/                             # Kosli API client (public, reusable)
-│       ├── attestation_types.go            # Attestation types API methods
-│       ├── client.go                       # Core client implementation
-│       └── client_test.go                  # Client tests
-├── go.mod                                   # Go module definition
-├── go.sum                                   # Go module checksums
-└── main.go                                  # Provider entry point
-```
-
-### Contributing
-
-We welcome contributions! Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for:
-
-- Development environment setup
-- Building and testing guide
-- Code quality standards
-- Pull request process
-- Project structure overview
-
-**Quick contribution checklist:**
+### Quick Start for Contributors
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/your-feature`)
@@ -219,19 +178,34 @@ We welcome contributions! Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for:
 4. Run `make fmt && make vet && make test`
 5. Submit a pull request
 
-For questions or discussions, see [GitHub Issues](https://github.com/kosli-dev/terraform-provider-kosli/issues) or [Discussions](https://github.com/kosli-dev/terraform-provider-kosli/discussions).
+### Development Guide
+
+For comprehensive development information, see **[CONTRIBUTING.md](CONTRIBUTING.md)**:
+
+- **Development environment setup** - Prerequisites and dependencies
+- **Building and testing** - Make commands and workflows
+- **Code quality standards** - Formatting, linting, and best practices
+- **Pull request process** - Detailed submission guidelines and review timeline
+- **Project structure** - Directory organization and architecture
+- **Release process** - How releases are created and published
+
+### Common Development Commands
+
+```bash
+make help         # View all available commands
+make build        # Build the provider
+make test         # Run unit tests with coverage
+make testacc      # Run acceptance tests
+make install      # Install locally for testing
+```
+
+### Getting Help
+
+- **Questions**: [GitHub Discussions](https://github.com/kosli-dev/terraform-provider-kosli/discussions)
+- **Bug reports**: [GitHub Issues](https://github.com/kosli-dev/terraform-provider-kosli/issues)
+- **Community**: [Kosli Community](https://www.kosli.com/community/)
 
 ## Roadmap
-
-### v0.1 (Initial Release)
-- [ ] Provider authentication and configuration
-- [ ] Attestation types resource
-- [ ] Attestation types data source
-
-### Future Versions
-- [ ] Additional Kosli resources (environments, flows, etc.)
-- [ ] Enhanced attestation type features
-- [ ] Import existing attestation types
 
 See [GitHub Issues](https://github.com/kosli-dev/terraform-provider-kosli/issues) for detailed feature tracking.
 

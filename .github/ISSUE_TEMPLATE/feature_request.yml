@@ -1,0 +1,110 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for the Terraform Kosli Provider
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Please confirm before submitting
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Community Note
+
+        * Please vote on this issue by adding a 👍 [reaction](https://blog.github.com/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) to the original issue to help the community and maintainers prioritize this request
+        * Please do not leave "+1" or other comments that do not add relevant new information or questions, they generate extra noise for issue followers and do not help prioritize the request
+        * If you are interested in working on this issue or have submitted a pull request, please leave a comment
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: |
+        A clear and concise description of the feature or enhancement you'd like to see.
+        Include the problem you're trying to solve and why this feature would be valuable.
+      placeholder: Describe the feature and the problem it solves
+    validations:
+      required: true
+
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: Feature Type
+      description: What type of feature is this?
+      options:
+        - New Resource
+        - New Data Source
+        - Enhancement to Existing Resource
+        - Enhancement to Existing Data Source
+        - Provider Enhancement
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: affected-resources
+    attributes:
+      label: New or Affected Resource(s)/Data Source(s)
+      description: Which resources or data sources would be added or modified?
+      placeholder: e.g., kosli_artifact, kosli_approval
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Describe your use case and how this feature would help you
+      placeholder: |
+        I need to manage... because...
+        This would allow me to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: terraform-config
+    attributes:
+      label: Potential Terraform Configuration
+      description: |
+        Show how you envision using this feature with example Terraform configuration.
+        This helps us understand your expected user experience.
+      placeholder: |
+        resource "kosli_example" "new_feature" {
+          name        = "example"
+          description = "Example configuration"
+
+          # Your envisioned configuration here
+        }
+      render: hcl
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative solutions or workarounds?
+      placeholder: Describe any alternative solutions you've considered
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Links to Kosli API documentation, related issues, or external references
+      placeholder: |
+        * Kosli API: https://docs.kosli.com/api/...
+        * Related issue: #123
+        * Similar feature in other provider: ...
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other information that might be relevant to this feature request
+      placeholder: Add any other context, screenshots, or examples here
