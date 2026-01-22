@@ -28,7 +28,6 @@ type CreateEnvironmentRequest struct {
 	Type                 string
 	Description          string
 	IncludeScaling       bool
-	RequireProvenance    bool
 	IncludedEnvironments []string // for logical environments only
 	Policies             []any    // policies to attach to the environment
 }
@@ -86,7 +85,6 @@ func (c *Client) CreateEnvironment(ctx context.Context, req *CreateEnvironmentRe
 		"type":                  req.Type,
 		"description":           req.Description,
 		"include_scaling":       req.IncludeScaling,
-		"require_provenance":    req.RequireProvenance,
 		"included_environments": req.IncludedEnvironments,
 		"policies":              req.Policies,
 	}
