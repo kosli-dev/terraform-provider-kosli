@@ -226,9 +226,6 @@ func TestCreateEnvironment_Success(t *testing.T) {
 		if body["include_scaling"] != true {
 			t.Errorf("expected include_scaling true, got %v", body["include_scaling"])
 		}
-		if body["require_provenance"] != false {
-			t.Errorf("expected require_provenance false, got %v", body["require_provenance"])
-		}
 
 		// Verify policies field is sent correctly
 		policies, ok := body["policies"].([]any)
@@ -254,12 +251,11 @@ func TestCreateEnvironment_Success(t *testing.T) {
 	}
 
 	req := &CreateEnvironmentRequest{
-		Name:              "production-k8s",
-		Type:              "K8S",
-		Description:       "Production cluster",
-		IncludeScaling:    true,
-		RequireProvenance: false,
-		Policies:          []any{}, // Resource layer will send empty array initially
+		Name:           "production-k8s",
+		Type:           "K8S",
+		Description:    "Production cluster",
+		IncludeScaling: true,
+		Policies:       []any{}, // Resource layer will send empty array initially
 	}
 
 	err = client.CreateEnvironment(context.Background(), req)
@@ -301,12 +297,11 @@ func TestCreateEnvironment_Idempotent(t *testing.T) {
 	}
 
 	req := &CreateEnvironmentRequest{
-		Name:              "production-k8s",
-		Type:              "K8S",
-		Description:       "Production cluster",
-		IncludeScaling:    false,
-		RequireProvenance: false,
-		Policies:          []any{},
+		Name:           "production-k8s",
+		Type:           "K8S",
+		Description:    "Production cluster",
+		IncludeScaling: false,
+		Policies:       []any{},
 	}
 
 	// First call (create)
