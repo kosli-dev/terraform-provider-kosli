@@ -87,6 +87,7 @@ func TestAccCustomAttestationTypeDataSource_notFound(t *testing.T) {
 // TestAccCustomAttestationTypeDataSource_archived tests querying archived attestation types
 func TestAccCustomAttestationTypeDataSource_archived(t *testing.T) {
 	rName := acctest.RandomWithPrefix("tf-acc-test-ds-archived")
+	dataSourceName := "data.kosli_custom_attestation_type.test"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -99,12 +100,22 @@ func TestAccCustomAttestationTypeDataSource_archived(t *testing.T) {
 					resource.TestCheckResourceAttr("kosli_custom_attestation_type.test", "name", rName),
 				),
 			},
-			// Step 2: Archive resource and query with data source
-			// Due to server limitation #4466, archived types return 400 error
-			// This test verifies the error is returned appropriately
+			// Step 2: Destroy resource (which archives it)
 			{
-				Config:      testAccCustomAttestationTypeDataSourceConfigArchived(rName, 2),
-				ExpectError: regexp.MustCompile(`is archived|Could not read custom attestation type`),
+				Config:  testAccCustomAttestationTypeDataSourceConfigArchived(rName, 1),
+				Destroy: true,
+			},
+			// Step 3: Query archived resource with data source
+			// After server fix for #44, archived types are returned successfully
+			// with archived=true instead of returning an error
+			{
+				Config: testAccCustomAttestationTypeDataSourceConfigArchived(rName, 2),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dataSourceName, "name", rName),
+					resource.TestCheckResourceAttr(dataSourceName, "archived", "true"),
+					resource.TestCheckResourceAttrSet(dataSourceName, "schema"),
+					resource.TestCheckResourceAttr(dataSourceName, "jq_rules.#", "1"),
+				),
 			},
 		},
 	})
@@ -205,7 +216,7 @@ data "kosli_custom_attestation_type" "test" {
 // testAccCustomAttestationTypeDataSourceConfigArchived returns config for archived type test
 func testAccCustomAttestationTypeDataSourceConfigArchived(name string, step int) string {
 	if step == 1 {
-		// Step 1: Create resource
+		// Step 1: Create resource (also used for Step 2 with Destroy: true)
 		return fmt.Sprintf(`
 resource "kosli_custom_attestation_type" "test" {
   name = %[1]q
@@ -222,7 +233,7 @@ resource "kosli_custom_attestation_type" "test" {
 `, name)
 	}
 
-	// Step 2: Archive resource (remove it) and query with data source
+	// Step 2: Query archived resource with data source
 	return fmt.Sprintf(`
 data "kosli_custom_attestation_type" "test" {
   name = %[1]q
