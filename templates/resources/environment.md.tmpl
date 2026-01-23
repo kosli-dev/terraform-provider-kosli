@@ -1,0 +1,58 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Type}}: {{.Name}}
+
+{{ .Description | trimspace }}
+
+Kosli environments track deployments and provide visibility into what's running in your infrastructure. Physical environments represent actual runtime locations such as:
+
+- **K8S**: Kubernetes clusters
+- **ECS**: Amazon Elastic Container Service clusters
+- **S3**: Amazon S3 buckets
+- **docker**: Docker containers
+- **server**: Bare-metal or VM servers
+- **lambda**: AWS Lambda functions
+
+**Note**: This provider currently supports only physical environments. Logical environments (which aggregate other environments) are not yet supported.
+
+**Note**: Environment tags are managed through a separate Kosli API and are not included in this Terraform resource.
+
+**Note**: Environment policies will be available in a future release as a separate resource (`kosli_environment_policy`).
+
+## Example Usage
+
+{{tffile "examples/resources/kosli_environment/resource.tf"}}
+
+## Environment Types
+
+The `type` attribute must be one of the following physical environment types:
+
+- `K8S` - Kubernetes clusters
+- `ECS` - Amazon Elastic Container Service
+- `S3` - Amazon S3 buckets
+- `docker` - Docker containers
+- `server` - Bare-metal or VM servers
+- `lambda` - AWS Lambda functions
+
+## Configuration Options
+
+### Include Scaling
+
+The `include_scaling` attribute (default: `false`) determines whether scaling events in the environment should be tracked. This is useful for environments with auto-scaling where you want to monitor scale-up and scale-down events.
+
+## Import
+
+Environments can be imported using their name:
+
+{{codefile "shell" "examples/resources/kosli_environment/import.sh"}}
+
+## Monitoring Environments
+
+For querying environment metadata such as `last_modified_at` and `last_reported_at` timestamps, use the `kosli_environment` data source. This is useful for monitoring and creating conditional logic based on environment state.
+
+{{ .SchemaMarkdown | trimspace }}

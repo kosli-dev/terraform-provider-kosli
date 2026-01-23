@@ -9,10 +9,12 @@ description: |-
 
 {{ .Description | trimspace }}
 
-Custom attestation types define the structure and validation rules for attestations in Kosli. They consist of:
+Custom attestation types define the structure and validation rules for attestations in Kosli. They can include:
 
-- A JSON Schema that defines the expected structure of attestation data
-- JQ rules that evaluate the attestation data for compliance
+- A JSON Schema (optional) that defines the expected structure of attestation data
+- JQ rules (optional) that evaluate the attestation data for compliance
+
+**Note**: While both `schema` and `jq_rules` are optional attributes in Terraform, the Kosli API requires at least one of them to be provided when creating or updating a custom attestation type.
 
 ## Example Usage
 
@@ -20,7 +22,7 @@ Custom attestation types define the structure and validation rules for attestati
 
 ## Schema Validation
 
-The `schema` attribute must contain a valid JSON Schema (draft-07) that defines the structure of attestation data. Common schema types:
+The `schema` attribute is optional and can contain a valid JSON Schema (draft-07) that defines the structure of attestation data. When provided, attestation data will be validated against this schema. Common schema types:
 
 - **Security Scans**: Define vulnerability counts and scan metadata
 - **Code Coverage**: Define coverage percentages and test metrics
@@ -42,7 +44,7 @@ The `schema` attribute must contain a valid JSON Schema (draft-07) that defines 
 
 ## JQ Rules
 
-The `jq_rules` attribute contains an array of JQ expressions that must ALL evaluate to `true` for an attestation to be considered compliant. Each rule is evaluated against the attestation data that matches the defined schema.
+The `jq_rules` attribute is optional and contains an array of JQ expressions that must ALL evaluate to `true` for an attestation to be considered compliant. When provided, each rule is evaluated against the attestation data. If omitted, no evaluation is performed.
 
 ### JQ Rules Examples
 
