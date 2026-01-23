@@ -134,6 +134,7 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	// Map API response to Terraform state (configuration fields only, no timestamps)
+	data.Type = types.StringValue(env.Type)
 	// Handle empty description as null to avoid inconsistency when not provided in config
 	if env.Description == "" {
 		data.Description = types.StringNull()
@@ -167,6 +168,7 @@ func (r *environmentResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 
 	// Map API response to Terraform state (configuration fields only, no timestamps)
+	data.Type = types.StringValue(env.Type)
 	// Handle empty description as null to avoid inconsistency when not provided in config
 	if env.Description == "" {
 		data.Description = types.StringNull()
@@ -218,6 +220,7 @@ func (r *environmentResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 
 	// Map API response to Terraform state (configuration fields only, no timestamps)
+	data.Type = types.StringValue(env.Type)
 	// Handle empty description as null to avoid inconsistency when not provided in config
 	if env.Description == "" {
 		data.Description = types.StringNull()
