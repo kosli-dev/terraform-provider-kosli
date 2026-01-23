@@ -20,7 +20,7 @@ INSTALL_DIR=~/.terraform.d/plugins/registry.terraform.io/kosli-dev/kosli/0.1.0/$
 # Coverage output
 COVERAGE_OUT=coverage.out
 
-.PHONY: all build clean test test-coverage testacc testacc-custom-attestation-type testacc-custom-attestation-type-datasource testacc-environment check-testacc-env fmt vet lint install docs help default
+.PHONY: all build clean test test-coverage testacc testacc-custom-attestation-type testacc-custom-attestation-type-datasource testacc-environment testacc-environment-datasource check-testacc-env fmt vet lint install docs help default
 
 # Default target
 default: build
@@ -97,6 +97,11 @@ testacc-environment: check-testacc-env
 	@echo "Running acceptance tests for environment resource..."
 	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccEnvironmentResource' -timeout 30m
 
+# Run acceptance tests for environment resource
+testacc-environment-datasource: check-testacc-env
+	@echo "Running acceptance tests for environment data source..."
+	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccEnvironmentDataSource' -timeout 30m
+
 # Format Go code
 fmt:
 	@echo "Formatting code..."
@@ -151,6 +156,8 @@ help:
 	@echo "                Run acceptance tests for custom_attestation_type data source"
 	@echo "  testacc-environment"
 	@echo "                Run acceptance tests for environment resource"
+	@echo "  testacc-environment-datasource"
+	@echo "                Run acceptance tests for environment data source"
 	@echo ""
 	@echo "Code quality targets:"
 	@echo "  fmt           Format Go code"
