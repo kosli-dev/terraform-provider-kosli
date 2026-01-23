@@ -42,32 +42,8 @@ provider "kosli" {
 
 ### Basic Configuration
 
-Here's a minimal example to get started. For complete examples with variables and multiple use cases, see the [examples](examples/) directory.
+For complete examples with variables and multiple use cases, see the [examples](examples/) directory:
 
-```hcl
-resource "kosli_custom_attestation_type" "example" {
-  name        = "coverage-check"
-  description = "Validate test coverage meets minimum threshold"
-
-  schema = <<-EOT
-    {
-      "type": "object",
-      "properties": {
-        "line_coverage": {
-          "type": "number"
-        }
-      },
-      "required": ["line_coverage"]
-    }
-  EOT
-
-  jq_rules = [
-    ".line_coverage >= 80"
-  ]
-}
-```
-
-**Example configurations:**
 - [Resource examples](examples/resources/) - Creating and managing resources
 - [Data source examples](examples/data-sources/) - Referencing existing resources
 - [Complete examples](examples/complete/) - End-to-end scenarios
@@ -96,11 +72,14 @@ For more details on attestation types, see the [Kosli documentation](https://doc
 
 ### Resources
 - `kosli_custom_attestation_type` - Create and manage custom attestation types
+- `kosli_environment` - Create and manage Kosli environments (K8S, ECS, S3, docker, server, lambda)
 
 ### Data Sources
 - `kosli_custom_attestation_type` - Reference existing attestation types
+- `kosli_environment` - Reference existing environments
 
-*Additional resources will be added as the provider matures.*
+> [!NOTE]
+> Environment support in Terraform is currently limited to physical environments only (K8S, ECS, S3, docker, server, lambda). Support for logical environments will be added in a future release.
 
 ## Configuration
 
@@ -157,9 +136,13 @@ Service accounts provide secure, programmatic access to Kosli without tying cred
 2. Navigate to **Settings → Service Accounts**
 3. Click **Add New Service Account**
 4. Give it a descriptive name (e.g., "Terraform Automation")
-5. Click the **"..."** menu on the service account
-6. Select **Add API Key**
-7. Copy the API key and store it securely
+5. **Assign Admin permissions** to the service account (required for managing environments and attestation types)
+6. Click the **"..."** menu on the service account
+7. Select **Add API Key**
+8. Copy the API key and store it securely
+
+> [!IMPORTANT]
+> The Terraform provider requires a Service Account with **Admin permissions** to manage Kosli resources.
 
 **Store credentials securely:**
 - Use environment variables (see Configuration above)

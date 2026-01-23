@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.2.0] (Unreleased)
+
+FEATURES:
+
+* **New Resource**: `kosli_environment` for managing Kosli environments
+* **New Data Source**: `kosli_environment` for querying existing environments
+* Support for physical environment types: K8S, ECS, S3, docker, server, lambda
+
+IMPROVEMENTS:
+
+* provider: Added requirement for Service Account with Admin permissions for managing resources
+* docs: Added comprehensive examples for environment resource and data source
+* docs: Added documentation templates for tfplugindocs generation
+
+BUG FIXES:
+
+* resource/kosli_environment: Fixed import test failure where `type` field was not being mapped from API response to state [GH-71]
+
+NOTES:
+
+* Environment support is currently limited to physical environments only. Logical environment support will be added in a future release.
+
 ## 0.1.0
 
 FEATURES:
