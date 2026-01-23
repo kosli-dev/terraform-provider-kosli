@@ -41,13 +41,11 @@ output "production_includes_scaling" {
 
 # Conditional logic based on environment metadata
 locals {
-  needs_attention = (
-    data.kosli_environment.production.last_reported_at == null ||
-    (time() - data.kosli_environment.production.last_reported_at) > 86400  # 24 hours
-  )
+  # Check if environment has never reported a snapshot
+  needs_attention = data.kosli_environment.production.last_reported_at == null
 }
 
 output "production_needs_attention" {
-  description = "Whether production environment needs attention (not reported in 24h)"
+  description = "Whether production environment needs attention (never reported)"
   value       = local.needs_attention
 }
