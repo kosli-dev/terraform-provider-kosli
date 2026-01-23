@@ -153,6 +153,7 @@ func (p *KosliProvider) Resources(ctx context.Context) []func() resource.Resourc
 func (p *KosliProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewCustomAttestationTypeDataSource,
+		NewEnvironmentDataSource,
 	}
 }
 

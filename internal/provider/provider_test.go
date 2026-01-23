@@ -127,9 +127,9 @@ func TestKosliProvider_DataSources(t *testing.T) {
 
 	dataSources := p.DataSources(ctx)
 
-	// Custom attestation type data source implemented in issue #16
-	if len(dataSources) != 1 {
-		t.Errorf("Expected 1 data source, got %d", len(dataSources))
+	// Custom attestation type data source (issue #16) and environment data source (issue #72)
+	if len(dataSources) != 2 {
+		t.Errorf("Expected 2 data sources, got %d", len(dataSources))
 	}
 }
 
