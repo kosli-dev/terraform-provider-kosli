@@ -127,6 +127,10 @@ func (p *KosliProvider) Configure(ctx context.Context, req provider.ConfigureReq
 	// Set timeout
 	opts = append(opts, client.WithTimeout(timeout))
 
+	// Set user agent with provider version
+	userAgent := fmt.Sprintf("terraform-provider-kosli/%s", p.version)
+	opts = append(opts, client.WithUserAgent(userAgent))
+
 	kosliClient, err := client.NewClient(apiToken, org, opts...)
 	if err != nil {
 		resp.Diagnostics.AddError(
