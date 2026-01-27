@@ -10,6 +10,7 @@ permissions:
   contents: read
 
 jobs:
+  # Test job - quality checks and unit/acceptance tests
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -57,6 +58,22 @@ jobs:
         run: make testacc
         timeout-minutes: 30
 
+  # Build job - runs in parallel with test
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
       - name: Build provider
         run: make build
 
@@ -75,12 +92,12 @@ jobs:
           path: terraform-provider-kosli
           retention-days: 1
 
-  # Validate examples in parallel
+  # Validate examples in parallel (depends on build, not test)
   validate-examples:
     name: Validate ${{ matrix.example }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: test
+    needs: build
     strategy:
       fail-fast: false
       matrix:
