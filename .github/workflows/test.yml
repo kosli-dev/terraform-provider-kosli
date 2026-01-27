@@ -68,39 +68,58 @@ jobs:
           fi
           echo "Binary built successfully"
 
+      - name: Upload provider binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-provider-kosli
+          path: terraform-provider-kosli
+          retention-days: 1
+
+  # Validate examples in parallel
+  validate-examples:
+    name: Validate ${{ matrix.example }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        example:
+          - examples/resources/kosli_custom_attestation_type
+          - examples/resources/kosli_environment
+          - examples/data-sources/kosli_custom_attestation_type
+          - examples/data-sources/kosli_environment
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Download provider binary
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-provider-kosli
+
+      - name: Make binary executable
+        run: chmod +x terraform-provider-kosli
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.10.0"
           terraform_wrapper: false
 
-      - name: Install provider for example validation
+      - name: Install provider
+        run: make install
+
+      - name: Validate example
         run: |
-          # Install the built provider to local Terraform plugins directory
-          make install
-          echo "Provider installed to local plugins directory"
-
-      - name: Validate examples
-        run: |
-          echo "Validating Terraform examples..."
-
-          # Find all example directories containing .tf files
-          EXAMPLE_DIRS=$(find examples -type f -name "*.tf" -exec dirname {} \; | sort -u)
-
-          if [ -z "$EXAMPLE_DIRS" ]; then
-            echo "No example directories found"
-            exit 1
-          fi
-
-          # Validate each example directory
-          for dir in $EXAMPLE_DIRS; do
-            echo "Validating $dir..."
-            (cd "$dir" && terraform init -backend=false && terraform validate)
-            if [ $? -ne 0 ]; then
-              echo "Validation failed for $dir"
-              exit 1
-            fi
-            echo "✓ $dir validated successfully"
-          done
-
-          echo "All examples validated successfully"
+          echo "Validating ${{ matrix.example }}..."
+          cd "${{ matrix.example }}"
+          terraform init -backend=false
+          terraform validate
+          echo "✓ ${{ matrix.example }} validated successfully"
