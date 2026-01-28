@@ -112,6 +112,24 @@ jobs:
             --build-url ${BUILD_URL} \
             --commit-url ${COMMIT_URL}
 
+      - name: Generate SBOM for the Go binary
+        uses: anchore/sbom-action@v0
+        with:
+          artifact-name: sbom-spdx.json
+          file: ./${BINARY_NAME}
+          format: spdx-json
+          output-file: sbom-spdx.json
+          upload-artifact: false
+
+      - name: Attest SBOM
+        run: |
+          kosli attest generic ${BINARY_NAME} \
+            --flow ${REPO_NAME}-pipeline \
+            --trail ${GIT_COMMIT} \
+            --name go-binary.sbom \
+            --artifact-type file \
+            --attachments sbom-spdx.json \
+
       - name: Upload provider binary
         uses: actions/upload-artifact@v4
         with:
