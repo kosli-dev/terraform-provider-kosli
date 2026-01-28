@@ -126,7 +126,7 @@ jobs:
           kosli attest generic ${BINARY_NAME} \
             --flow ${REPO_NAME}-pipeline \
             --trail ${GIT_COMMIT} \
-            --name go-binary.sbom \
+            --name ${BINARY_NAME} \
             --artifact-type file \
             --attachments sbom-spdx.json \
 
