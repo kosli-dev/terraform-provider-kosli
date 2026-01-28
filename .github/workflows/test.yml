@@ -126,9 +126,9 @@ jobs:
           kosli attest generic ${BINARY_NAME} \
             --flow ${REPO_NAME}-pipeline \
             --trail ${GIT_COMMIT} \
-            --name ${BINARY_NAME} \
+            --name sbom \
             --artifact-type file \
-            --attachments sbom-spdx.json \
+            --attachments sbom-spdx.json
 
       - name: Upload provider binary
         uses: actions/upload-artifact@v4
