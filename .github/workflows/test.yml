@@ -116,7 +116,7 @@ jobs:
         uses: anchore/sbom-action@v0
         with:
           artifact-name: sbom-spdx.json
-          file: ./${BINARY_NAME}
+          file: ./terraform-provider-kosli
           format: spdx-json
           output-file: sbom-spdx.json
           upload-artifact: false
