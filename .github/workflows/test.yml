@@ -6,6 +6,16 @@ on:
   push:
     branches: [main]
 
+env:
+  BUILD_NUMBER: ${{ github.run_number }}
+  BUILD_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+  BINARY_NAME: ${{ github.event.repository.name }}
+  COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+  GIT_BRANCH: ${{ github.ref_name }}
+  GIT_COMMIT: ${{ github.sha }}
+  KOSLI_API_TOKEN: ${{ secrets.KOSLI_API_TOKEN }}
+  KOSLI_ORG: ${{ vars.KOSLI_ORG }}
+  REPO_NAME: ${{ github.event.repository.name }}
 permissions:
   contents: read
 
@@ -52,9 +62,6 @@ jobs:
 
       - name: Run acceptance tests
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          KOSLI_API_TOKEN: ${{ secrets.KOSLI_API_TOKEN }}
-          KOSLI_ORG: ${{ vars.KOSLI_ORG }}
         run: make testacc
         timeout-minutes: 30
 
@@ -68,22 +75,42 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Setup Kosli CLI
+        uses: kosli-dev/setup-cli-action@v2
+        with:
+          version:
+            2.11.40
+
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
           cache: true
 
+      - name: Create/Update Flow in Kosli
+        run: |
+         kosli create flow ${REPO_NAME}-pipeline \
+         --description "CI pipeline for ${REPO_NAME} application" \
+         --use-empty-template
+
+      - name: Begin Kosli Trail
+        run: |
+            kosli begin trail ${GIT_COMMIT} \
+            --flow ${REPO_NAME}-pipeline \
+            --description "Build ${BUILD_NUMBER}: ${GIT_BRANCH}"
+
       - name: Build provider
         run: make build
 
-      - name: Verify binary exists
+      - name: Attest Go binary to Kosli
         run: |
-          if [ ! -f terraform-provider-kosli ]; then
-            echo "Binary not found"
-            exit 1
-          fi
-          echo "Binary built successfully"
+          kosli attest artifact ${BINARY_NAME} \
+            --artifact-type file \
+            --flow ${REPO_NAME}-pipeline \
+            --trail ${GIT_COMMIT} \
+            --name ${BINARY_NAME} \
+            --build-url ${BUILD_URL} \
+            --commit-url ${COMMIT_URL}
 
       - name: Upload provider binary
         uses: actions/upload-artifact@v4
