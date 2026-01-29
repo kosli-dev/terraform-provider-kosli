@@ -15,7 +15,7 @@ GOVET=$(GOCMD) vet
 # Terraform provider installation directory
 # This follows the terraform provider plugin directory structure
 OS_ARCH=$(shell go env GOOS)_$(shell go env GOARCH)
-INSTALL_DIR=~/.terraform.d/plugins/registry.terraform.io/kosli-dev/kosli/0.1.0/$(OS_ARCH)
+INSTALL_DIR=~/.terraform.d/plugins/registry.terraform.io/kosli-dev/kosli/dev/$(OS_ARCH)
 
 # Coverage output
 COVERAGE_OUT=coverage.out
@@ -41,7 +41,7 @@ install: build
 	@echo "    required_providers {"
 	@echo "      kosli = {"
 	@echo "        source = \"kosli-dev/kosli\""
-	@echo "        version = \"0.1.0\""
+	@echo "        version = \"dev\""
 	@echo "      }"
 	@echo "    }"
 	@echo "  }"
