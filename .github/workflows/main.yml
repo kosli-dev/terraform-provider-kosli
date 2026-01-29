@@ -1,7 +1,7 @@
-name: CD - Build and Attest
+name: Main Pipeline
 
 on:
-  pull_request:
+  push:
     branches: [main]
 
 env:
@@ -46,36 +46,33 @@ jobs:
         run: |
           kosli begin trail ${GIT_COMMIT} \
             --flow ${KOSLI_FLOW_NAME} \
-            --description "Build ${BUILD_NUMBER}: ${GIT_BRANCH} @ ${GIT_COMMIT}"
+            --description "Build ${BUILD_NUMBER}: ${GIT_BRANCH}"
 
   # Attest PR approval
-  # attest-pr:
-  #   name: Attest PR Approval
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 2
-  #   needs: setup
+  attest-pr:
+    name: Attest Pull Request
+    runs-on: ubuntu-latest
+    needs: setup
 
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v6
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
 
-  #     - name: Setup Kosli CLI
-  #       uses: kosli-dev/setup-cli-action@v2
-  #       with:
-  #         version: 2.11.40
+      - name: Setup Kosli CLI
+        uses: kosli-dev/setup-cli-action@v2
+        with:
+          version: 2.11.40
 
-  #     - name: Attest PR approval
-  #       run: |
-  #         kosli attest pullrequest github \
-  #           --flow ${KOSLI_FLOW_NAME} \
-  #           --trail ${GIT_COMMIT} \
-  #           --name github-pr-approval \
-  #           --commit ${GIT_COMMIT} \
-  #           --repository ${{ github.repository }}
+      - name: Attest PR approval
+        run: |
+          kosli attest pullrequest github \
+            --github-token="${{ secrets.GITHUB_TOKEN }}" \
+            --trail ${GIT_COMMIT} \
+            --name pull-request
 
   # Test job - quality checks and attestations
   test:
-    name: Test on merge commit
+    name: Test
     runs-on: ubuntu-latest
     needs: setup
 
@@ -94,9 +91,6 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
 
-      - name: Verify Go version
-        run: go version
-
       - name: Check code formatting
         run: |
           make fmt
@@ -105,7 +99,6 @@ jobs:
             git diff
             exit 1
           fi
-
       - name: Run go vet
         run: make vet
 
@@ -144,7 +137,7 @@ jobs:
             --trail ${GIT_COMMIT} \
             --name acceptance-tests \
             --compliant=${{ steps.acceptance_tests.outcome == 'success' }} \
-            --description "Acceptance tests on merge commit"
+            --description "Acceptance tests"
 
       - name: Fail if tests failed
         if: steps.unit_tests.outcome != 'success' || steps.acceptance_tests.outcome != 'success'
@@ -154,11 +147,10 @@ jobs:
 
   # Build job - builds artifacts and attests them
   build:
-    name: Build and Attest Artifacts
+    name: Build binary
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [setup, test]
-    # needs: [setup, test, attest-pr]
+    needs: [setup, test, attest-pr]
 
     steps:
       - name: Checkout code

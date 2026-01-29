@@ -1,5 +1,12 @@
 version: 1
 trail:
+  attestations:
+  - name: pull-request
+    type: pull_request
+  - name: unit-tests
+    type: generic
+  - name: acceptance-tests
+    type: generic
   artifacts:
   - name: terraform-provider-kosli
     attestations:
