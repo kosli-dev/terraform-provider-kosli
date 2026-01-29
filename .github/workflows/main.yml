@@ -140,7 +140,7 @@ jobs:
       - name: Attest acceptance tests
         if: always()
         run: |
-          kosli attest generic \
+          kosli attest generic ${BINARY_NAME} \
             --flow ${KOSLI_FLOW_NAME} \
             --trail ${GIT_COMMIT} \
             --artifact-type file \
