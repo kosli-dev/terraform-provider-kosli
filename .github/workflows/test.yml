@@ -6,10 +6,22 @@ on:
   push:
     branches: [main]
 
+env:
+  BUILD_NUMBER: ${{ github.run_number }}
+  BUILD_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+  BINARY_NAME: ${{ github.event.repository.name }}
+  COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+  GIT_BRANCH: ${{ github.ref_name }}
+  GIT_COMMIT: ${{ github.sha }}
+  KOSLI_API_TOKEN: ${{ secrets.KOSLI_API_TOKEN }}
+  KOSLI_FLOW_NAME: ${{ github.event.repository.name }}
+  KOSLI_ORG: ${{ vars.KOSLI_ORG }}
+  REPO_NAME: ${{ github.event.repository.name }}
 permissions:
   contents: read
 
 jobs:
+  # Test job - quality checks and unit/acceptance tests
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -51,22 +63,113 @@ jobs:
 
       - name: Run acceptance tests
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          KOSLI_API_TOKEN: ${{ secrets.KOSLI_API_TOKEN }}
-          KOSLI_ORG: ${{ vars.KOSLI_ORG }}
         run: make testacc
         timeout-minutes: 30
+
+  # Build job - runs in parallel with test
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Kosli CLI
+        uses: kosli-dev/setup-cli-action@v2
+        with:
+          version:
+            2.11.40
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Create/Update Flow in Kosli
+        run: |
+         kosli create flow ${KOSLI_FLOW_NAME} \
+         --description "CI/CD pipeline for ${REPO_NAME}" \
+         --visibility public \
+         --template-file kosli/template.yml
+
+      - name: Begin Kosli Trail
+        run: |
+            kosli begin trail ${GIT_COMMIT} \
+            --flow ${KOSLI_FLOW_NAME} \
+            --description "Build ${BUILD_NUMBER}: ${GIT_BRANCH}"
 
       - name: Build provider
         run: make build
 
-      - name: Verify binary exists
+      - name: Attest Go binary to Kosli
         run: |
-          if [ ! -f terraform-provider-kosli ]; then
-            echo "Binary not found"
-            exit 1
-          fi
-          echo "Binary built successfully"
+          kosli attest artifact ${BINARY_NAME} \
+            --artifact-type file \
+            --flow ${KOSLI_FLOW_NAME} \
+            --trail ${GIT_COMMIT} \
+            --name ${BINARY_NAME} \
+            --build-url ${BUILD_URL} \
+            --commit-url ${COMMIT_URL}
+
+      - name: Generate SBOM for the Go binary
+        uses: anchore/sbom-action@v0
+        with:
+          artifact-name: sbom-spdx.json
+          file: ./terraform-provider-kosli
+          format: spdx-json
+          output-file: sbom-spdx.json
+          upload-artifact: false
+
+      - name: Attest SBOM
+        run: |
+          kosli attest generic ${BINARY_NAME} \
+            --flow ${KOSLI_FLOW_NAME} \
+            --trail ${GIT_COMMIT} \
+            --name sbom \
+            --artifact-type file \
+            --attachments sbom-spdx.json
+
+      - name: Upload provider binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-provider-kosli
+          path: terraform-provider-kosli
+          retention-days: 1
+
+  # Validate examples in parallel (depends on build, not test)
+  validate-examples:
+    name: Validate ${{ matrix.example }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        example:
+          - examples/resources/kosli_custom_attestation_type
+          - examples/resources/kosli_environment
+          - examples/data-sources/kosli_custom_attestation_type
+          - examples/data-sources/kosli_environment
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Download provider binary
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-provider-kosli
+
+      - name: Make binary executable
+        run: chmod +x terraform-provider-kosli
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -74,33 +177,13 @@ jobs:
           terraform_version: "1.10.0"
           terraform_wrapper: false
 
-      - name: Install provider for example validation
+      - name: Install provider
+        run: make install
+
+      - name: Validate example
         run: |
-          # Install the built provider to local Terraform plugins directory
-          make install
-          echo "Provider installed to local plugins directory"
-
-      - name: Validate examples
-        run: |
-          echo "Validating Terraform examples..."
-
-          # Find all example directories containing .tf files
-          EXAMPLE_DIRS=$(find examples -type f -name "*.tf" -exec dirname {} \; | sort -u)
-
-          if [ -z "$EXAMPLE_DIRS" ]; then
-            echo "No example directories found"
-            exit 1
-          fi
-
-          # Validate each example directory
-          for dir in $EXAMPLE_DIRS; do
-            echo "Validating $dir..."
-            (cd "$dir" && terraform init -backend=false && terraform validate)
-            if [ $? -ne 0 ]; then
-              echo "Validation failed for $dir"
-              exit 1
-            fi
-            echo "✓ $dir validated successfully"
-          done
-
-          echo "All examples validated successfully"
+          echo "Validating ${{ matrix.example }}..."
+          cd "${{ matrix.example }}"
+          terraform init -backend=false
+          terraform validate
+          echo "✓ ${{ matrix.example }} validated successfully"
