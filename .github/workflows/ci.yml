@@ -36,6 +36,15 @@ jobs:
             exit 1
           fi
 
+      - name: Check documentation is up-to-date
+        run: |
+          make docs
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Documentation is out of date. Run 'make docs' locally."
+            git diff
+            exit 1
+          fi
+
       - name: Run go vet
         run: make vet
 
