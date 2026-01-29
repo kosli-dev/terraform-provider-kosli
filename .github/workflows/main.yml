@@ -123,10 +123,9 @@ jobs:
       - name: Attest unit tests
         if: always()
         run: |
-          kosli attest generic ${BINARY_NAME} \
+          kosli attest generic \
             --flow ${KOSLI_FLOW_NAME} \
             --trail ${GIT_COMMIT} \
-            --artifact-type file \
             --name unit-tests \
             --compliant=${{ steps.unit_tests.outcome == 'success' }} \
             --description "Unit tests"
@@ -140,10 +139,9 @@ jobs:
       - name: Attest acceptance tests
         if: always()
         run: |
-          kosli attest generic ${BINARY_NAME} \
+          kosli attest generic \
             --flow ${KOSLI_FLOW_NAME} \
             --trail ${GIT_COMMIT} \
-            --artifact-type file \
             --name acceptance-tests \
             --compliant=${{ steps.acceptance_tests.outcome == 'success' }} \
             --description "Acceptance tests on merge commit"
