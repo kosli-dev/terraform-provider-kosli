@@ -92,6 +92,7 @@ jobs:
         run: |
          kosli create flow ${KOSLI_FLOW_NAME} \
          --description "CI/CD pipeline for ${REPO_NAME}" \
+         --visibility public \
          --template-file kosli/template.yml
 
       - name: Begin Kosli Trail
