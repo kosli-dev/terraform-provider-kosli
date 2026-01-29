@@ -14,6 +14,7 @@ env:
   GIT_BRANCH: ${{ github.ref_name }}
   GIT_COMMIT: ${{ github.sha }}
   KOSLI_API_TOKEN: ${{ secrets.KOSLI_API_TOKEN }}
+  KOSLI_FLOW_NAME: ${{ github.event.repository.name }}
   KOSLI_ORG: ${{ vars.KOSLI_ORG }}
   REPO_NAME: ${{ github.event.repository.name }}
 permissions:
@@ -89,14 +90,14 @@ jobs:
 
       - name: Create/Update Flow in Kosli
         run: |
-         kosli create flow ${REPO_NAME}-pipeline \
-         --description "CI pipeline for ${REPO_NAME} application" \
-         --use-empty-template
+         kosli create flow ${KOSLI_FLOW_NAME} \
+         --description "CI/CD pipeline for ${REPO_NAME}" \
+         --template-file kosli/template.yml
 
       - name: Begin Kosli Trail
         run: |
             kosli begin trail ${GIT_COMMIT} \
-            --flow ${REPO_NAME}-pipeline \
+            --flow ${KOSLI_FLOW_NAME} \
             --description "Build ${BUILD_NUMBER}: ${GIT_BRANCH}"
 
       - name: Build provider
@@ -106,7 +107,7 @@ jobs:
         run: |
           kosli attest artifact ${BINARY_NAME} \
             --artifact-type file \
-            --flow ${REPO_NAME}-pipeline \
+            --flow ${KOSLI_FLOW_NAME} \
             --trail ${GIT_COMMIT} \
             --name ${BINARY_NAME} \
             --build-url ${BUILD_URL} \
@@ -124,7 +125,7 @@ jobs:
       - name: Attest SBOM
         run: |
           kosli attest generic ${BINARY_NAME} \
-            --flow ${REPO_NAME}-pipeline \
+            --flow ${KOSLI_FLOW_NAME} \
             --trail ${GIT_COMMIT} \
             --name sbom \
             --artifact-type file \

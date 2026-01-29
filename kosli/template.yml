@@ -1,0 +1,7 @@
+version: 1
+trail:
+  artifacts:
+  - name: terraform-provider-kosli
+    attestations:
+    - name: sbom
+      type: generic
