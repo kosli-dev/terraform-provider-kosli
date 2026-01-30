@@ -31,7 +31,11 @@ build:
 	$(GOBUILD) -o $(BINARY) -v
 
 # Install the provider locally for development
-install: build
+install:
+	@if [ ! -f $(BINARY) ]; then \
+		echo "Error: $(BINARY) not found. Run 'make build' first."; \
+		exit 1; \
+	fi
 	@echo "Installing $(BINARY) to $(INSTALL_DIR)..."
 	@mkdir -p $(INSTALL_DIR)
 	@cp $(BINARY) $(INSTALL_DIR)/
