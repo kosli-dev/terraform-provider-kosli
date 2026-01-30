@@ -20,8 +20,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
+          check-latest: true
           go-version-file: 'go.mod'
-          cache: true
 
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v6
