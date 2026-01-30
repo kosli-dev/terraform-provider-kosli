@@ -38,7 +38,7 @@ jobs:
 
       - name: Check documentation is up-to-date
         run: |
-          go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest
+          go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@0.24.0
           make docs
           if [ -n "$(git status --porcelain)" ]; then
             echo "Documentation is out of date. Run 'make docs' locally."
