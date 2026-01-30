@@ -23,7 +23,6 @@ jobs:
         with:
           check-latest: true
           go-version-file: 'go.mod'
-          cache: true
 
       - name: Verify Go version
         run: go version
@@ -74,7 +73,6 @@ jobs:
         with:
           check-latest: true
           go-version-file: 'go.mod'
-          cache: true
 
       - name: Build provider
         run: make build
@@ -110,7 +108,6 @@ jobs:
         with:
           check-latest: true
           go-version-file: 'go.mod'
-          cache: true
 
       - name: Download provider binary
         uses: actions/download-artifact@v4

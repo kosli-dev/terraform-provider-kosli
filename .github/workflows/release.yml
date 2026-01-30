@@ -22,7 +22,6 @@ jobs:
         with:
           check-latest: true
           go-version-file: 'go.mod'
-          cache: true
 
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v6
