@@ -67,6 +67,7 @@ jobs:
         run: |
           kosli attest pullrequest github \
             --github-token="${{ secrets.GITHUB_TOKEN }}" \
+            --flow ${KOSLI_FLOW_NAME} \
             --trail ${GIT_COMMIT} \
             --name pull-request
 
