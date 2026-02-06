@@ -107,7 +107,7 @@ if err != nil {
 
 - **Delayed feedback**: Users don't discover validation errors until API call (typically <1s delay)
 - **Less customized errors**: Error messages come from API rather than Terraform-specific text
-- **Mitigation**: API errors are still surfaced as clear Terraform diagnostics via `diag.FromErr()`
+- **Mitigation**: API errors are still surfaced as clear Terraform diagnostics via `resp.Diagnostics.AddError()`
 
 ## Consequences
 
