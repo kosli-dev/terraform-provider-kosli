@@ -35,10 +35,18 @@ Terraform provider queries each environment in `included_environments` to verify
 for _, envName := range includedEnvironments {
     env, err := client.GetEnvironment(ctx, envName)
     if err != nil {
-        return diag.FromErr(err)
+        resp.Diagnostics.AddError(
+            "Error reading environment",
+            fmt.Sprintf("Unable to retrieve environment %q: %s", envName, err),
+        )
+        return
     }
     if env.Type == "logical" {
-        return diag.Errorf("logical environment cannot include another logical environment: %s", envName)
+        resp.Diagnostics.AddError(
+            "Invalid environment type",
+            fmt.Sprintf("Logical environment cannot include another logical environment: %s", envName),
+        )
+        return
     }
 }
 // Proceed with create/update
@@ -67,7 +75,11 @@ Send the request to the API and let the API enforce validation rules, surfacing 
 err := client.CreateEnvironment(ctx, req)
 if err != nil {
     // API will return error if logical env is included
-    return diag.FromErr(err)
+    resp.Diagnostics.AddError(
+        "Error creating logical environment",
+        fmt.Sprintf("Could not create logical environment: %s", err),
+    )
+    return
 }
 ```
 
@@ -97,7 +109,7 @@ if err != nil {
    - `joinEnvironment.go` joins environments without checking types
    - Both commands rely on API to enforce rules
 
-2. **ADR 002 alignment**: The API client architecture decision (ADR 002) establishes a thin wrapper philosophy that "transparently reflects API behavior"
+2. **ADR 002 alignment**: The API client architecture decision (ADR 002) establishes: "The API client should be a thin, transparent wrapper around the API."
 
 3. **Single source of truth**: Validation rules live in one place (API), reducing risk of desynchronization
 
