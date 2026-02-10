@@ -159,6 +159,7 @@ func (p *KosliProvider) DataSources(ctx context.Context) []func() datasource.Dat
 	return []func() datasource.DataSource{
 		NewCustomAttestationTypeDataSource,
 		NewEnvironmentDataSource,
+		NewLogicalEnvironmentDataSource,
 	}
 }
 
