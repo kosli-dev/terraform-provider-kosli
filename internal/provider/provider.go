@@ -150,6 +150,7 @@ func (p *KosliProvider) Resources(ctx context.Context) []func() resource.Resourc
 	return []func() resource.Resource{
 		NewCustomAttestationTypeResource,
 		NewEnvironmentResource,
+		NewLogicalEnvironmentResource,
 	}
 }
 

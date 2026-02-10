@@ -116,8 +116,9 @@ func TestKosliProvider_Resources(t *testing.T) {
 
 	// Custom attestation type resource implemented in issue #15
 	// Environment resource implemented in issue #69
-	if len(resources) != 2 {
-		t.Errorf("Expected 2 resources, got %d", len(resources))
+	// Logical environment resource implemented in issue #92
+	if len(resources) != 3 {
+		t.Errorf("Expected 3 resources, got %d", len(resources))
 	}
 }
 
