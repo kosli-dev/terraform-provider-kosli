@@ -130,6 +130,9 @@ func (r *logicalEnvironmentResource) Create(ctx context.Context, req resource.Cr
 	}
 
 	// Per ADR 002: PUT returns "OK", so we must GET to populate state
+	// WORKAROUND: Preserve included_environments from plan because API doesn't return it
+	preservedIncludedEnvs := data.IncludedEnvironments
+
 	env, err := r.client.GetEnvironment(ctx, data.Name.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -148,13 +151,9 @@ func (r *logicalEnvironmentResource) Create(ctx context.Context, req resource.Cr
 		data.Description = types.StringValue(env.Description)
 	}
 
-	// Convert included_environments from API response to types.List
-	includedEnvsList, diags := types.ListValueFrom(ctx, types.StringType, env.IncludedEnvironments)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	data.IncludedEnvironments = includedEnvsList
+	// WORKAROUND: Kosli API doesn't return included_environments in GET responses
+	// Keep the value from plan instead of trying to read from API
+	data.IncludedEnvironments = preservedIncludedEnvs
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -169,6 +168,10 @@ func (r *logicalEnvironmentResource) Read(ctx context.Context, req resource.Read
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Preserve the current included_environments from state (API limitation workaround)
+	// The Kosli API doesn't return included_environments in GET responses
+	preservedIncludedEnvs := data.IncludedEnvironments
 
 	// Get current state from API
 	env, err := r.client.GetEnvironment(ctx, data.Name.ValueString())
@@ -189,13 +192,9 @@ func (r *logicalEnvironmentResource) Read(ctx context.Context, req resource.Read
 		data.Description = types.StringValue(env.Description)
 	}
 
-	// Convert included_environments from API response to types.List
-	includedEnvsList, diags := types.ListValueFrom(ctx, types.StringType, env.IncludedEnvironments)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	data.IncludedEnvironments = includedEnvsList
+	// WORKAROUND: Kosli API doesn't return included_environments in GET responses
+	// Keep the value from current state instead of trying to read from API
+	data.IncludedEnvironments = preservedIncludedEnvs
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -237,6 +236,9 @@ func (r *logicalEnvironmentResource) Update(ctx context.Context, req resource.Up
 	}
 
 	// GET to populate state
+	// WORKAROUND: Preserve included_environments from plan because API doesn't return it
+	preservedIncludedEnvs := data.IncludedEnvironments
+
 	env, err := r.client.GetEnvironment(ctx, data.Name.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -255,13 +257,9 @@ func (r *logicalEnvironmentResource) Update(ctx context.Context, req resource.Up
 		data.Description = types.StringValue(env.Description)
 	}
 
-	// Convert included_environments from API response to types.List
-	includedEnvsList, diags := types.ListValueFrom(ctx, types.StringType, env.IncludedEnvironments)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	data.IncludedEnvironments = includedEnvsList
+	// WORKAROUND: Kosli API doesn't return included_environments in GET responses
+	// Keep the value from plan instead of trying to read from API
+	data.IncludedEnvironments = preservedIncludedEnvs
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

@@ -20,7 +20,7 @@ INSTALL_DIR=~/.terraform.d/plugins/registry.terraform.io/kosli-dev/kosli/dev/$(O
 # Coverage output
 COVERAGE_OUT=coverage.out
 
-.PHONY: all build clean test test-coverage testacc testacc-custom-attestation-type testacc-custom-attestation-type-datasource testacc-environment testacc-environment-datasource check-testacc-env fmt vet lint install docs help default
+.PHONY: all build clean test test-coverage testacc testacc-custom-attestation-type testacc-custom-attestation-type-datasource testacc-environment testacc-environment-datasource testacc-logical-environment testacc-logical-environment-datasource check-testacc-env fmt vet lint install docs help default
 
 # Default target
 default: build
@@ -101,10 +101,20 @@ testacc-environment: check-testacc-env
 	@echo "Running acceptance tests for environment resource..."
 	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccEnvironmentResource' -timeout 30m
 
-# Run acceptance tests for environment resource
+# Run acceptance tests for environment data source
 testacc-environment-datasource: check-testacc-env
 	@echo "Running acceptance tests for environment data source..."
 	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccEnvironmentDataSource' -timeout 30m
+
+# Run acceptance tests for logical environment resource
+testacc-logical-environment: check-testacc-env
+	@echo "Running acceptance tests for logical environment resource..."
+	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccLogicalEnvironmentResource' -timeout 30m
+
+# Run acceptance tests for logical environment data source
+testacc-logical-environment-datasource: check-testacc-env
+	@echo "Running acceptance tests for logical environment data source..."
+	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccLogicalEnvironmentDataSource' -timeout 30m
 
 # Format Go code
 fmt:
@@ -162,6 +172,10 @@ help:
 	@echo "                Run acceptance tests for environment resource"
 	@echo "  testacc-environment-datasource"
 	@echo "                Run acceptance tests for environment data source"
+	@echo "  testacc-logical-environment"
+	@echo "                Run acceptance tests for logical environment resource"
+	@echo "  testacc-logical-environment-datasource"
+	@echo "                Run acceptance tests for logical environment data source"
 	@echo ""
 	@echo "Code quality targets:"
 	@echo "  fmt           Format Go code"
