@@ -23,7 +23,7 @@ Manages a Kosli logical environment. Logical environments aggregate multiple phy
 
 ### Required
 
-- `included_environments` (List of String) List of physical environment names to aggregate. Must contain at least one environment. Only physical environments are allowed (K8S, ECS, S3, docker, server, lambda).
+- `included_environments` (List of String) List of physical environment names to aggregate. Only physical environments are allowed (K8S, ECS, S3, docker, server, lambda). Can be empty.
 - `name` (String) Name of the logical environment. Must be unique within the organization. Changing this will force recreation of the resource.
 
 ### Optional

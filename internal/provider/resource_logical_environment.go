@@ -69,7 +69,7 @@ func (r *logicalEnvironmentResource) Schema(ctx context.Context, req resource.Sc
 			},
 			"included_environments": schema.ListAttribute{
 				ElementType:         types.StringType,
-				MarkdownDescription: "List of physical environment names to aggregate. Must contain at least one environment. Only physical environments are allowed (K8S, ECS, S3, docker, server, lambda).",
+				MarkdownDescription: "List of physical environment names to aggregate. Only physical environments are allowed (K8S, ECS, S3, docker, server, lambda). Can be empty.",
 				Required:            true,
 			},
 		},

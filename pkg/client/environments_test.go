@@ -554,11 +554,13 @@ func TestGetEnvironment_LogicalEnvironment(t *testing.T) {
 	}
 }
 
-// TestCreateEnvironment_LogicalWithEmptyList tests creation fails appropriately with empty included_environments
+// TestCreateEnvironment_LogicalWithEmptyList tests that client allows empty included_environments (API validates)
 func TestCreateEnvironment_LogicalWithEmptyList(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]any
-		json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("failed to decode request body: %v", err)
+		}
 
 		// Verify included_environments field exists and is empty
 		includedEnvs, ok := body["included_environments"].([]any)
@@ -604,7 +606,9 @@ func TestCreateEnvironment_LogicalUpdate(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		var body map[string]any
-		json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("failed to decode request body: %v", err)
+		}
 
 		// Verify type is logical
 		if body["type"] != "logical" {
@@ -612,7 +616,14 @@ func TestCreateEnvironment_LogicalUpdate(t *testing.T) {
 		}
 
 		// Verify included_environments changes between calls
-		includedEnvs := body["included_environments"].([]any)
+		rawIncludedEnvs, ok := body["included_environments"]
+		if !ok {
+			t.Fatalf("call %d: expected 'included_environments' field in request body", callCount)
+		}
+		includedEnvs, ok := rawIncludedEnvs.([]any)
+		if !ok {
+			t.Fatalf("call %d: expected 'included_environments' to be an array, got %T", callCount, rawIncludedEnvs)
+		}
 		if callCount == 1 {
 			if len(includedEnvs) != 2 {
 				t.Errorf("call 1: expected 2 environments, got %d", len(includedEnvs))

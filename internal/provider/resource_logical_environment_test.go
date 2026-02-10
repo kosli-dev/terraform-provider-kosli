@@ -117,7 +117,10 @@ func TestLogicalEnvironmentResource_Configure_WrongType(t *testing.T) {
 
 func TestLogicalEnvironmentResourceModel_Structure(t *testing.T) {
 	// Test that the model can be created with expected fields
-	includedEnvs, _ := types.ListValueFrom(context.TODO(), types.StringType, []string{"prod-k8s", "prod-ecs"})
+	includedEnvs, diags := types.ListValueFrom(context.TODO(), types.StringType, []string{"prod-k8s", "prod-ecs"})
+	if diags.HasError() {
+		t.Fatalf("Unexpected diagnostics creating list: %v", diags)
+	}
 
 	model := logicalEnvironmentResourceModel{
 		Name:                 types.StringValue("production-aggregate"),
@@ -144,7 +147,10 @@ func TestLogicalEnvironmentResourceModel_Structure(t *testing.T) {
 
 	// Verify list contents
 	var envs []string
-	model.IncludedEnvironments.ElementsAs(context.TODO(), &envs, false)
+	diags = model.IncludedEnvironments.ElementsAs(context.TODO(), &envs, false)
+	if diags.HasError() {
+		t.Fatalf("Unexpected diagnostics converting IncludedEnvironments: %v", diags)
+	}
 	if len(envs) != 2 {
 		t.Errorf("Expected 2 included environments, got %d", len(envs))
 	}
