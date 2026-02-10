@@ -108,9 +108,22 @@ func (d *logicalEnvironmentDataSource) Read(ctx context.Context, req datasource.
 		return
 	}
 
+	// Ensure the environment is a logical environment
+	if env.Type != "logical" {
+		resp.Diagnostics.AddError(
+			"Invalid Environment Type",
+			fmt.Sprintf(
+				"Environment %s is of type %q, but this data source only supports logical environments.",
+				data.Name.ValueString(),
+				env.Type,
+			),
+		)
+		return
+	}
+
 	// Map API response to data source model
 	data.Name = types.StringValue(env.Name)
-	data.Type = types.StringValue(env.Type)
+	data.Type = types.StringValue("logical")
 
 	// Handle empty description as null for consistency
 	if env.Description == "" {
@@ -120,7 +133,12 @@ func (d *logicalEnvironmentDataSource) Read(ctx context.Context, req datasource.
 	}
 
 	// Convert included_environments from API response to types.List
-	includedEnvsList, diags := types.ListValueFrom(ctx, types.StringType, env.IncludedEnvironments)
+	// Normalize nil to empty slice to ensure consistent state (empty list vs null)
+	includedEnvs := env.IncludedEnvironments
+	if includedEnvs == nil {
+		includedEnvs = []string{}
+	}
+	includedEnvsList, diags := types.ListValueFrom(ctx, types.StringType, includedEnvs)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
