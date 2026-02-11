@@ -97,14 +97,14 @@ func TestAccLogicalEnvironmentResource_update(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "included_environments.2", envName3),
 				),
 			},
-			// Step 3: Remove one environment
+			// Step 3: Remove third environment
 			{
-				Config: testAccLogicalEnvironmentResourceConfigFull(rName, envName1, envName3, description2),
+				Config: testAccLogicalEnvironmentResourceConfigFull(rName, envName1, envName2, description2),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
 					resource.TestCheckResourceAttr(resourceName, "included_environments.#", "2"),
 					resource.TestCheckResourceAttr(resourceName, "included_environments.0", envName1),
-					resource.TestCheckResourceAttr(resourceName, "included_environments.1", envName3),
+					resource.TestCheckResourceAttr(resourceName, "included_environments.1", envName2),
 				),
 			},
 		},

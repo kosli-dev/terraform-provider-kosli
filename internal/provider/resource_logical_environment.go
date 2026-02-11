@@ -173,6 +173,16 @@ func (r *logicalEnvironmentResource) Read(ctx context.Context, req resource.Read
 	// The Kosli API doesn't return included_environments in GET responses
 	preservedIncludedEnvs := data.IncludedEnvironments
 
+	// If included_environments is null/unknown (e.g., after import), initialize to empty list
+	if preservedIncludedEnvs.IsNull() || preservedIncludedEnvs.IsUnknown() {
+		emptyList, diags := types.ListValueFrom(ctx, types.StringType, []string{})
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		preservedIncludedEnvs = emptyList
+	}
+
 	// Get current state from API
 	env, err := r.client.GetEnvironment(ctx, data.Name.ValueString())
 	if err != nil {
