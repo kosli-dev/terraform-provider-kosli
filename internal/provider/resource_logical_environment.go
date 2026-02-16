@@ -149,7 +149,12 @@ func (r *logicalEnvironmentResource) Create(ctx context.Context, req resource.Cr
 	}
 
 	// Map included_environments from API response
-	includedEnvsList, diags := types.ListValueFrom(ctx, types.StringType, env.IncludedEnvironments)
+	// Normalize nil to empty slice to ensure consistent state (empty list vs null)
+	includedEnvs := env.IncludedEnvironments
+	if includedEnvs == nil {
+		includedEnvs = []string{}
+	}
+	includedEnvsList, diags := types.ListValueFrom(ctx, types.StringType, includedEnvs)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -190,7 +195,12 @@ func (r *logicalEnvironmentResource) Read(ctx context.Context, req resource.Read
 	}
 
 	// Map included_environments from API response
-	includedEnvsList, diags := types.ListValueFrom(ctx, types.StringType, env.IncludedEnvironments)
+	// Normalize nil to empty slice to ensure consistent state (empty list vs null)
+	includedEnvs := env.IncludedEnvironments
+	if includedEnvs == nil {
+		includedEnvs = []string{}
+	}
+	includedEnvsList, diags := types.ListValueFrom(ctx, types.StringType, includedEnvs)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -256,7 +266,12 @@ func (r *logicalEnvironmentResource) Update(ctx context.Context, req resource.Up
 	}
 
 	// Map included_environments from API response
-	includedEnvsList, diags := types.ListValueFrom(ctx, types.StringType, env.IncludedEnvironments)
+	// Normalize nil to empty slice to ensure consistent state (empty list vs null)
+	includedEnvs := env.IncludedEnvironments
+	if includedEnvs == nil {
+		includedEnvs = []string{}
+	}
+	includedEnvsList, diags := types.ListValueFrom(ctx, types.StringType, includedEnvs)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
