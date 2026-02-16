@@ -130,15 +130,12 @@ func TestAccLogicalEnvironmentResource_import(t *testing.T) {
 				),
 			},
 			// Step 2: Import by name and verify state matches
-			// Note: included_environments cannot be verified due to API limitation
-			// The Kosli API doesn't return included_environments in GET responses
 			{
 				ResourceName:                         resourceName,
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateId:                        rName,
 				ImportStateVerifyIdentifierAttribute: "name",
-				ImportStateVerifyIgnore:              []string{"included_environments"},
 			},
 		},
 	})
