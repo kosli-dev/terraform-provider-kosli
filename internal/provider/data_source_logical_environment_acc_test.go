@@ -28,8 +28,8 @@ func TestAccLogicalEnvironmentDataSource_basic(t *testing.T) {
 					resource.TestCheckResourceAttrPair(dataSourceName, "name", resourceName, "name"),
 					resource.TestCheckResourceAttrPair(dataSourceName, "type", resourceName, "type"),
 					resource.TestCheckResourceAttrPair(dataSourceName, "description", resourceName, "description"),
-					// NOTE: API limitation - included_environments is not returned by GET endpoint
-					resource.TestCheckResourceAttr(dataSourceName, "included_environments.#", "0"),
+					// Verify included_environments is correctly returned by API
+					resource.TestCheckResourceAttr(dataSourceName, "included_environments.#", "2"),
 					// Verify timestamp field is populated
 					resource.TestCheckResourceAttrSet(dataSourceName, "last_modified_at"),
 				),
@@ -58,8 +58,8 @@ func TestAccLogicalEnvironmentDataSource_computedAttributes(t *testing.T) {
 					resource.TestCheckResourceAttr(dataSourceName, "name", rName),
 					resource.TestCheckResourceAttr(dataSourceName, "type", "logical"),
 					resource.TestCheckResourceAttr(dataSourceName, "description", description),
-					// NOTE: API limitation - included_environments is not returned by GET endpoint
-					resource.TestCheckResourceAttr(dataSourceName, "included_environments.#", "0"),
+					// Verify included_environments is correctly returned by API
+					resource.TestCheckResourceAttr(dataSourceName, "included_environments.#", "2"),
 					resource.TestCheckResourceAttrSet(dataSourceName, "last_modified_at"),
 					// Verify data source matches resource
 					resource.TestCheckResourceAttrPair(dataSourceName, "name", resourceName, "name"),
@@ -142,8 +142,8 @@ func TestAccLogicalEnvironmentDataSource_nullDescription(t *testing.T) {
 					resource.TestCheckResourceAttr(dataSourceName, "name", rName),
 					resource.TestCheckResourceAttr(dataSourceName, "type", "logical"),
 					resource.TestCheckNoResourceAttr(dataSourceName, "description"),
-					// NOTE: API limitation - included_environments is not returned by GET endpoint
-					resource.TestCheckResourceAttr(dataSourceName, "included_environments.#", "0"),
+					// Verify included_environments is correctly returned by API
+					resource.TestCheckResourceAttr(dataSourceName, "included_environments.#", "2"),
 					resource.TestCheckResourceAttrSet(dataSourceName, "last_modified_at"),
 				),
 			},
@@ -171,8 +171,8 @@ func TestAccLogicalEnvironmentDataSource_integration(t *testing.T) {
 					// Verify source resource and data source
 					resource.TestCheckResourceAttr(dataSourceName, "name", sourceName),
 					resource.TestCheckResourceAttr(dataSourceName, "type", "logical"),
-					// NOTE: API limitation - included_environments is not returned by GET endpoint
-					resource.TestCheckResourceAttr(dataSourceName, "included_environments.#", "0"),
+					// Verify included_environments is correctly returned by API
+					resource.TestCheckResourceAttr(dataSourceName, "included_environments.#", "2"),
 					resource.TestCheckResourceAttrSet(dataSourceName, "last_modified_at"),
 					// Verify derived resource uses data source description
 					resource.TestCheckResourceAttr(derivedResourceName, "name", derivedName),
