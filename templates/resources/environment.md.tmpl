@@ -18,11 +18,11 @@ Kosli environments track deployments and provide visibility into what's running 
 - **server**: Bare-metal or VM servers
 - **lambda**: AWS Lambda functions
 
-**Note**: This provider currently supports only physical environments. Logical environments (which aggregate other environments) are not yet supported.
+-> **Note:** For aggregating multiple physical environments into logical groups, use the `kosli_logical_environment` resource.
 
-**Note**: Environment tags are managed through a separate Kosli API and are not included in this Terraform resource.
+~> **Note:** Environment tags are managed through a separate Kosli API and are not included in this Terraform resource.
 
-**Note**: Environment policies will be available in a future release as a separate resource (`kosli_environment_policy`).
+~> **Note:** Environment policies will be available in a future release as a separate resource (`kosli_environment_policy`).
 
 ## Example Usage
 
