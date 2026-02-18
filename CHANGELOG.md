@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.1
+
+IMPROVEMENTS:
+
+* client: Extracted Python-to-JSON normalization to dedicated `normalizePythonToJSON()` function for better maintainability
+* client: Improved regex-based conversion to handle Python literals (`True`/`False`/`None`) in all contexts (object properties, arrays, nested structures)
+* client: Optimized performance by moving regex compilation to package-level variables
+* docs: Added "Known Issues" section to README documenting Python keyword conversion limitation
+
+BUG FIXES:
+
+* resource/kosli_custom_attestation_type: Fixed handling of Python boolean and null values in schemas returned by the Kosli API [GH-106]
+* data_source/kosli_custom_attestation_type: Fixed handling of Python boolean and null values in schemas returned by the Kosli API [GH-106]
+
+NOTES:
+
+* The Kosli API returns `type_schema` in Python `repr()` format instead of valid JSON. The provider automatically normalizes this to JSON format. See README "Known Issues" section for details.
+
 ## 0.3.0
 
 FEATURES:
