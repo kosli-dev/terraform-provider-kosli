@@ -9,6 +9,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
@@ -70,6 +71,30 @@ func (req *CreateCustomAttestationTypeRequest) toAPIFormat() map[string]any {
 	return data
 }
 
+// normalizePythonToJSON converts Python string representation to valid JSON.
+// The Kosli API returns type_schema in Python format with:
+// - Single quotes (') instead of double quotes (")
+// - Python booleans (True/False) instead of JSON (true/false)
+// - Python None instead of JSON null
+//
+// This function handles these values in all contexts: object values, array elements, etc.
+func normalizePythonToJSON(pythonStr string) string {
+	// First, convert single quotes to double quotes
+	result := strings.ReplaceAll(pythonStr, "'", "\"")
+
+	// Use regex with word boundaries to replace Python literals with JSON equivalents
+	// This handles all contexts: ": True", ", True", "[True", etc.
+	reTrue := regexp.MustCompile(`\bTrue\b`)
+	reFalse := regexp.MustCompile(`\bFalse\b`)
+	reNone := regexp.MustCompile(`\bNone\b`)
+
+	result = reTrue.ReplaceAllString(result, "true")
+	result = reFalse.ReplaceAllString(result, "false")
+	result = reNone.ReplaceAllString(result, "null")
+
+	return result
+}
+
 // fromAPIFormat converts API response to user-facing format.
 // Extracts schema and jq_rules from the latest version in the versions array.
 func (at *CustomAttestationType) fromAPIFormat() error {
@@ -86,9 +111,8 @@ func (at *CustomAttestationType) fromAPIFormat() error {
 		if schemaStr == "" || schemaStr == "None" {
 			at.Schema = ""
 		} else {
-			// Convert Python-style single quotes to JSON double quotes
-			// This handles the API's Python string representation format
-			schemaStr = strings.ReplaceAll(schemaStr, "'", "\"")
+			// Normalize Python-style string representation to valid JSON
+			schemaStr = normalizePythonToJSON(schemaStr)
 
 			// Validate that it's valid JSON by unmarshaling and remarshaling
 			var schemaObj any
