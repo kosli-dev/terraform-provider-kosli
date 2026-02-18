@@ -13,6 +13,14 @@ import (
 	"strings"
 )
 
+// Package-level compiled regexes for Python-to-JSON normalization.
+// Compiled once at init time for performance.
+var (
+	pythonTrueRegex  = regexp.MustCompile(`\bTrue\b`)
+	pythonFalseRegex = regexp.MustCompile(`\bFalse\b`)
+	pythonNoneRegex  = regexp.MustCompile(`\bNone\b`)
+)
+
 // CustomAttestationType represents a custom attestation type in Kosli.
 // Contains both API format (Versions) and user-facing format (Schema, JqRules).
 type CustomAttestationType struct {
@@ -72,25 +80,31 @@ func (req *CreateCustomAttestationTypeRequest) toAPIFormat() map[string]any {
 }
 
 // normalizePythonToJSON converts Python string representation to valid JSON.
-// The Kosli API returns type_schema in Python format with:
-// - Single quotes (') instead of double quotes (")
-// - Python booleans (True/False) instead of JSON (true/false)
-// - Python None instead of JSON null
 //
-// This function handles these values in all contexts: object values, array elements, etc.
+// WORKAROUND: The Kosli API returns type_schema in Python repr() format rather than
+// valid JSON. This function normalizes the Python format to RFC 7159 JSON:
+// - Single quotes (') → double quotes (")
+// - Python booleans (True/False) → JSON (true/false)
+// - Python None → JSON null
+//
+// This handles Python literals in all contexts: object values, array elements, etc.
+//
+// KNOWN LIMITATION: The regex uses word boundaries and will convert Python keywords
+// even if they appear inside string values (e.g., "Set to None" → "Set to null").
+// This is acceptable because JSON schemas rarely contain prose with these keywords,
+// and the API returns structured data where these appear as literals, not strings.
+// See README.md "Known Issues" section for details.
+//
+// Note: This is a client-side workaround. Ideally the API should return valid JSON.
 func normalizePythonToJSON(pythonStr string) string {
 	// First, convert single quotes to double quotes
 	result := strings.ReplaceAll(pythonStr, "'", "\"")
 
-	// Use regex with word boundaries to replace Python literals with JSON equivalents
+	// Use pre-compiled package-level regexes with word boundaries
 	// This handles all contexts: ": True", ", True", "[True", etc.
-	reTrue := regexp.MustCompile(`\bTrue\b`)
-	reFalse := regexp.MustCompile(`\bFalse\b`)
-	reNone := regexp.MustCompile(`\bNone\b`)
-
-	result = reTrue.ReplaceAllString(result, "true")
-	result = reFalse.ReplaceAllString(result, "false")
-	result = reNone.ReplaceAllString(result, "null")
+	result = pythonTrueRegex.ReplaceAllString(result, "true")
+	result = pythonFalseRegex.ReplaceAllString(result, "false")
+	result = pythonNoneRegex.ReplaceAllString(result, "null")
 
 	return result
 }
