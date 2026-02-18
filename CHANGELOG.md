@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 (Unreleased)
+## 0.3.0
 
 FEATURES:
 
@@ -21,6 +21,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * data_source/kosli_logical_environment: Fixed acceptance tests to expect correct `included_environments` count after API fix [GH-103]
+* resource/kosli_logical_environment: Fixed `type` attribute to show value during plan instead of "(known after apply)" [GH-105]
 
 NOTES:
 

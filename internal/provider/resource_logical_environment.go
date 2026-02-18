@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
@@ -59,6 +60,7 @@ func (r *logicalEnvironmentResource) Schema(ctx context.Context, req resource.Sc
 			"type": schema.StringAttribute{
 				MarkdownDescription: "Type of the environment. Always set to `logical` (computed by provider, not user-configurable).",
 				Computed:            true,
+				Default:             stringdefault.StaticString("logical"),
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
