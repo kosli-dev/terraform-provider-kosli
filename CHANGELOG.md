@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.3.0 (Unreleased)
+
+FEATURES:
+
+* **New Resource**: `kosli_logical_environment` for managing logical environments that aggregate physical environments
+* **New Data Source**: `kosli_logical_environment` for querying existing logical environments
+
+IMPROVEMENTS:
+
+* resource/kosli_logical_environment: Added support for aggregating multiple physical environments
+* resource/kosli_logical_environment: Added validation to prevent nesting logical environments within logical environments (per ADR-004)
+* resource/kosli_logical_environment: Added nil normalization for `included_environments` to ensure consistent state handling
+* resource/kosli_logical_environment: Full drift detection support for `included_environments` field
+* data_source/kosli_logical_environment: Added type validation to ensure only logical environments are queried
+* data_source/kosli_logical_environment: Returns `name`, `type`, `description`, `included_environments`, and `last_modified_at`
+* docs: Added comprehensive examples for logical environment resource and data source
+* docs: Added ADR-004 documenting validation strategy for logical environments
+
+BUG FIXES:
+
+* data_source/kosli_logical_environment: Fixed acceptance tests to expect correct `included_environments` count after API fix [GH-103]
+
+NOTES:
+
+* Logical environments can only contain physical environments (K8S, ECS, S3, docker, server, lambda), not other logical environments
+* The Kosli API now returns `included_environments` in GET responses, enabling full state management and drift detection
+
 ## 0.2.0
 
 FEATURES:

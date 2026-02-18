@@ -1,0 +1,14 @@
+# Kosli API Configuration
+# Copy this file to terraform.tfvars and fill in your values
+# Never commit terraform.tfvars to version control!
+
+# Kosli API token (get from https://app.kosli.com/settings/service-accounts)
+# kosli_api_token = "your-api-token-here"
+
+# Kosli organization name
+# kosli_org = "your-org-name"
+
+# Kosli API URL (optional, defaults to EU region)
+# For EU region (default): https://app.kosli.com
+# For US region: https://app.us.kosli.com
+# kosli_api_url = "https://app.kosli.com"
