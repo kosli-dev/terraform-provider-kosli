@@ -5,6 +5,11 @@ on:
     types:
       - opened
       - edited
+      - reopened
+      - synchronize
+
+permissions:
+  pull-requests: read
 
 jobs:
   validate-title:
@@ -29,7 +34,7 @@ jobs:
             ci
             chore
             revert
-          # Require a scope (e.g., "feat(api): ...")
+          # Don't require a scope (e.g., "feat(<scope>): ...")
           requireScope: false
           # Don't allow subject to start with uppercase letter
           subjectPattern: ^(?![A-Z]).+$
