@@ -191,7 +191,7 @@ The PR quality workflow (`.github/workflows/pr-quality.yml`) runs automated chec
 
 ## Release Process
 
-Releases use GoReleaser (`.goreleaser.yaml`) triggered by git tags:
+Releases use GoReleaser (`.goreleaser.yml`) triggered by git tags:
 
 ```bash
 git tag -a v0.1.0 -m "Release v0.1.0"
@@ -227,6 +227,7 @@ The `adrs/` directory contains important architectural decisions:
 - ADR-001: Terraform schema design patterns
 - ADR-002: API client architecture and reusability
 - ADR-003: Resource schema design and API abstraction
+- ADR-004: Logical environment validation strategy
 
 Review ADRs when making architectural changes.
 
