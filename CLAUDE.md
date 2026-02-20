@@ -184,6 +184,7 @@ The PR quality workflow (`.github/workflows/pr-quality.yml`) runs automated chec
    - Requires: `ANTHROPIC_API_KEY` secret configured in repository settings
    - Provides inline comments on code quality, bugs, security, performance
    - Posts feedback directly to PR with progress tracking
+   - Permissions required: `contents: read`, `pull-requests: write`, `id-token: write` (for OIDC auth)
 
 **Required Secret:**
 - `ANTHROPIC_API_KEY` - Add in repository Settings → Secrets and variables → Actions
