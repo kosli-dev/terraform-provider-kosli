@@ -23,7 +23,6 @@ updates:
       - "dependencies"
       - "go"
   # GitHub Actions
-  # GitHub Actions
   - package-ecosystem: "github-actions"
     open-pull-requests-limit: 10
     directory: "/"
@@ -39,16 +38,6 @@ updates:
         update-types:
           - "minor"
           - "patch"
-    labels:
-      - "dependencies"
-      - "github-actions"
-    open-pull-requests-limit: 10
-    directory: "/"
-    schedule:
-      # Check for updates to GitHub Actions every week
-      interval: "weekly"
-      day: "tuesday"
-      time: "11:00"
     labels:
       - "dependencies"
       - "github-actions"
