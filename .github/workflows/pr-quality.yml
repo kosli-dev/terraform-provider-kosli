@@ -43,8 +43,11 @@ jobs:
 
   claude-review:
     name: Claude Code Review
-    # Only run on opened and synchronize (new commits)
-    if: github.event.action == 'opened' || github.event.action == 'synchronize'
+    # Only run on opened and synchronize (new commits), and skip bot/dependabot PRs
+    if: |
+      (github.event.action == 'opened' || github.event.action == 'synchronize') &&
+      github.actor != 'dependabot[bot]' &&
+      github.actor_type != 'Bot'
     runs-on: ubuntu-latest
     permissions:
       contents: read
