@@ -23,17 +23,17 @@ type ActionRequest struct {
 
 // ActionResponse represents a Kosli action as returned by the API.
 type ActionResponse struct {
-	Name                   string         `json:"name"`
-	Type                   string         `json:"type"`
-	Number                 int            `json:"number"`
-	Environments           []string       `json:"environments"`
-	Triggers               []string       `json:"triggers"`
-	Targets                []ActionTarget `json:"targets"`
-	CreatedBy              string         `json:"created_by"`
-	IsCreatedFromSlackApp  bool           `json:"is_created_from_slack_app"`
-	IsFailing              bool           `json:"is_failing"`
-	CreatedAt              float64        `json:"created_at"`
-	LastModifiedAt         float64        `json:"last_modified_at"`
+	Name                  string         `json:"name"`
+	Type                  string         `json:"type"`
+	Number                int            `json:"number"`
+	Environments          []string       `json:"environments"`
+	Triggers              []string       `json:"triggers"`
+	Targets               []ActionTarget `json:"targets"`
+	CreatedBy             string         `json:"created_by"`
+	IsCreatedFromSlackApp bool           `json:"is_created_from_slack_app"`
+	IsFailing             bool           `json:"is_failing"`
+	CreatedAt             float64        `json:"created_at"`
+	LastModifiedAt        float64        `json:"last_modified_at"`
 }
 
 // ListActions retrieves all actions for the organization.
