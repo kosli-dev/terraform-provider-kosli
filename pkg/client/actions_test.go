@@ -226,6 +226,9 @@ func TestGetActionByName_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
+	if !IsNotFound(err) {
+		t.Errorf("expected IsNotFound to return true, got error: %v", err)
+	}
 	if !strings.Contains(err.Error(), "nonexistent") {
 		t.Errorf("expected error to mention action name, got: %v", err)
 	}
@@ -293,7 +296,42 @@ func TestCreateOrUpdateAction_Success(t *testing.T) {
 	}
 }
 
-func TestCreateOrUpdateAction_Idempotent(t *testing.T) {
+func TestCreateOrUpdateAction_Error(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"message": "invalid request"})
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	req := &ActionRequest{
+		Name:         "compliance-alerts",
+		Type:         "env",
+		Environments: []string{"production"},
+		Triggers:     []string{"ON_NON_COMPLIANT_ENV"},
+		Targets:      []ActionTarget{{Type: "WEBHOOK", Webhook: "https://hooks.example.com/kosli"}},
+	}
+
+	err = client.CreateOrUpdateAction(context.Background(), req)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "400") {
+		t.Errorf("expected error to mention 400, got: %v", err)
+	}
+}
+
+// TestCreateOrUpdateAction_CalledTwice verifies that the client can make two consecutive
+// PUT calls without error. It does not verify server-side idempotency (which requires
+// integration tests against a real API).
+func TestCreateOrUpdateAction_CalledTwice(t *testing.T) {
 	callCount := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++

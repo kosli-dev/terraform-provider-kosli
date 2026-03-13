@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"net/http"
 )
 
 // ActionTarget represents a notification target for a Kosli action.
@@ -84,7 +85,7 @@ func (c *Client) GetActionByName(ctx context.Context, name string) (*ActionRespo
 		}
 	}
 
-	return nil, fmt.Errorf("action named %q not found", name)
+	return nil, &APIError{StatusCode: http.StatusNotFound, Message: fmt.Sprintf("action named %q not found", name)}
 }
 
 // CreateOrUpdateAction creates or updates an action.
