@@ -218,7 +218,9 @@ func (r *actionResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	if err := r.client.CreateOrUpdateAction(ctx, actionReq); err != nil {
+	// Use the numbered PUT endpoint to update in-place. The base PUT endpoint
+	// creates a new action for non-Slack actions, which would change the number.
+	if err := r.client.UpdateAction(ctx, int(data.Number.ValueInt64()), actionReq); err != nil {
 		resp.Diagnostics.AddError(
 			"Error Updating Action",
 			fmt.Sprintf("Could not update action %q: %s", data.Name.ValueString(), err.Error()),
