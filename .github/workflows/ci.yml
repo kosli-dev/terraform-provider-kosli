@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  KOSLI_API_TOKEN: ${{ secrets.KOSLI_API_TOKEN }}
+  KOSLI_ORG: ${{ vars.KOSLI_ORG }}
+
 permissions:
   contents: read
 
@@ -57,6 +61,9 @@ jobs:
 
       - name: Run tests with coverage
         run: make test
+
+      - name: Run acceptance tests
+        run: make testacc
 
   # Build verification (but don't attest to Kosli)
   build:
