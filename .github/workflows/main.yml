@@ -15,6 +15,7 @@ env:
   KOSLI_FLOW_NAME: ${{ github.event.repository.name }}
   KOSLI_ORG: ${{ vars.KOSLI_ORG }}
   REPO_NAME: ${{ github.event.repository.name }}
+  KOSLI_VERSION: 2.12.1
 
 permissions:
   contents: read
@@ -33,7 +34,7 @@ jobs:
       - name: Setup Kosli CLI
         uses: kosli-dev/setup-cli-action@v2
         with:
-          version: 2.11.40
+          version: ${{ env.KOSLI_VERSION }}
 
       - name: Create/Update Flow in Kosli
         run: |
@@ -61,7 +62,7 @@ jobs:
       - name: Setup Kosli CLI
         uses: kosli-dev/setup-cli-action@v2
         with:
-          version: 2.11.40
+          version: ${{ env.KOSLI_VERSION }}
 
       - name: Attest PR approval
         run: |
@@ -85,7 +86,7 @@ jobs:
       - name: Setup Kosli CLI
         uses: kosli-dev/setup-cli-action@v2
         with:
-          version: 2.11.40
+          version: ${{ env.KOSLI_VERSION }}
 
       - name: Setup Go
         uses: actions/setup-go@v6
@@ -161,7 +162,7 @@ jobs:
       - name: Setup Kosli CLI
         uses: kosli-dev/setup-cli-action@v2
         with:
-          version: 2.11.40
+          version: ${{ env.KOSLI_VERSION }}
 
       - name: Setup Go
         uses: actions/setup-go@v6
