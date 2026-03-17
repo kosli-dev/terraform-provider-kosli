@@ -16,7 +16,7 @@ var testAction = ActionResponse{
 	Environments: []string{"production"},
 	Triggers:     []string{"ON_NON_COMPLIANT_ENV", "ON_COMPLIANT_ENV"},
 	Targets: []ActionTarget{
-		{Type: "WEBHOOK", Webhook: "https://hooks.example.com/kosli", PayloadVersion: "1.0"},
+		{Type: "WEBHOOK", Webhook: "https://hooks.example.com/kosli"},
 	},
 	CreatedBy:      "user@example.com",
 	CreatedAt:      1633123456.0,
@@ -41,7 +41,7 @@ func TestListActions_Success(t *testing.T) {
 				Environments: []string{"staging"},
 				Triggers:     []string{"ON_SCALED_ARTIFACT"},
 				Targets: []ActionTarget{
-					{Type: "WEBHOOK", Webhook: "https://hooks.example.com/scale", PayloadVersion: "1.0"},
+					{Type: "WEBHOOK", Webhook: "https://hooks.example.com/scale"},
 				},
 				CreatedBy:      "other@example.com",
 				CreatedAt:      1633123460.0,
@@ -286,7 +286,7 @@ func TestCreateOrUpdateAction_Success(t *testing.T) {
 		Environments: []string{"production"},
 		Triggers:     []string{"ON_NON_COMPLIANT_ENV"},
 		Targets: []ActionTarget{
-			{Type: "WEBHOOK", Webhook: "https://hooks.example.com/kosli", PayloadVersion: "1.0"},
+			{Type: "WEBHOOK", Webhook: "https://hooks.example.com/kosli"},
 		},
 	}
 
@@ -368,6 +368,81 @@ func TestCreateOrUpdateAction_CalledTwice(t *testing.T) {
 
 	if callCount != 2 {
 		t.Errorf("expected 2 calls, got %d", callCount)
+	}
+}
+
+func TestUpdateAction_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Errorf("expected PUT, got %s", r.Method)
+		}
+		// Must use the numbered path to update in-place
+		if !strings.Contains(r.URL.Path, "/organizations/test-org/environments_notifications/1") {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+
+		var body ActionRequest
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("failed to decode request body: %v", err)
+		}
+		if body.Name != "compliance-alerts" {
+			t.Errorf("expected name 'compliance-alerts', got %s", body.Name)
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`"OK"`))
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	req := &ActionRequest{
+		Name:         "compliance-alerts",
+		Type:         "env",
+		Environments: []string{"production"},
+		Triggers:     []string{"ON_NON_COMPLIANT_ENV"},
+		Targets:      []ActionTarget{{Type: "WEBHOOK", Webhook: "https://hooks.example.com/kosli"}},
+	}
+
+	err = client.UpdateAction(context.Background(), 1, req)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+func TestUpdateAction_NotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"message": "action not found"})
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	req := &ActionRequest{
+		Name:    "compliance-alerts",
+		Type:    "env",
+		Targets: []ActionTarget{{Type: "WEBHOOK", Webhook: "https://hooks.example.com/kosli"}},
+	}
+
+	err = client.UpdateAction(context.Background(), 99, req)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "404") {
+		t.Errorf("expected error to mention 404, got: %v", err)
 	}
 }
 

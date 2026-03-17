@@ -102,6 +102,21 @@ func (c *Client) CreateOrUpdateAction(ctx context.Context, req *ActionRequest) e
 	return nil
 }
 
+// UpdateAction updates an existing action in-place by its server-assigned number.
+// Uses PUT /environments_notifications/:number — this updates without changing the number,
+// unlike PUT /environments_notifications which creates a new action for non-Slack actions.
+func (c *Client) UpdateAction(ctx context.Context, number int, req *ActionRequest) error {
+	path := fmt.Sprintf("/organizations/%s/environments_notifications/%d", c.Organization(), number)
+
+	resp, err := c.Put(ctx, path, req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
+}
+
 // DeleteAction deletes an action by its server-assigned number.
 func (c *Client) DeleteAction(ctx context.Context, number int) error {
 	path := fmt.Sprintf("/organizations/%s/environments_notifications/%d", c.Organization(), number)

@@ -24,7 +24,6 @@ func TestAccActionResource_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
 					resource.TestCheckResourceAttr(resourceName, "environments.0", envName),
 					resource.TestCheckResourceAttr(resourceName, "triggers.0", "ON_NON_COMPLIANT_ENV"),
-					resource.TestCheckResourceAttr(resourceName, "payload_version", "1.0"),
 					resource.TestCheckResourceAttrSet(resourceName, "number"),
 					resource.TestCheckResourceAttrSet(resourceName, "created_by"),
 					resource.TestCheckResourceAttrSet(resourceName, "last_modified_at"),
@@ -34,11 +33,13 @@ func TestAccActionResource_basic(t *testing.T) {
 	})
 }
 
-// TestAccActionResource_update tests updating mutable fields
+// TestAccActionResource_update tests updating mutable fields (triggers, webhook_url).
+// Note: changing the sole environment of an action would archive that environment and
+// trigger a server-side cascade delete of the action. This test therefore keeps the
+// same environment across both steps and only mutates triggers and webhook_url.
 func TestAccActionResource_update(t *testing.T) {
 	rName := acctest.RandomWithPrefix("tf-acc-test")
-	envName1 := acctest.RandomWithPrefix("tf-acc-test-env")
-	envName2 := acctest.RandomWithPrefix("tf-acc-test-env")
+	envName := acctest.RandomWithPrefix("tf-acc-test-env")
 	resourceName := "kosli_action.test"
 
 	resource.Test(t, resource.TestCase{
@@ -46,17 +47,18 @@ func TestAccActionResource_update(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccActionResourceConfig(rName, envName1),
+				Config: testAccActionResourceConfig(rName, envName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
-					resource.TestCheckResourceAttr(resourceName, "environments.0", envName1),
+					resource.TestCheckResourceAttr(resourceName, "environments.0", envName),
+					resource.TestCheckResourceAttr(resourceName, "triggers.0", "ON_NON_COMPLIANT_ENV"),
 				),
 			},
 			{
-				Config: testAccActionResourceConfigUpdated(rName, envName2),
+				Config: testAccActionResourceConfigUpdated(rName, envName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
-					resource.TestCheckResourceAttr(resourceName, "environments.0", envName2),
+					resource.TestCheckResourceAttr(resourceName, "environments.0", envName),
 					resource.TestCheckResourceAttr(resourceName, "triggers.0", "ON_COMPLIANT_ENV"),
 				),
 			},
@@ -81,10 +83,11 @@ func TestAccActionResource_import(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateId:     rName,
+				ResourceName:                         resourceName,
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        rName,
+				ImportStateVerifyIdentifierAttribute: "name",
 				// webhook_url is sensitive and not returned by the API, so skip verification
 				ImportStateVerifyIgnore: []string{"webhook_url"},
 			},
@@ -145,11 +148,10 @@ resource "kosli_environment" "test" {
 }
 
 resource "kosli_action" "test" {
-  name            = %[1]q
-  environments    = [kosli_environment.test.name]
-  triggers        = ["ON_COMPLIANT_ENV"]
-  webhook_url     = "https://hooks.example.com/kosli-test-updated"
-  payload_version = "1.0"
+  name         = %[1]q
+  environments = [kosli_environment.test.name]
+  triggers     = ["ON_COMPLIANT_ENV"]
+  webhook_url  = "https://hooks.example.com/kosli-test-updated"
 }
 `, name, envName)
 }
