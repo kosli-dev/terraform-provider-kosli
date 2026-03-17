@@ -20,7 +20,7 @@ INSTALL_DIR=~/.terraform.d/plugins/registry.terraform.io/kosli-dev/kosli/dev/$(O
 # Coverage output
 COVERAGE_OUT=coverage.out
 
-.PHONY: all build clean test test-coverage testacc testacc-action testacc-custom-attestation-type testacc-custom-attestation-type-datasource testacc-environment testacc-environment-datasource testacc-logical-environment testacc-logical-environment-datasource check-testacc-env fmt vet lint install docs help default
+.PHONY: all build clean test test-coverage testacc testacc-action testacc-action-datasource testacc-custom-attestation-type testacc-custom-attestation-type-datasource testacc-environment testacc-environment-datasource testacc-logical-environment testacc-logical-environment-datasource check-testacc-env fmt vet lint install docs help default
 
 # Default target
 default: build
@@ -90,6 +90,11 @@ testacc: check-testacc-env
 testacc-action: check-testacc-env
 	@echo "Running acceptance tests for action resource..."
 	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccActionResource' -timeout 30m
+
+# Run acceptance tests for action data source
+testacc-action-datasource: check-testacc-env
+	@echo "Running acceptance tests for action data source..."
+	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccActionDataSource' -timeout 30m
 
 # Run acceptance tests for custom attestation type resource
 testacc-custom-attestation-type: check-testacc-env
@@ -171,6 +176,8 @@ help:
 	@echo "  testacc       Run acceptance tests (with TF_ACC=1)"
 	@echo "  testacc-action"
 	@echo "                Run acceptance tests for action resource"
+	@echo "  testacc-action-datasource"
+	@echo "                Run acceptance tests for action data source"
 	@echo "  testacc-custom-attestation-type"
 	@echo "                Run acceptance tests for custom_attestation_type resource"
 	@echo "  testacc-custom-attestation-type-datasource"
