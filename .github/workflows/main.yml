@@ -34,7 +34,7 @@ jobs:
       - name: Setup Kosli CLI
         uses: kosli-dev/setup-cli-action@v2
         with:
-          version: ${KOSLI_VERSION}
+          version: ${var.KOSLI_VERSION}
 
       - name: Create/Update Flow in Kosli
         run: |
@@ -62,7 +62,7 @@ jobs:
       - name: Setup Kosli CLI
         uses: kosli-dev/setup-cli-action@v2
         with:
-          version: ${KOSLI_VERSION}
+          version: ${var.KOSLI_VERSION}
 
       - name: Attest PR approval
         run: |
@@ -86,7 +86,7 @@ jobs:
       - name: Setup Kosli CLI
         uses: kosli-dev/setup-cli-action@v2
         with:
-          version: ${KOSLI_VERSION}
+          version: ${var.KOSLI_VERSION}
 
       - name: Setup Go
         uses: actions/setup-go@v6
@@ -162,7 +162,7 @@ jobs:
       - name: Setup Kosli CLI
         uses: kosli-dev/setup-cli-action@v2
         with:
-          version: ${KOSLI_VERSION}
+          version: ${var.KOSLI_VERSION}
 
       - name: Setup Go
         uses: actions/setup-go@v6
