@@ -68,7 +68,7 @@ func (d *actionDataSource) Schema(ctx context.Context, req datasource.SchemaRequ
 			},
 			"last_modified_at": schema.Float64Attribute{
 				Computed:            true,
-				MarkdownDescription: "Unix timestamp of when the action was last modified.",
+				MarkdownDescription: "Unix timestamp (with fractional seconds) of when the action was last modified.",
 			},
 		},
 	}

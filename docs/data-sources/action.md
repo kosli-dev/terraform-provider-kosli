@@ -48,6 +48,6 @@ output "action_environments" {
 
 - `created_by` (String) User who created the action.
 - `environments` (List of String) List of environment names this action monitors.
-- `last_modified_at` (Number) Unix timestamp of when the action was last modified.
+- `last_modified_at` (Number) Unix timestamp (with fractional seconds) of when the action was last modified.
 - `number` (Number) Server-assigned numeric identifier for the action.
 - `triggers` (List of String) List of trigger event types that activate this action.
