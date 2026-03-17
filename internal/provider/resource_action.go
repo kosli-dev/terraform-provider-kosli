@@ -337,10 +337,17 @@ func mapActionResponseToModel(ctx context.Context, action *client.ActionResponse
 	}
 	data.Triggers = trigList
 
-	// Extract webhook_url and payload_version from the first WEBHOOK target
+	// Extract webhook_url and payload_version from the first WEBHOOK target.
+	// The API does not echo back sensitive fields (webhook URL) on GET responses,
+	// so only overwrite state when the API returns a non-empty value. This preserves
+	// the value the user configured and prevents a permanent plan diff on every refresh.
 	if len(action.Targets) > 0 {
-		data.WebhookURL = types.StringValue(action.Targets[0].Webhook)
-		data.PayloadVersion = types.StringValue(action.Targets[0].PayloadVersion)
+		if action.Targets[0].Webhook != "" {
+			data.WebhookURL = types.StringValue(action.Targets[0].Webhook)
+		}
+		if action.Targets[0].PayloadVersion != "" {
+			data.PayloadVersion = types.StringValue(action.Targets[0].PayloadVersion)
+		}
 	}
 
 	return diags
