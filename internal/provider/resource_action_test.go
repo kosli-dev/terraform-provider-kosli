@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
 
 func TestActionResource_Metadata(t *testing.T) {
@@ -144,4 +145,198 @@ func TestNewActionResource(t *testing.T) {
 func TestActionResource_Implements(t *testing.T) {
 	var _ resource.Resource = &actionResource{}
 	var _ resource.ResourceWithImportState = &actionResource{}
+}
+
+// TestMapActionResponseToModel_PreservesWebhookURLWhenAPIReturnsEmpty verifies that
+// webhook_url in state is not overwritten when the API redacts it (returns "").
+// This guards against the bug where every terraform refresh would blank the webhook URL.
+func TestMapActionResponseToModel_PreservesWebhookURLWhenAPIReturnsEmpty(t *testing.T) {
+	ctx := context.TODO()
+	existingURL := "https://hooks.example.com/my-secret-webhook"
+
+	data := actionResourceModel{
+		WebhookURL:     types.StringValue(existingURL),
+		PayloadVersion: types.StringValue("1.0"),
+	}
+
+	action := &client.ActionResponse{
+		Name:   "my-action",
+		Number: 1,
+		Targets: []client.ActionTarget{
+			{Type: "WEBHOOK", Webhook: "", PayloadVersion: ""},
+		},
+		Environments: []string{"prod"},
+		Triggers:     []string{"ON_NON_COMPLIANT_ENV"},
+	}
+
+	diags := mapActionResponseToModel(ctx, action, &data)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	if data.WebhookURL.ValueString() != existingURL {
+		t.Errorf("expected webhook_url %q to be preserved, got %q", existingURL, data.WebhookURL.ValueString())
+	}
+	if data.PayloadVersion.ValueString() != "1.0" {
+		t.Errorf("expected payload_version %q to be preserved, got %q", "1.0", data.PayloadVersion.ValueString())
+	}
+}
+
+// TestMapActionResponseToModel_UpdatesWebhookURLWhenAPIReturnsValue verifies that
+// webhook_url is updated when the API does return a value.
+func TestMapActionResponseToModel_UpdatesWebhookURLWhenAPIReturnsValue(t *testing.T) {
+	ctx := context.TODO()
+
+	data := actionResourceModel{
+		WebhookURL:     types.StringValue("https://old.example.com/hook"),
+		PayloadVersion: types.StringValue("1.0"),
+	}
+
+	newURL := "https://new.example.com/hook"
+	action := &client.ActionResponse{
+		Name:   "my-action",
+		Number: 1,
+		Targets: []client.ActionTarget{
+			{Type: "WEBHOOK", Webhook: newURL, PayloadVersion: "2.0"},
+		},
+		Environments: []string{"prod"},
+		Triggers:     []string{"ON_NON_COMPLIANT_ENV"},
+	}
+
+	diags := mapActionResponseToModel(ctx, action, &data)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	if data.WebhookURL.ValueString() != newURL {
+		t.Errorf("expected webhook_url %q, got %q", newURL, data.WebhookURL.ValueString())
+	}
+	if data.PayloadVersion.ValueString() != "2.0" {
+		t.Errorf("expected payload_version %q, got %q", "2.0", data.PayloadVersion.ValueString())
+	}
+}
+
+// TestMapActionResponseToModel_PreservesWebhookURLWhenNoTargets verifies that
+// webhook_url and payload_version are preserved when the API returns no targets.
+func TestMapActionResponseToModel_PreservesWebhookURLWhenNoTargets(t *testing.T) {
+	ctx := context.TODO()
+	existingURL := "https://hooks.example.com/my-webhook"
+
+	data := actionResourceModel{
+		WebhookURL:     types.StringValue(existingURL),
+		PayloadVersion: types.StringValue("1.0"),
+	}
+
+	action := &client.ActionResponse{
+		Name:         "my-action",
+		Number:       1,
+		Targets:      []client.ActionTarget{},
+		Environments: []string{"prod"},
+		Triggers:     []string{"ON_NON_COMPLIANT_ENV"},
+	}
+
+	diags := mapActionResponseToModel(ctx, action, &data)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	if data.WebhookURL.ValueString() != existingURL {
+		t.Errorf("expected webhook_url %q to be preserved, got %q", existingURL, data.WebhookURL.ValueString())
+	}
+}
+
+// TestMapActionResponseToModel_MapsAllFields verifies that non-sensitive fields are
+// mapped correctly from the API response.
+func TestMapActionResponseToModel_MapsAllFields(t *testing.T) {
+	ctx := context.TODO()
+	data := actionResourceModel{}
+
+	action := &client.ActionResponse{
+		Name:           "compliance-alerts",
+		Number:         42,
+		CreatedBy:      "user@example.com",
+		LastModifiedAt: 1633123457.0,
+		Environments:   []string{"prod", "staging"},
+		Triggers:       []string{"ON_NON_COMPLIANT_ENV", "ON_COMPLIANT_ENV"},
+		Targets: []client.ActionTarget{
+			{Type: "WEBHOOK", Webhook: "https://hooks.example.com/kosli", PayloadVersion: "1.0"},
+		},
+	}
+
+	diags := mapActionResponseToModel(ctx, action, &data)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	if data.Name.ValueString() != "compliance-alerts" {
+		t.Errorf("expected Name %q, got %q", "compliance-alerts", data.Name.ValueString())
+	}
+	if data.Number.ValueInt64() != 42 {
+		t.Errorf("expected Number 42, got %d", data.Number.ValueInt64())
+	}
+	if data.CreatedBy.ValueString() != "user@example.com" {
+		t.Errorf("expected CreatedBy %q, got %q", "user@example.com", data.CreatedBy.ValueString())
+	}
+	if data.LastModifiedAt.ValueFloat64() != 1633123457.0 {
+		t.Errorf("expected LastModifiedAt 1633123457.0, got %f", data.LastModifiedAt.ValueFloat64())
+	}
+	if data.WebhookURL.ValueString() != "https://hooks.example.com/kosli" {
+		t.Errorf("expected WebhookURL to be set, got %q", data.WebhookURL.ValueString())
+	}
+	if data.PayloadVersion.ValueString() != "1.0" {
+		t.Errorf("expected PayloadVersion %q, got %q", "1.0", data.PayloadVersion.ValueString())
+	}
+
+	var envs []string
+	data.Environments.ElementsAs(ctx, &envs, false)
+	if len(envs) != 2 || envs[0] != "prod" || envs[1] != "staging" {
+		t.Errorf("expected Environments [prod staging], got %v", envs)
+	}
+}
+
+// TestBuildActionRequest verifies that buildActionRequest constructs the correct
+// API payload, including the hardcoded "env" type and "WEBHOOK" target type.
+func TestBuildActionRequest(t *testing.T) {
+	ctx := context.TODO()
+
+	envList, _ := types.ListValueFrom(ctx, types.StringType, []string{"prod", "staging"})
+	trigList, _ := types.ListValueFrom(ctx, types.StringType, []string{"ON_NON_COMPLIANT_ENV"})
+
+	data := actionResourceModel{
+		Name:           types.StringValue("my-action"),
+		Environments:   envList,
+		Triggers:       trigList,
+		WebhookURL:     types.StringValue("https://hooks.example.com/kosli"),
+		PayloadVersion: types.StringValue("1.0"),
+	}
+
+	req, diags := buildActionRequest(ctx, &data)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	if req.Name != "my-action" {
+		t.Errorf("expected Name %q, got %q", "my-action", req.Name)
+	}
+	if req.Type != "env" {
+		t.Errorf("expected Type %q, got %q", "env", req.Type)
+	}
+	if len(req.Environments) != 2 || req.Environments[0] != "prod" {
+		t.Errorf("expected Environments [prod staging], got %v", req.Environments)
+	}
+	if len(req.Triggers) != 1 || req.Triggers[0] != "ON_NON_COMPLIANT_ENV" {
+		t.Errorf("expected Triggers [ON_NON_COMPLIANT_ENV], got %v", req.Triggers)
+	}
+	if len(req.Targets) != 1 {
+		t.Fatalf("expected 1 target, got %d", len(req.Targets))
+	}
+	if req.Targets[0].Type != "WEBHOOK" {
+		t.Errorf("expected target Type %q, got %q", "WEBHOOK", req.Targets[0].Type)
+	}
+	if req.Targets[0].Webhook != "https://hooks.example.com/kosli" {
+		t.Errorf("expected Webhook URL, got %q", req.Targets[0].Webhook)
+	}
+	if req.Targets[0].PayloadVersion != "1.0" {
+		t.Errorf("expected PayloadVersion %q, got %q", "1.0", req.Targets[0].PayloadVersion)
+	}
 }
