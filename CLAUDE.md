@@ -84,6 +84,7 @@ The client supports:
 ### Current Resources
 
 **Resources:**
+- `kosli_action` - Manage webhook notification actions triggered by environment compliance events
 - `kosli_custom_attestation_type` - Manage custom attestation types (JSON schema + jq rules)
 - `kosli_environment` - Manage physical environments (K8S, ECS, S3, docker, server, lambda)
 - `kosli_logical_environment` - Manage logical environments that aggregate physical environments
@@ -132,7 +133,9 @@ Resources must implement terraform-plugin-framework interfaces:
 4. Create `internal/provider/resource_<name>_test.go` for unit tests
 5. Create `internal/provider/resource_<name>_acc_test.go` for acceptance tests
 6. Add examples in `examples/resources/<resource_name>/`
-7. Generate docs with `make docs`
+7. **Run `make docs` and commit the generated `docs/` files** — CI validates that docs are up to date; skipping this will break the build
+
+> **Important:** Any time you add or modify a Terraform resource or data source (schema changes, new attributes, new resource types), you **must** run `make docs` and stage the generated files before committing. The CI pipeline validates examples and generated docs — missing or stale docs will cause the build to fail.
 
 ### Testing Requirements
 
