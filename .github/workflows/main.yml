@@ -86,7 +86,7 @@ jobs:
       - name: Setup Kosli CLI
         uses: kosli-dev/setup-cli-action@v2
         with:
-          version: ${var.KOSLI_VERSION}
+          version: ${{ env.KOSLI_VERSION }}
 
       - name: Setup Go
         uses: actions/setup-go@v6
