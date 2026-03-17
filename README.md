@@ -13,9 +13,9 @@ The Terraform provider enables you to automate the management of Kosli resources
 
 ## Requirements
 
-- [Terraform](https://www.terraform.io/downloads.html) >= 1.8
+- [Terraform](https://www.terraform.io/downloads.html) >= 1.10
 - [Go](https://golang.org/doc/install) 1.23 or later (for development)
-- Kosli account and API credentials
+- [Kosli](https://app.kosli.com/) account and API credentials
 
 ## Quick Start
 
@@ -28,7 +28,7 @@ terraform {
   required_providers {
     kosli = {
       source  = "kosli-dev/kosli"
-      version = "~> 0.1"
+      version = "~> 0.3"
     }
   }
 }
