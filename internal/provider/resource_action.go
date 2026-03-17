@@ -144,7 +144,8 @@ func (r *actionResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	// PUT returns "OK"; GET by name to populate state (including number)
+	// PUT returns "OK"; the API has no direct GET-by-name endpoint, so we do a
+	// full list scan via GetActionByName to populate state (including number).
 	action, err := r.client.GetActionByName(ctx, data.Name.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -173,6 +174,12 @@ func (r *actionResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 	action, err := r.client.GetActionByNumber(ctx, int(data.Number.ValueInt64()))
 	if err != nil {
+		if client.IsNotFound(err) {
+			// Action was deleted outside Terraform; remove from state so Terraform
+			// can plan a recreation on the next apply.
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Error Reading Action",
 			fmt.Sprintf("Could not read action number %d: %s", data.Number.ValueInt64(), err.Error()),
@@ -255,7 +262,9 @@ func (r *actionResource) Delete(ctx context.Context, req resource.DeleteRequest,
 }
 
 // ImportState imports an existing resource into Terraform state by name.
-// The provider looks up the server-assigned number from the name.
+// ImportStatePassthroughID cannot be used here because the resource tracks state
+// by the server-assigned number, not the name. We use a full list scan via
+// GetActionByName (the API has no direct GET-by-name endpoint) to resolve the number.
 func (r *actionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	action, err := r.client.GetActionByName(ctx, req.ID)
 	if err != nil {
@@ -292,7 +301,8 @@ func buildActionRequest(ctx context.Context, data *actionResourceModel) (*client
 	}
 
 	return &client.ActionRequest{
-		Name:         data.Name.ValueString(),
+		Name: data.Name.ValueString(),
+		// Type is always "env" — the only action type currently supported by the Kosli API.
 		Type:         "env",
 		Environments: environments,
 		Triggers:     triggers,
