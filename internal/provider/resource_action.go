@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
@@ -35,7 +34,6 @@ type actionResourceModel struct {
 	Environments   types.List    `tfsdk:"environments"`
 	Triggers       types.List    `tfsdk:"triggers"`
 	WebhookURL     types.String  `tfsdk:"webhook_url"`
-	PayloadVersion types.String  `tfsdk:"payload_version"`
 	Number         types.Int64   `tfsdk:"number"`
 	CreatedBy      types.String  `tfsdk:"created_by"`
 	LastModifiedAt types.Float64 `tfsdk:"last_modified_at"`
@@ -74,12 +72,6 @@ func (r *actionResource) Schema(ctx context.Context, req resource.SchemaRequest,
 				MarkdownDescription: "Webhook URL to send notifications to.",
 				Required:            true,
 				Sensitive:           true,
-			},
-			"payload_version": schema.StringAttribute{
-				MarkdownDescription: "Webhook payload version. Defaults to `1.0`.",
-				Optional:            true,
-				Computed:            true,
-				Default:             stringdefault.StaticString("1.0"),
 			},
 			"number": schema.Int64Attribute{
 				MarkdownDescription: "Server-assigned numeric identifier for the action.",
@@ -310,9 +302,8 @@ func buildActionRequest(ctx context.Context, data *actionResourceModel) (*client
 		Triggers:     triggers,
 		Targets: []client.ActionTarget{
 			{
-				Type:           "WEBHOOK",
-				Webhook:        data.WebhookURL.ValueString(),
-				PayloadVersion: data.PayloadVersion.ValueString(),
+				Type:    "WEBHOOK",
+				Webhook: data.WebhookURL.ValueString(),
 			},
 		},
 	}, diags
@@ -349,17 +340,12 @@ func mapActionResponseToModel(ctx context.Context, action *client.ActionResponse
 	}
 	data.Triggers = trigList
 
-	// Extract webhook_url and payload_version from the first WEBHOOK target.
+	// Extract webhook_url from the first WEBHOOK target.
 	// The API does not echo back sensitive fields (webhook URL) on GET responses,
 	// so only overwrite state when the API returns a non-empty value. This preserves
 	// the value the user configured and prevents a permanent plan diff on every refresh.
-	if len(action.Targets) > 0 {
-		if action.Targets[0].Webhook != "" {
-			data.WebhookURL = types.StringValue(action.Targets[0].Webhook)
-		}
-		if action.Targets[0].PayloadVersion != "" {
-			data.PayloadVersion = types.StringValue(action.Targets[0].PayloadVersion)
-		}
+	if len(action.Targets) > 0 && action.Targets[0].Webhook != "" {
+		data.WebhookURL = types.StringValue(action.Targets[0].Webhook)
 	}
 
 	return diags

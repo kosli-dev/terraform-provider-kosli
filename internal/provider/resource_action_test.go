@@ -35,11 +35,14 @@ func TestActionResource_Schema(t *testing.T) {
 	}
 
 	attrs := resp.Schema.Attributes
-	expectedAttrs := []string{"name", "environments", "triggers", "webhook_url", "payload_version", "number", "created_by", "last_modified_at"}
+	expectedAttrs := []string{"name", "environments", "triggers", "webhook_url", "number", "created_by", "last_modified_at"}
 	for _, attr := range expectedAttrs {
 		if _, exists := attrs[attr]; !exists {
 			t.Errorf("Expected attribute %q to exist in schema", attr)
 		}
+	}
+	if _, exists := attrs["payload_version"]; exists {
+		t.Error("Expected 'payload_version' to not exist in schema")
 	}
 
 	if !attrs["name"].IsRequired() {
@@ -53,12 +56,6 @@ func TestActionResource_Schema(t *testing.T) {
 	}
 	if !attrs["webhook_url"].IsRequired() {
 		t.Error("Expected 'webhook_url' to be required")
-	}
-	if !attrs["payload_version"].IsOptional() {
-		t.Error("Expected 'payload_version' to be optional")
-	}
-	if !attrs["payload_version"].IsComputed() {
-		t.Error("Expected 'payload_version' to be computed")
 	}
 	if !attrs["number"].IsComputed() {
 		t.Error("Expected 'number' to be computed")
@@ -112,7 +109,6 @@ func TestActionResourceModel_Structure(t *testing.T) {
 		Environments:   envList,
 		Triggers:       trigList,
 		WebhookURL:     types.StringValue("https://hooks.example.com/kosli"),
-		PayloadVersion: types.StringValue("1.0"),
 		Number:         types.Int64Value(1),
 		CreatedBy:      types.StringValue("user@example.com"),
 		LastModifiedAt: types.Float64Value(1633123457.0),
@@ -126,9 +122,6 @@ func TestActionResourceModel_Structure(t *testing.T) {
 	}
 	if model.WebhookURL.ValueString() != "https://hooks.example.com/kosli" {
 		t.Error("Expected WebhookURL to be set correctly")
-	}
-	if model.PayloadVersion.ValueString() != "1.0" {
-		t.Error("Expected PayloadVersion to be 1.0")
 	}
 }
 
@@ -155,15 +148,14 @@ func TestMapActionResponseToModel_PreservesWebhookURLWhenAPIReturnsEmpty(t *test
 	existingURL := "https://hooks.example.com/my-secret-webhook"
 
 	data := actionResourceModel{
-		WebhookURL:     types.StringValue(existingURL),
-		PayloadVersion: types.StringValue("1.0"),
+		WebhookURL: types.StringValue(existingURL),
 	}
 
 	action := &client.ActionResponse{
 		Name:   "my-action",
 		Number: 1,
 		Targets: []client.ActionTarget{
-			{Type: "WEBHOOK", Webhook: "", PayloadVersion: ""},
+			{Type: "WEBHOOK", Webhook: ""},
 		},
 		Environments: []string{"prod"},
 		Triggers:     []string{"ON_NON_COMPLIANT_ENV"},
@@ -177,9 +169,6 @@ func TestMapActionResponseToModel_PreservesWebhookURLWhenAPIReturnsEmpty(t *test
 	if data.WebhookURL.ValueString() != existingURL {
 		t.Errorf("expected webhook_url %q to be preserved, got %q", existingURL, data.WebhookURL.ValueString())
 	}
-	if data.PayloadVersion.ValueString() != "1.0" {
-		t.Errorf("expected payload_version %q to be preserved, got %q", "1.0", data.PayloadVersion.ValueString())
-	}
 }
 
 // TestMapActionResponseToModel_UpdatesWebhookURLWhenAPIReturnsValue verifies that
@@ -188,8 +177,7 @@ func TestMapActionResponseToModel_UpdatesWebhookURLWhenAPIReturnsValue(t *testin
 	ctx := context.TODO()
 
 	data := actionResourceModel{
-		WebhookURL:     types.StringValue("https://old.example.com/hook"),
-		PayloadVersion: types.StringValue("1.0"),
+		WebhookURL: types.StringValue("https://old.example.com/hook"),
 	}
 
 	newURL := "https://new.example.com/hook"
@@ -197,7 +185,7 @@ func TestMapActionResponseToModel_UpdatesWebhookURLWhenAPIReturnsValue(t *testin
 		Name:   "my-action",
 		Number: 1,
 		Targets: []client.ActionTarget{
-			{Type: "WEBHOOK", Webhook: newURL, PayloadVersion: "2.0"},
+			{Type: "WEBHOOK", Webhook: newURL},
 		},
 		Environments: []string{"prod"},
 		Triggers:     []string{"ON_NON_COMPLIANT_ENV"},
@@ -211,20 +199,16 @@ func TestMapActionResponseToModel_UpdatesWebhookURLWhenAPIReturnsValue(t *testin
 	if data.WebhookURL.ValueString() != newURL {
 		t.Errorf("expected webhook_url %q, got %q", newURL, data.WebhookURL.ValueString())
 	}
-	if data.PayloadVersion.ValueString() != "2.0" {
-		t.Errorf("expected payload_version %q, got %q", "2.0", data.PayloadVersion.ValueString())
-	}
 }
 
 // TestMapActionResponseToModel_PreservesWebhookURLWhenNoTargets verifies that
-// webhook_url and payload_version are preserved when the API returns no targets.
+// webhook_url is preserved when the API returns no targets.
 func TestMapActionResponseToModel_PreservesWebhookURLWhenNoTargets(t *testing.T) {
 	ctx := context.TODO()
 	existingURL := "https://hooks.example.com/my-webhook"
 
 	data := actionResourceModel{
-		WebhookURL:     types.StringValue(existingURL),
-		PayloadVersion: types.StringValue("1.0"),
+		WebhookURL: types.StringValue(existingURL),
 	}
 
 	action := &client.ActionResponse{
@@ -259,7 +243,7 @@ func TestMapActionResponseToModel_MapsAllFields(t *testing.T) {
 		Environments:   []string{"prod", "staging"},
 		Triggers:       []string{"ON_NON_COMPLIANT_ENV", "ON_COMPLIANT_ENV"},
 		Targets: []client.ActionTarget{
-			{Type: "WEBHOOK", Webhook: "https://hooks.example.com/kosli", PayloadVersion: "1.0"},
+			{Type: "WEBHOOK", Webhook: "https://hooks.example.com/kosli"},
 		},
 	}
 
@@ -283,9 +267,6 @@ func TestMapActionResponseToModel_MapsAllFields(t *testing.T) {
 	if data.WebhookURL.ValueString() != "https://hooks.example.com/kosli" {
 		t.Errorf("expected WebhookURL to be set, got %q", data.WebhookURL.ValueString())
 	}
-	if data.PayloadVersion.ValueString() != "1.0" {
-		t.Errorf("expected PayloadVersion %q, got %q", "1.0", data.PayloadVersion.ValueString())
-	}
 
 	var envs []string
 	data.Environments.ElementsAs(ctx, &envs, false)
@@ -303,11 +284,10 @@ func TestBuildActionRequest(t *testing.T) {
 	trigList, _ := types.ListValueFrom(ctx, types.StringType, []string{"ON_NON_COMPLIANT_ENV"})
 
 	data := actionResourceModel{
-		Name:           types.StringValue("my-action"),
-		Environments:   envList,
-		Triggers:       trigList,
-		WebhookURL:     types.StringValue("https://hooks.example.com/kosli"),
-		PayloadVersion: types.StringValue("1.0"),
+		Name:         types.StringValue("my-action"),
+		Environments: envList,
+		Triggers:     trigList,
+		WebhookURL:   types.StringValue("https://hooks.example.com/kosli"),
 	}
 
 	req, diags := buildActionRequest(ctx, &data)
@@ -335,8 +315,5 @@ func TestBuildActionRequest(t *testing.T) {
 	}
 	if req.Targets[0].Webhook != "https://hooks.example.com/kosli" {
 		t.Errorf("expected Webhook URL, got %q", req.Targets[0].Webhook)
-	}
-	if req.Targets[0].PayloadVersion != "1.0" {
-		t.Errorf("expected PayloadVersion %q, got %q", "1.0", req.Targets[0].PayloadVersion)
 	}
 }

@@ -32,13 +32,12 @@ resource "kosli_action" "compliance_alerts" {
   webhook_url  = "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXX"
 }
 
-# Action with explicit payload version
+# Action that fires on scaling events
 resource "kosli_action" "scaling_alerts" {
-  name            = "scaling-alerts"
-  environments    = ["staging-ecs"]
-  triggers        = ["ON_SCALED_ARTIFACT"]
-  webhook_url     = "https://outlook.office.com/webhook/XXXX"
-  payload_version = "1.0"
+  name         = "scaling-alerts"
+  environments = ["staging-ecs"]
+  triggers     = ["ON_SCALED_ARTIFACT"]
+  webhook_url  = "https://outlook.office.com/webhook/XXXX"
 }
 ```
 
@@ -51,10 +50,6 @@ resource "kosli_action" "scaling_alerts" {
 - `name` (String) Name of the action. Must be unique within the organization. Changing this will force recreation of the resource.
 - `triggers` (List of String) List of trigger event types that activate this action (e.g. `ON_NON_COMPLIANT_ENV`, `ON_COMPLIANT_ENV`).
 - `webhook_url` (String, Sensitive) Webhook URL to send notifications to.
-
-### Optional
-
-- `payload_version` (String) Webhook payload version. Defaults to `1.0`.
 
 ### Read-Only
 

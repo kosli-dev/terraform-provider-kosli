@@ -16,7 +16,7 @@ var testAction = ActionResponse{
 	Environments: []string{"production"},
 	Triggers:     []string{"ON_NON_COMPLIANT_ENV", "ON_COMPLIANT_ENV"},
 	Targets: []ActionTarget{
-		{Type: "WEBHOOK", Webhook: "https://hooks.example.com/kosli", PayloadVersion: "1.0"},
+		{Type: "WEBHOOK", Webhook: "https://hooks.example.com/kosli"},
 	},
 	CreatedBy:      "user@example.com",
 	CreatedAt:      1633123456.0,
@@ -41,7 +41,7 @@ func TestListActions_Success(t *testing.T) {
 				Environments: []string{"staging"},
 				Triggers:     []string{"ON_SCALED_ARTIFACT"},
 				Targets: []ActionTarget{
-					{Type: "WEBHOOK", Webhook: "https://hooks.example.com/scale", PayloadVersion: "1.0"},
+					{Type: "WEBHOOK", Webhook: "https://hooks.example.com/scale"},
 				},
 				CreatedBy:      "other@example.com",
 				CreatedAt:      1633123460.0,
@@ -286,7 +286,7 @@ func TestCreateOrUpdateAction_Success(t *testing.T) {
 		Environments: []string{"production"},
 		Triggers:     []string{"ON_NON_COMPLIANT_ENV"},
 		Targets: []ActionTarget{
-			{Type: "WEBHOOK", Webhook: "https://hooks.example.com/kosli", PayloadVersion: "1.0"},
+			{Type: "WEBHOOK", Webhook: "https://hooks.example.com/kosli"},
 		},
 	}
 
@@ -407,7 +407,7 @@ func TestUpdateAction_Success(t *testing.T) {
 		Type:         "env",
 		Environments: []string{"production"},
 		Triggers:     []string{"ON_NON_COMPLIANT_ENV"},
-		Targets:      []ActionTarget{{Type: "WEBHOOK", Webhook: "https://hooks.example.com/kosli", PayloadVersion: "1.0"}},
+		Targets:      []ActionTarget{{Type: "WEBHOOK", Webhook: "https://hooks.example.com/kosli"}},
 	}
 
 	err = client.UpdateAction(context.Background(), 1, req)

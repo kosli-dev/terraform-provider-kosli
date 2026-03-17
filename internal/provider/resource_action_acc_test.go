@@ -24,8 +24,7 @@ func TestAccActionResource_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
 					resource.TestCheckResourceAttr(resourceName, "environments.0", envName),
 					resource.TestCheckResourceAttr(resourceName, "triggers.0", "ON_NON_COMPLIANT_ENV"),
-					resource.TestCheckResourceAttr(resourceName, "payload_version", "1.0"),
-					resource.TestCheckResourceAttrSet(resourceName, "number"),
+			resource.TestCheckResourceAttrSet(resourceName, "number"),
 					resource.TestCheckResourceAttrSet(resourceName, "created_by"),
 					resource.TestCheckResourceAttrSet(resourceName, "last_modified_at"),
 				),
@@ -149,11 +148,10 @@ resource "kosli_environment" "test" {
 }
 
 resource "kosli_action" "test" {
-  name            = %[1]q
-  environments    = [kosli_environment.test.name]
-  triggers        = ["ON_COMPLIANT_ENV"]
-  webhook_url     = "https://hooks.example.com/kosli-test-updated"
-  payload_version = "1.0"
+  name         = %[1]q
+  environments = [kosli_environment.test.name]
+  triggers     = ["ON_COMPLIANT_ENV"]
+  webhook_url  = "https://hooks.example.com/kosli-test-updated"
 }
 `, name, envName)
 }

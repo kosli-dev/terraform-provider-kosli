@@ -8,9 +8,8 @@ import (
 
 // ActionTarget represents a notification target for a Kosli action.
 type ActionTarget struct {
-	Type           string `json:"type"`
-	Webhook        string `json:"webhook,omitempty"`
-	PayloadVersion string `json:"payload_version,omitempty"`
+	Type    string `json:"type"`
+	Webhook string `json:"webhook,omitempty"`
 }
 
 // ActionRequest represents the payload for creating or updating a Kosli action.

@@ -14,11 +14,10 @@ resource "kosli_action" "compliance_alerts" {
   webhook_url  = "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXX"
 }
 
-# Action with explicit payload version
+# Action that fires on scaling events
 resource "kosli_action" "scaling_alerts" {
-  name            = "scaling-alerts"
-  environments    = ["staging-ecs"]
-  triggers        = ["ON_SCALED_ARTIFACT"]
-  webhook_url     = "https://outlook.office.com/webhook/XXXX"
-  payload_version = "1.0"
+  name         = "scaling-alerts"
+  environments = ["staging-ecs"]
+  triggers     = ["ON_SCALED_ARTIFACT"]
+  webhook_url  = "https://outlook.office.com/webhook/XXXX"
 }
