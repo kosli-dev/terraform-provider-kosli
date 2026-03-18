@@ -1,6 +1,7 @@
 # Terraform Provider for Kosli
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Main Pipeline](https://github.com/kosli-dev/terraform-provider-kosli/actions/workflows/main.yml/badge.svg)](https://github.com/kosli-dev/terraform-provider-kosli/actions/workflows/main.yml)
 
 > [!WARNING]
 > This is an early-stage provider under active development. Features and APIs may change.
