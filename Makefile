@@ -3,6 +3,10 @@
 # Binary name
 BINARY=terraform-provider-kosli
 
+# Kosli testing Org
+KOSLI_ORG?=terraform-test
+export KOSLI_ORG
+
 # Go parameters
 GOCMD=go
 GOBUILD=$(GOCMD) build
