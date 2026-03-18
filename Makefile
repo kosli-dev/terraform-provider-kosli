@@ -130,6 +130,11 @@ testacc-logical-environment-datasource: check-testacc-env
 	@echo "Running acceptance tests for logical environment data source..."
 	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccLogicalEnvironmentDataSource' -timeout 30m
 
+# Run acceptance tests for policy resource
+testacc-policy: check-testacc-env
+	@echo "Running acceptance tests for policy resource..."
+	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccPolicyResource' -timeout 30m
+
 # Format Go code
 fmt:
 	@echo "Formatting code..."
