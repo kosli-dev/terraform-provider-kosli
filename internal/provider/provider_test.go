@@ -5,8 +5,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 )
 
@@ -112,14 +114,25 @@ func TestKosliProvider_Resources(t *testing.T) {
 	p := &KosliProvider{}
 	ctx := context.Background()
 
-	resources := p.Resources(ctx)
+	registered := make(map[string]bool)
+	for _, factory := range p.Resources(ctx) {
+		r := factory()
+		resp := &resource.MetadataResponse{}
+		r.Metadata(ctx, resource.MetadataRequest{ProviderTypeName: "kosli"}, resp)
+		registered[resp.TypeName] = true
+	}
 
-	// Action resource implemented in issue #124
-	// Custom attestation type resource implemented in issue #15
-	// Environment resource implemented in issue #69
-	// Logical environment resource implemented in issue #92
-	if len(resources) != 5 {
-		t.Errorf("Expected 5 resources, got %d", len(resources))
+	expected := []string{
+		"kosli_action",
+		"kosli_custom_attestation_type",
+		"kosli_environment",
+		"kosli_logical_environment",
+		"kosli_policy",
+	}
+	for _, name := range expected {
+		if !registered[name] {
+			t.Errorf("Expected resource %q to be registered", name)
+		}
 	}
 }
 
@@ -127,12 +140,25 @@ func TestKosliProvider_DataSources(t *testing.T) {
 	p := &KosliProvider{}
 	ctx := context.Background()
 
-	dataSources := p.DataSources(ctx)
+	registered := make(map[string]bool)
+	for _, factory := range p.DataSources(ctx) {
+		ds := factory()
+		resp := &datasource.MetadataResponse{}
+		ds.Metadata(ctx, datasource.MetadataRequest{ProviderTypeName: "kosli"}, resp)
+		registered[resp.TypeName] = true
+	}
 
-	// Custom attestation type data source (issue #16), environment data source (issue #72),
-	// logical environment data source (issue #93), and action data source (issue #125)
-	if len(dataSources) != 4 {
-		t.Errorf("Expected 4 data sources, got %d", len(dataSources))
+	expected := []string{
+		"kosli_action",
+		"kosli_custom_attestation_type",
+		"kosli_environment",
+		"kosli_logical_environment",
+		"kosli_policy",
+	}
+	for _, name := range expected {
+		if !registered[name] {
+			t.Errorf("Expected data source %q to be registered", name)
+		}
 	}
 }
 
