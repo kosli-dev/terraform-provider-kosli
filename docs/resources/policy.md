@@ -79,7 +79,7 @@ resource "kosli_policy" "from_file" {
 ### Read-Only
 
 - `created_at` (Number) Unix timestamp of when the policy was first created.
-- `latest_version` (Number) The version number of the latest policy version.
+- `latest_version` (Number) The version number of the latest policy version. Null if the policy has no versions.
 
 ## Import
 

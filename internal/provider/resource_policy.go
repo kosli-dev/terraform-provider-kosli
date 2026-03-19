@@ -73,7 +73,7 @@ func (r *policyResource) Schema(ctx context.Context, req resource.SchemaRequest,
 				Required: true,
 			},
 			"latest_version": schema.Int64Attribute{
-				MarkdownDescription: "The version number of the latest policy version.",
+				MarkdownDescription: "The version number of the latest policy version. Null if the policy has no versions.",
 				Computed:            true,
 			},
 			"created_at": schema.Float64Attribute{
@@ -237,6 +237,21 @@ func (r *policyResource) ImportState(ctx context.Context, req resource.ImportSta
 	resource.ImportStatePassthroughID(ctx, path.Root("name"), req, resp)
 }
 
+// latestPolicyVersion returns the PolicyVersion with the highest Version number
+// and true. Returns the zero value and false if versions is empty.
+func latestPolicyVersion(versions []client.PolicyVersion) (client.PolicyVersion, bool) {
+	if len(versions) == 0 {
+		return client.PolicyVersion{}, false
+	}
+	latest := versions[0]
+	for _, v := range versions[1:] {
+		if v.Version > latest.Version {
+			latest = v
+		}
+	}
+	return latest, true
+}
+
 // mapPolicyToModel maps an API Policy response to the resource model.
 func mapPolicyToModel(policy *client.Policy, data *policyResourceModel) {
 	data.Name = types.StringValue(policy.Name)
@@ -249,14 +264,11 @@ func mapPolicyToModel(policy *client.Policy, data *policyResourceModel) {
 
 	data.CreatedAt = types.Float64Value(policy.CreatedAt)
 
-	if len(policy.Versions) > 0 {
-		latest := policy.Versions[0]
-		for _, v := range policy.Versions[1:] {
-			if v.Version > latest.Version {
-				latest = v
-			}
-		}
+	if latest, ok := latestPolicyVersion(policy.Versions); ok {
 		data.LatestVersion = types.Int64Value(int64(latest.Version))
 		data.Content = types.StringValue(latest.Content)
+	} else {
+		data.LatestVersion = types.Int64Null()
+		data.Content = types.StringNull()
 	}
 }

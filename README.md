@@ -75,11 +75,15 @@ For more details on attestation types, see the [Kosli documentation](https://doc
 - `kosli_custom_attestation_type` - Create and manage custom attestation types
 - `kosli_environment` - Create and manage physical environments (K8S, ECS, S3, docker, server, lambda)
 - `kosli_logical_environment` - Create and manage logical environments that aggregate physical environments
+- `kosli_action` - Create and manage actions that define webhook notifications triggered by environment compliance events
+- `kosli_policy` - Create and manage policies, which define artifact compliance requirements (provenance, trail-compliance, attestations) that can be attached to environments
 
 ### Data Sources
 - `kosli_custom_attestation_type` - Reference existing attestation types
 - `kosli_environment` - Reference existing physical environments
 - `kosli_logical_environment` - Reference existing logical environments
+- `kosli_action` - Reference existing actions
+- `kosli_policy` - Reference existing policies
 
 ## Configuration
 
