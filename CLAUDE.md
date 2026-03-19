@@ -47,6 +47,8 @@ make lint               # Run golangci-lint
 make docs               # Generate docs using tfplugindocs
 ```
 
+Also update repository README.md including new resources.
+
 ## Architecture
 
 ### Two-Layer Design
@@ -81,7 +83,7 @@ The client supports:
 - Automatic retry with exponential backoff (3 retries by default)
 - Custom User-Agent with provider version
 
-### Current Resources
+### Initial Resources
 
 **Resources:**
 - `kosli_action` - Manage webhook notification actions triggered by environment compliance events
@@ -134,6 +136,8 @@ Resources must implement terraform-plugin-framework interfaces:
 5. Create `internal/provider/resource_<name>_acc_test.go` for acceptance tests
 6. Add examples in `examples/resources/<resource_name>/`
 7. **Run `make docs` and commit the generated `docs/` files** — CI validates that docs are up to date; skipping this will break the build
+8. Make sure to update testing and update `internal/provider/provider_test.go` with new resources
+9. Make sure to update README
 
 > **Important:** Any time you add or modify a Terraform resource or data source (schema changes, new attributes, new resource types), you **must** run `make docs` and stage the generated files before committing. The CI pipeline validates examples and generated docs — missing or stale docs will cause the build to fail.
 
