@@ -5,7 +5,7 @@ subcategory: ""
 description: |-
   Manages a Kosli policy. Policies define artifact compliance requirements (provenance, trail-compliance, attestations) that can be attached to environments.
   Policies are versioned and immutable: updating content or description creates a new version rather than modifying the existing one.
-  ~> Note: Deleting this resource removes it from Terraform state only. Kosli has no API endpoint to delete policies, so the policy will remain in Kosli after terraform destroy. To attach policies to environments, use a separate kosli_policy_attachment resource (planned).
+  ~> Note: Deleting this resource removes it from Terraform state only. Kosli has no API endpoint to delete policies, so the policy will remain in Kosli after terraform destroy. To attach policies to environments, use the kosli_policy_attachment resource.
 ---
 
 # kosli_policy (Resource)
@@ -14,7 +14,7 @@ Manages a Kosli policy. Policies define artifact compliance requirements (proven
 
 Policies are versioned and immutable: updating `content` or `description` creates a new version rather than modifying the existing one.
 
-~> **Note:** Deleting this resource removes it from Terraform state only. Kosli has no API endpoint to delete policies, so the policy will remain in Kosli after `terraform destroy`. To attach policies to environments, use a separate `kosli_policy_attachment` resource (planned).
+~> **Note:** Deleting this resource removes it from Terraform state only. Kosli has no API endpoint to delete policies, so the policy will remain in Kosli after `terraform destroy`. To attach policies to environments, use the `kosli_policy_attachment` resource.
 
 ## Example Usage
 

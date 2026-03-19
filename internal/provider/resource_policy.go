@@ -52,7 +52,7 @@ func (r *policyResource) Schema(ctx context.Context, req resource.SchemaRequest,
 			"version rather than modifying the existing one.\n\n" +
 			"~> **Note:** Deleting this resource removes it from Terraform state only. " +
 			"Kosli has no API endpoint to delete policies, so the policy will remain in Kosli after `terraform destroy`. " +
-			"To attach policies to environments, use a separate `kosli_policy_attachment` resource (planned).",
+			"To attach policies to environments, use the `kosli_policy_attachment` resource.",
 
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
