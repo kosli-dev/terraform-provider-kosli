@@ -22,7 +22,7 @@ func TestAttachPolicy_Success(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			t.Fatalf("failed to decode body: %v", err)
 		}
-		names, ok := body["policy_names"].([]interface{})
+		names, ok := body["policy_names"].([]any)
 		if !ok || len(names) != 1 || names[0] != "test-policy" {
 			t.Errorf("unexpected policy_names: %v", body["policy_names"])
 		}
@@ -82,7 +82,7 @@ func TestDetachPolicy_Success(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			t.Fatalf("failed to decode body: %v", err)
 		}
-		names, ok := body["policy_names"].([]interface{})
+		names, ok := body["policy_names"].([]any)
 		if !ok || len(names) != 1 || names[0] != "test-policy" {
 			t.Errorf("unexpected policy_names: %v", body["policy_names"])
 		}
