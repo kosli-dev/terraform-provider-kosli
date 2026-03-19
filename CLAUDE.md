@@ -83,7 +83,7 @@ The client supports:
 - Automatic retry with exponential backoff (3 retries by default)
 - Custom User-Agent with provider version
 
-### Iniital Resources
+### Initial Resources
 
 **Resources:**
 - `kosli_action` - Manage webhook notification actions triggered by environment compliance events
