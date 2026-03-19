@@ -7,10 +7,6 @@ on:
       - edited
       - reopened
       - synchronize
-    paths-ignore:
-      - '.github/'
-      - 'LICENSE'
-      - '*.md'
 
 jobs:
   validate-title:
