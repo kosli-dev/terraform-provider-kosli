@@ -3,6 +3,10 @@ name: CI - Pull Request Checks
 on:
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '.github/'
+      - 'LICENSE'
+      - '*.md'
 
 env:
   KOSLI_API_TOKEN: ${{ secrets.KOSLI_API_TOKEN }}
