@@ -65,11 +65,11 @@ func (c *Client) GetEnvironmentPolicies(ctx context.Context, environmentName str
 		// Case 2: policy is an object — marshal back to JSON then unmarshal into AttachedPolicy.
 		data, err := json.Marshal(p)
 		if err != nil {
-			continue
+			return nil, fmt.Errorf("failed to marshal policy entry: %w", err)
 		}
 		var ap AttachedPolicy
 		if err := json.Unmarshal(data, &ap); err != nil {
-			continue
+			return nil, fmt.Errorf("failed to unmarshal policy entry: %w", err)
 		}
 		if ap.Name != "" {
 			policies = append(policies, ap)
