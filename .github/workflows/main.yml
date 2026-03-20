@@ -218,10 +218,15 @@ jobs:
       fail-fast: false
       matrix:
         example:
+          - examples/resources/kosli_action
           - examples/resources/kosli_custom_attestation_type
           - examples/resources/kosli_environment
+<<<<<<< 20260320_policy_leftover
           - examples/resources/kosli_policy
           - examples/resources/kosli_policy_attachment
+=======
+          - examples/data-sources/kosli_action
+>>>>>>> main
           - examples/data-sources/kosli_custom_attestation_type
           - examples/data-sources/kosli_environment
           - examples/data-sources/kosli_policy
