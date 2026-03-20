@@ -30,7 +30,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           check-latest: true
-          go-version-file: 'go.mod'
+          go-version-file: '.go-version'
 
       - name: Verify Go version
         run: go version
@@ -83,7 +83,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           check-latest: true
-          go-version-file: 'go.mod'
+          go-version-file: '.go-version'
 
       - name: Build provider
         run: make build
@@ -118,7 +118,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           check-latest: true
-          go-version-file: 'go.mod'
+          go-version-file: '.go-version'
 
       - name: Download provider binary
         uses: actions/download-artifact@v8
