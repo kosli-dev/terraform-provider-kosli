@@ -15,7 +15,7 @@ env:
   KOSLI_FLOW_NAME: ${{ github.event.repository.name }}
   KOSLI_ORG: ${{ vars.KOSLI_ORG }}
   REPO_NAME: ${{ github.event.repository.name }}
-  KOSLI_VERSION: 2.12.1
+  KOSLI_VERSION: 2.13.1
 
 permissions:
   contents: read
@@ -221,9 +221,12 @@ jobs:
           - examples/resources/kosli_action
           - examples/resources/kosli_custom_attestation_type
           - examples/resources/kosli_environment
+          - examples/resources/kosli_policy
+          - examples/resources/kosli_policy_attachment
           - examples/data-sources/kosli_action
           - examples/data-sources/kosli_custom_attestation_type
           - examples/data-sources/kosli_environment
+          - examples/data-sources/kosli_policy
 
     steps:
       - name: Checkout code

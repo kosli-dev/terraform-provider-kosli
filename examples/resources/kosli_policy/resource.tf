@@ -35,9 +35,3 @@ resource "kosli_policy" "production" {
           type: "*"
   YAML
 }
-
-# Policy loaded from a separate YAML file
-resource "kosli_policy" "from_file" {
-  name    = "file-based-policy"
-  content = file("${path.module}/policies/requirements.yaml")
-}
