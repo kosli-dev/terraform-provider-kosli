@@ -10,7 +10,10 @@ terraform {
 # Authentication via environment variables (recommended)
 provider "kosli" {
   # API token - set via KOSLI_API_TOKEN environment variable
-  # Organization name - set via KOSLI_ORG environment variable
+  # api_token = "XXXXX"
+
+  # Organisation name - set via KOSLI_ORG environment variable
+  # org = "Organisation"
 
   # Optional: API endpoint URL (defaults to https://app.kosli.com)
   # api_url = "https://app.us.kosli.com"  # Use US region
