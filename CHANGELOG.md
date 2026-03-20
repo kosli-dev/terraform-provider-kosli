@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.4.0
+
+FEATURES:
+
+* **New Resource**: `kosli_action` for managing webhook notification actions triggered by environment compliance events
+* **New Data Source**: `kosli_action` for querying existing webhook notification actions
+* **New Resource**: `kosli_policy` for managing Kosli policies
+* **New Data Source**: `kosli_policy` for querying existing Kosli policies
+* **New Resource**: `kosli_policy_attachment` for attaching policies to Kosli resources
+
+IMPROVEMENTS:
+
+* client: Added Actions API client methods for CRUD operations on webhook notification actions
+* docs: Updated README with new resources and data sources
+
+BUG FIXES:
+
+* resource/kosli_action: Fixed failing acceptance tests [GH-132]
+
 ## 0.3.1
 
 IMPROVEMENTS:
