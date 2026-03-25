@@ -37,7 +37,7 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME}"
           echo ${VERSION}
-          VERSION="v0.4.2"
+          #VERSION="v0.4.2"
           DATE=$(date +%Y-%m-%d)
 
           PREV=$(git tag --sort=-version:refname \
