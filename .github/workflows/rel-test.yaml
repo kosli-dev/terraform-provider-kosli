@@ -66,7 +66,7 @@ jobs:
                 system: $system,
                 messages: [{
                   role: "user",
-                  content: ("Existing CHANGELOG.md:\n" + $existing + "\n\nNew commits:\n" + $commits + "\n\nGenerate the changelog section for " + $version + " released on " + $date + " and just output the new entry. Don't ask questions and assume this is always the latest entry.")
+                  content: ("Existing CHANGELOG.md:\n" + $existing + "\n\nNew commits:\n" + $commits + "\n\nGenerate the changelog section for " + $version + " released on " + $date + " and just output the new entry. Do NOT ask questions and assume this is always the latest entry!")
                 }]
               }'
             )" | jq -r '.content[0].text')
