@@ -1,5 +1,18 @@
 # Changelog
 
+Looking at the new commits, they are all `test:` and `chore:` prefixed commits — internal changes (test infrastructure, documentation/contribution guide updates). None of them introduce user-facing features, bug fixes, or improvements to the Terraform provider itself.
+
+Based on the existing CHANGELOG.md style and format, here is the new entry:
+
+---
+
+## changelog-test1
+
+IMPROVEMENTS:
+
+* docs: Updated CONTRIBUTING.md with instructions for automated agent pull requests
+* docs: Updated README to match `go-mod` requirements
+
 ## 0.4.0
 
 FEATURES:
