@@ -1,0 +1,108 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          check-latest: true
+          go-version-file: '.go-version'
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v7
+        id: import_gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+
+      - name: Generate changelog entry
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          echo "Generating for: ${VERSION}"
+          DATE=$(date +%Y-%m-%d)
+
+          PREV=$(git tag --sort=-version:refname \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | grep -v "^${VERSION}$" \
+            | head -n 1)
+          PREV="${PREV:-$(git rev-list --max-parents=0 HEAD)}"
+
+          COMMITS=$(git log "${PREV}..${VERSION}" --no-merges --pretty=format:"%s|%b")
+          EXISTING=$(tail -n 100 CHANGELOG.md 2>/dev/null || echo "")
+          SKILL=$(cat .github/changelog-skill.md)
+
+          ENTRY=$(curl -s -f --max-time 60 \
+            -X POST https://api.anthropic.com/v1/messages \
+            -H "x-api-key: ${ANTHROPIC_API_KEY}" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "content-type: application/json" \
+            -d "$(jq -n \
+              --arg system "$SKILL" \
+              --arg commits "$COMMITS" \
+              --arg existing "$EXISTING" \
+              --arg version "$VERSION" \
+              --arg date "$DATE" \
+              '{
+                model: "claude-sonnet-4-6",
+                max_tokens: 1024,
+                system: $system,
+                messages: [{
+                  role: "user",
+                  content: ("Existing CHANGELOG.md:\n" + $existing + "\n\nNew commits:\n" + $commits + "\n\nGenerate the changelog section for " + $version + " released on " + $date + " and just output the new changelog entry wihout any comments. Do NOT ask questions and assume this is always the latest entry!")
+                }]
+              }'
+            )" | jq -r '.content[0].text')
+
+          # Update local file (GoReleaser reads this directly)
+          HEADER_LINE=$(grep -n '^# ' CHANGELOG.md 2>/dev/null | head -1 | cut -d: -f1)
+          if [ -n "$HEADER_LINE" ]; then
+            head -n "$HEADER_LINE" CHANGELOG.md > /tmp/cl.md
+            printf '\n%s\n' "$ENTRY" >> /tmp/cl.md
+            tail -n "+$((HEADER_LINE + 1))" CHANGELOG.md >> /tmp/cl.md
+          else
+            printf '%s\n\n' "$ENTRY" > /tmp/cl.md
+            cat CHANGELOG.md >> /tmp/cl.md 2>/dev/null || true
+          fi
+          mv /tmp/cl.md CHANGELOG.md
+
+          # Push to a branch and open a PR for review
+          BRANCH="changelog/${VERSION}"
+          git checkout -b "${BRANCH}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "chore: update CHANGELOG.md for ${VERSION}"
+          git push origin "${BRANCH}"
+
+          gh pr create \
+            --title "chore: update CHANGELOG.md for ${VERSION}" \
+            --body "Auto-generated changelog entry for ${VERSION}. Please review before merging." \
+            --base "${{ github.event.repository.default_branch }}" \
+            --head "${BRANCH}"
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser
+          version: '~> v2' # current latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
