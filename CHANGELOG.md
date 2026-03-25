@@ -1,5 +1,12 @@
 # Changelog
 
+## changelog-test1 (2026-03-25)
+
+NOTES:
+
+* Updated README to align with `go-mod` requirements
+* Updated CONTRIBUTING.md with instructions for automated agent pull requests
+
 ## 0.4.0
 
 FEATURES:
