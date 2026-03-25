@@ -4,6 +4,11 @@
 #export ANTHROPIC_API_KEY=sk-...
 #export GITHUB_REF_NAME=v0.0.0
 
+if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+    echo "ERROR: Set ANTHROPIC_API_KEY " >&2
+    exit 1
+fi
+
 VERSION="${GITHUB_REF_NAME}"
 DATE=$(date +%Y-%m-%d)
 
@@ -30,11 +35,11 @@ ENTRY=$(curl -s -f --max-time 60 \
     --arg date "$DATE" \
     '{
       model: "claude-sonnet-4-6",
-      max_tokens: 1024,
+      max_tokens: 2048,
       system: $system,
       messages: [{
         role: "user",
-        content: ("Existing CHANGELOG.md:\n" + $existing + "\n\nNew commits:\n" + $commits + "\n\nGenerate the changelog section for " + $version + " released on " + $date + " and just output the new changelog entry wihout any comments. Do NOT ask questions and assume this is always the latest entry!")
+        content: ("Existing CHANGELOG.md:\n" + $existing + "\n\nNew commits:\n" + $commits + "\n\nGenerate the changelog section for " + $version + " released on " + $date + " and just output the new changelog entry without any comments. Do NOT ask questions and assume this is always the latest entry!")
       }]
     }'
   )" | jq -r '.content[0].text')
@@ -55,4 +60,4 @@ fi
 echo "updated CL:"
 echo "--"
 cat cl.md
-#mv /tmp/cl.md CHANGELOG.md
+rm -rf cl.md

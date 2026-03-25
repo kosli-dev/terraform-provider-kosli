@@ -34,6 +34,11 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+            echo "ERROR: Set ANTHROPIC_API_KEY " >&2
+            exit 1
+          fi
+
           VERSION="${GITHUB_REF_NAME}"
           echo "Generating for: ${VERSION}"
           DATE=$(date +%Y-%m-%d)
@@ -61,11 +66,11 @@ jobs:
               --arg date "$DATE" \
               '{
                 model: "claude-sonnet-4-6",
-                max_tokens: 1024,
+                max_tokens: 2048,
                 system: $system,
                 messages: [{
                   role: "user",
-                  content: ("Existing CHANGELOG.md:\n" + $existing + "\n\nNew commits:\n" + $commits + "\n\nGenerate the changelog section for " + $version + " released on " + $date + " and just output the new changelog entry wihout any comments. Do NOT ask questions and assume this is always the latest entry!")
+                  content: ("Existing CHANGELOG.md:\n" + $existing + "\n\nNew commits:\n" + $commits + "\n\nGenerate the changelog section for " + $version + " released on " + $date + " and just output the new changelog entry without any comments. Do NOT ask questions and assume this is always the latest entry!")
                 }]
               }'
             )" | jq -r '.content[0].text')
