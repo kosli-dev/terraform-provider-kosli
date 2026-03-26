@@ -576,7 +576,9 @@ func TestTransformation_FromAPIFormat(t *testing.T) {
 		},
 	}
 
-	at.fromAPIFormat()
+	if err := at.fromAPIFormat(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	// Verify schema extraction (normalized from API)
 	// Note: json.Marshal removes extra whitespace and may reorder properties
