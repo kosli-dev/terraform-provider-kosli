@@ -239,6 +239,9 @@ The `adrs/` directory contains important architectural decisions:
 
 Review ADRs when making architectural changes.
 
+### Cross-Repo References
+Do not reference issues, PRs, or other artifacts from other `kosli-dev` repositories in user-facing docs like README.md. Keep references scoped to this repository.
+
 ## Local Development
 
 ### Testing with Local Provider
@@ -274,6 +277,7 @@ terraform-provider-kosli/
 │   ├── data-sources/      # Data source examples
 │   └── complete/          # End-to-end examples
 ├── internal/provider/     # Terraform provider implementation
+├── internal/pythonjson/   # Python repr() → JSON normalization (API workaround)
 ├── pkg/client/            # Reusable Kosli API client
 ├── templates/             # tfplugindocs templates
 ├── main.go                # Provider entry point

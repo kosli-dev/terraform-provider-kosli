@@ -236,7 +236,7 @@ terraform refresh
 
 **Issue**: The Kosli API returns `type_schema` in Python `repr()` format (single quotes, `True`/`False`/`None`, mixed quoting) instead of valid JSON. The provider automatically normalizes this using a state-machine parser that correctly handles Python's quoting rules, including strings with embedded quotes and complex schemas (e.g., CycloneDX).
 
-**Tracking**: Upstream API fix tracked in [kosli-dev/server#4743](https://github.com/kosli-dev/server/issues/4743). See [#106](https://github.com/kosli-dev/terraform-provider-kosli/issues/106) for provider-side history.
+**Tracking**: See [#106](https://github.com/kosli-dev/terraform-provider-kosli/issues/106) for details.
 
 ## Support
 
