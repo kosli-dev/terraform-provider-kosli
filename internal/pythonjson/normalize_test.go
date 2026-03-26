@@ -7,10 +7,10 @@ import (
 
 func TestNormalize(t *testing.T) {
 	tests := []struct {
-		name      string
-		input     string
-		expected  string
-		skipJSON  bool // skip JSON validation for non-JSON test cases
+		name     string
+		input    string
+		expected string
+		skipJSON bool // skip JSON validation for non-JSON test cases
 	}{
 		{
 			name:     "object with boolean values",
