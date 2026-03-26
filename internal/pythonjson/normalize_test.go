@@ -7,9 +7,10 @@ import (
 
 func TestNormalize(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		expected string
+		name      string
+		input     string
+		expected  string
+		skipJSON  bool // skip JSON validation for non-JSON test cases
 	}{
 		{
 			name:     "object with boolean values",
@@ -72,9 +73,20 @@ func TestNormalize(t *testing.T) {
 			expected: "[true, false, null, 42]",
 		},
 		{
-			name:     "keyword-like substrings are not converted",
+			name:     "keyword-like substrings in strings are not converted",
 			input:    "{'key': 'TrueBlue', 'other': 'NonEmpty'}",
 			expected: `{"key": "TrueBlue", "other": "NonEmpty"}`,
+		},
+		{
+			name:     "keyword-like bare identifiers are not converted",
+			input:    "[TrueBlue, True, FalsePositive, False, NoneType, None]",
+			expected: `[TrueBlue, true, FalsePositive, false, NoneType, null]`,
+			skipJSON: true, // bare identifiers aren't valid JSON — just testing keyword boundary logic
+		},
+		{
+			name:     "escape sequences pass through",
+			input:    `{'msg': 'line1\nline2\ttabbed'}`,
+			expected: `{"msg": "line1\nline2\ttabbed"}`,
 		},
 	}
 
@@ -86,7 +98,7 @@ func TestNormalize(t *testing.T) {
 			}
 
 			// Verify non-empty results are valid JSON
-			if result != "" {
+			if result != "" && !tt.skipJSON {
 				var jsonObj any
 				if err := json.Unmarshal([]byte(result), &jsonObj); err != nil {
 					t.Errorf("Result is not valid JSON: %v", err)
