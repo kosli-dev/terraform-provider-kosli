@@ -645,7 +645,9 @@ func TestTransformation_FromAPIFormat_NonJQ(t *testing.T) {
 		},
 	}
 
-	at.fromAPIFormat()
+	if err := at.fromAPIFormat(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	// Verify schema is normalized even for non-jq types
 	expected := `{"type":"object"}`
