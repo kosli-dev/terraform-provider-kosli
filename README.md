@@ -234,23 +234,9 @@ terraform refresh
 
 ### Custom Attestation Type Schema Normalization
 
-**Issue**: The Kosli API returns `type_schema` in Python `repr()` format (single quotes, `True`/`False`/`None`) instead of valid JSON. The provider automatically normalizes this to JSON format.
+**Issue**: The Kosli API returns `type_schema` in Python `repr()` format (single quotes, `True`/`False`/`None`, mixed quoting) instead of valid JSON. The provider automatically normalizes this using a state-machine parser that correctly handles Python's quoting rules, including strings with embedded quotes and complex schemas (e.g., CycloneDX).
 
-**Limitation**: The normalization uses regex with word boundaries, which may convert Python keywords even if they appear inside string values. For example:
-
-```python
-# API returns (Python format):
-{'description': 'Set to None to disable'}
-
-# Provider normalizes to (JSON format):
-{"description": "Set to null to disable"}  # "None" → "null" inside string
-```
-
-**Impact**: Minimal. JSON schemas rarely contain prose descriptions with the words "True", "False", or "None". The API typically returns structured data where these appear as literals (boolean/null values), not inside string content.
-
-**Workaround**: If you encounter this edge case, contact Kosli support about the API returning invalid JSON, as this is a client-side workaround for an API limitation.
-
-**Tracking**: See [#106](https://github.com/kosli-dev/terraform-provider-kosli/issues/106) for discussion of potential solutions (JSON-aware parsing, API-side fix).
+**Tracking**: Upstream API fix tracked in [kosli-dev/server#4743](https://github.com/kosli-dev/server/issues/4743). See [#106](https://github.com/kosli-dev/terraform-provider-kosli/issues/106) for provider-side history.
 
 ## Support
 

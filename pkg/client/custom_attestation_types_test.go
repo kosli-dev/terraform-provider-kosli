@@ -741,6 +741,18 @@ func TestTransformation_PythonBooleans(t *testing.T) {
 			},
 		},
 		{
+			name:         "double-quoted values with embedded single quotes and booleans",
+			pythonSchema: `{'type': 'object', 'title': "CycloneDX's BOM", 'additionalProperties': False}`,
+			validateResult: func(t *testing.T, schema map[string]any) {
+				if title, ok := schema["title"].(string); !ok || title != "CycloneDX's BOM" {
+					t.Errorf("expected title to be \"CycloneDX's BOM\", got %v", schema["title"])
+				}
+				if additionalProps, ok := schema["additionalProperties"].(bool); !ok || additionalProps != false {
+					t.Errorf("expected additionalProperties to be false, got %v", schema["additionalProperties"])
+				}
+			},
+		},
+		{
 			name:         "mixed Python literals in single schema",
 			pythonSchema: `{'type': 'object', 'required': True, 'nullable': False, 'default': None}`,
 			validateResult: func(t *testing.T, schema map[string]any) {
@@ -787,56 +799,6 @@ func TestTransformation_PythonBooleans(t *testing.T) {
 
 			// Run test-specific validation
 			tt.validateResult(t, schema)
-		})
-	}
-}
-
-// TestNormalizePythonToJSON tests the normalization function directly
-func TestNormalizePythonToJSON(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "object with boolean values",
-			input:    "{'enabled': True, 'disabled': False, 'value': None}",
-			expected: `{"enabled": true, "disabled": false, "value": null}`,
-		},
-		{
-			name:     "array with boolean values",
-			input:    "{'flags': [True, False, None]}",
-			expected: `{"flags": [true, false, null]}`,
-		},
-		{
-			name:     "nested structures",
-			input:    "{'config': {'debug': True, 'items': [False, None]}}",
-			expected: `{"config": {"debug": true, "items": [false, null]}}`,
-		},
-		{
-			name:     "boolean as first array element",
-			input:    "[True, False, 'text']",
-			expected: `[true, false, "text"]`,
-		},
-		{
-			name:     "mixed contexts",
-			input:    "{'x': True, 'y': [False, None], 'z': {'nested': True}}",
-			expected: `{"x": true, "y": [false, null], "z": {"nested": true}}`,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := normalizePythonToJSON(tt.input)
-			if result != tt.expected {
-				t.Errorf("normalizePythonToJSON() = %q, expected %q", result, tt.expected)
-			}
-
-			// Verify it's valid JSON by unmarshaling
-			var jsonObj any
-			if err := json.Unmarshal([]byte(result), &jsonObj); err != nil {
-				t.Errorf("Result is not valid JSON: %v", err)
-			}
 		})
 	}
 }
