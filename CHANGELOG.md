@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.2 (March 26, 2026)
+
+IMPROVEMENTS:
+
+* client: Simplified `type_schema` handling by changing `TypeSchema` from `string` to `json.RawMessage` to accept proper JSON objects returned by the Kosli API
+* client: Removed Python repr normalization workaround (`normalizePythonToJSON()`) after server-side fix
+
+BUG FIXES:
+
+* resource/kosli_custom_attestation_type: Fixed unmarshalling error caused by API returning `type_schema` as a JSON object instead of a Python repr() string [GH-160]
+* data_source/kosli_custom_attestation_type: Fixed unmarshalling error caused by API returning `type_schema` as a JSON object instead of a Python repr() string [GH-160]
+
 ## 0.4.0
 
 FEATURES:
