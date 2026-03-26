@@ -284,7 +284,22 @@ func TestGetCustomAttestationType_WithVersion(t *testing.T) {
 		w.Write([]byte(`{
 			"name": "test-type",
 			"description": "test description",
-			"evaluator": {"content_type": "jq", "rules": [".age > 21"]},
+			"versions": [
+				{
+					"version": 2,
+					"timestamp": 1768347330.112509,
+					"type_schema": {"type":"object","additionalProperties":false},
+					"evaluator": {"content_type": "jq", "rules": [".age > 21"]},
+					"created_by": "Test User"
+				},
+				{
+					"version": 1,
+					"timestamp": 1768247330.112509,
+					"type_schema": {"type":"object"},
+					"evaluator": {"content_type": "jq", "rules": [".age > 18"]},
+					"created_by": "Test User"
+				}
+			],
 			"archived": false,
 			"org": "test-org"
 		}`))
