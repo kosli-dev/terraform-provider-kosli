@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   release:
@@ -103,6 +104,7 @@ jobs:
             --head "${BRANCH}"
 
       - name: Run GoReleaser
+        if: always()
         uses: goreleaser/goreleaser-action@v7
         with:
           distribution: goreleaser
