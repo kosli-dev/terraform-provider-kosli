@@ -32,7 +32,7 @@ The Kosli API returns attestation types in this format:
     {
       "version": 1,
       "timestamp": 1768247330.112509,
-      "type_schema": "{'type': 'object', 'properties': {...}}",
+      "type_schema": {"type": "object", "properties": {...}},
       "evaluator": {
         "content_type": "jq",
         "rules": [".line_coverage >= 80"]

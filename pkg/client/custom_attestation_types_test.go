@@ -230,7 +230,7 @@ func TestGetCustomAttestationType_Success(t *testing.T) {
 				{
 					"version": 1,
 					"timestamp": 1768247330.112509,
-					"type_schema": "{\"type\":\"object\"}",
+					"type_schema": {"type":"object"},
 					"evaluator": {
 						"content_type": "jq",
 						"rules": [".age > 21"]
@@ -284,7 +284,22 @@ func TestGetCustomAttestationType_WithVersion(t *testing.T) {
 		w.Write([]byte(`{
 			"name": "test-type",
 			"description": "test description",
-			"evaluator": {"content_type": "jq", "rules": [".age > 21"]},
+			"versions": [
+				{
+					"version": 2,
+					"timestamp": 1768347330.112509,
+					"type_schema": {"type":"object","additionalProperties":false},
+					"evaluator": {"content_type": "jq", "rules": [".age > 21"]},
+					"created_by": "Test User"
+				},
+				{
+					"version": 1,
+					"timestamp": 1768247330.112509,
+					"type_schema": {"type":"object"},
+					"evaluator": {"content_type": "jq", "rules": [".age > 18"]},
+					"created_by": "Test User"
+				}
+			],
 			"archived": false,
 			"org": "test-org"
 		}`))
@@ -353,7 +368,7 @@ func TestListCustomAttestationTypes_Success(t *testing.T) {
 					{
 						"version": 1,
 						"timestamp": 1768247330.112509,
-						"type_schema": "{\"type\":\"object\",\"properties\":{\"x\":{\"type\":\"number\"}}}",
+						"type_schema": {"type":"object","properties":{"x":{"type":"number"}}},
 						"evaluator": {"content_type": "jq", "rules": [".x > 0"]},
 						"created_by": "Test User"
 					}
@@ -368,7 +383,7 @@ func TestListCustomAttestationTypes_Success(t *testing.T) {
 					{
 						"version": 1,
 						"timestamp": 1768247330.112509,
-						"type_schema": "{\"type\":\"object\",\"properties\":{\"y\":{\"type\":\"number\"}}}",
+						"type_schema": {"type":"object","properties":{"y":{"type":"number"}}},
 						"evaluator": {"content_type": "jq", "rules": [".y > 0"]},
 						"created_by": "Test User"
 					}
@@ -567,7 +582,7 @@ func TestTransformation_FromAPIFormat(t *testing.T) {
 		Versions: []Version{
 			{
 				Version:    1,
-				TypeSchema: `{"type": "object"}`,
+				TypeSchema: json.RawMessage(`{"type": "object"}`),
 				Evaluator: &Evaluator{
 					ContentType: "jq",
 					Rules:       []string{".age > 21", ".name != null"},
@@ -576,7 +591,9 @@ func TestTransformation_FromAPIFormat(t *testing.T) {
 		},
 	}
 
-	at.fromAPIFormat()
+	if err := at.fromAPIFormat(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	// Verify schema extraction (normalized from API)
 	// Note: json.Marshal removes extra whitespace and may reorder properties
@@ -597,6 +614,37 @@ func TestTransformation_FromAPIFormat(t *testing.T) {
 	}
 }
 
+// TestTransformation_FromAPIFormat_JSONObject tests the new API format where type_schema
+// is returned as a JSON object rather than a Python repr string.
+func TestTransformation_FromAPIFormat_JSONObject(t *testing.T) {
+	at := &CustomAttestationType{
+		Name:        "test-type",
+		Description: "test description",
+		Versions: []Version{
+			{
+				Version:    1,
+				TypeSchema: json.RawMessage(`{"type":"object","additionalProperties":false,"properties":{"coverage":{"type":"number"}}}`),
+				Evaluator: &Evaluator{
+					ContentType: "jq",
+					Rules:       []string{".coverage >= 80"},
+				},
+			},
+		},
+	}
+
+	if err := at.fromAPIFormat(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var schema map[string]any
+	if err := json.Unmarshal([]byte(at.Schema), &schema); err != nil {
+		t.Fatalf("failed to parse schema: %v", err)
+	}
+	if additionalProps, ok := schema["additionalProperties"].(bool); !ok || additionalProps != false {
+		t.Errorf("expected additionalProperties to be false, got %v", schema["additionalProperties"])
+	}
+}
+
 // TestTransformation_FromAPIFormat_NonJQ tests transformation with non-jq content type
 func TestTransformation_FromAPIFormat_NonJQ(t *testing.T) {
 	at := &CustomAttestationType{
@@ -605,7 +653,7 @@ func TestTransformation_FromAPIFormat_NonJQ(t *testing.T) {
 		Versions: []Version{
 			{
 				Version:    1,
-				TypeSchema: `{"type": "object"}`,
+				TypeSchema: json.RawMessage(`{"type": "object"}`),
 				Evaluator: &Evaluator{
 					ContentType: "default",
 					Rules:       nil,
@@ -614,7 +662,9 @@ func TestTransformation_FromAPIFormat_NonJQ(t *testing.T) {
 		},
 	}
 
-	at.fromAPIFormat()
+	if err := at.fromAPIFormat(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	// Verify schema is normalized even for non-jq types
 	expected := `{"type":"object"}`
@@ -625,219 +675,6 @@ func TestTransformation_FromAPIFormat_NonJQ(t *testing.T) {
 	// Verify no jq_rules for non-jq types
 	if len(at.JqRules) != 0 {
 		t.Errorf("expected empty jq_rules for non-jq type, got %v", at.JqRules)
-	}
-}
-
-// TestTransformation_PythonStyleSchema tests that Python-style schema is normalized to JSON
-func TestTransformation_PythonStyleSchema(t *testing.T) {
-	// This tests that we normalize Python-style dict notation from the API
-	// The API may return Python-style dict notation with single quotes
-	at := &CustomAttestationType{
-		Name:        "test-type",
-		Description: "test description",
-		Versions: []Version{
-			{
-				Version: 1,
-				// Python-style dict notation with single quotes (what the API might return)
-				TypeSchema: `{'type': 'object', 'properties': {'x': {'type': 'number'}}}`,
-				Evaluator: &Evaluator{
-					ContentType: "jq",
-					Rules:       []string{".x > 0"},
-				},
-			},
-		},
-	}
-
-	err := at.fromAPIFormat()
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	// Schema is normalized to RFC 7159 JSON format (double quotes, no whitespace)
-	// Note: json.Marshal may reorder properties, so we unmarshal and verify structure
-	var schema map[string]any
-	if err := json.Unmarshal([]byte(at.Schema), &schema); err != nil {
-		t.Fatalf("failed to unmarshal normalized schema: %v", err)
-	}
-
-	if schema["type"] != "object" {
-		t.Errorf("expected type 'object', got %v", schema["type"])
-	}
-
-	properties, ok := schema["properties"].(map[string]any)
-	if !ok {
-		t.Errorf("expected properties to be an object")
-	}
-
-	x, ok := properties["x"].(map[string]any)
-	if !ok {
-		t.Errorf("expected x property to be an object")
-	}
-
-	if x["type"] != "number" {
-		t.Errorf("expected x.type to be 'number', got %v", x["type"])
-	}
-}
-
-// TestTransformation_PythonBooleans tests handling Python True/False/None values
-func TestTransformation_PythonBooleans(t *testing.T) {
-	// This tests the real-world scenario where the API returns Python literals
-	// (True/False/None) instead of JSON (true/false/null) in type_schema.
-	tests := []struct {
-		name           string
-		pythonSchema   string
-		validateResult func(t *testing.T, schema map[string]any)
-	}{
-		{
-			name:         "False in object property",
-			pythonSchema: `{'type': 'object', 'additionalProperties': False}`,
-			validateResult: func(t *testing.T, schema map[string]any) {
-				if additionalProps, ok := schema["additionalProperties"].(bool); !ok || additionalProps != false {
-					t.Errorf("expected additionalProperties to be false, got %v", schema["additionalProperties"])
-				}
-			},
-		},
-		{
-			name:         "True in object property",
-			pythonSchema: `{'type': 'object', 'exclusiveMinimum': True}`,
-			validateResult: func(t *testing.T, schema map[string]any) {
-				if exclusiveMin, ok := schema["exclusiveMinimum"].(bool); !ok || exclusiveMin != true {
-					t.Errorf("expected exclusiveMinimum to be true, got %v", schema["exclusiveMinimum"])
-				}
-			},
-		},
-		{
-			name:         "None as default value",
-			pythonSchema: `{'type': 'string', 'default': None}`,
-			validateResult: func(t *testing.T, schema map[string]any) {
-				if defaultVal := schema["default"]; defaultVal != nil {
-					t.Errorf("expected default to be null, got %v", defaultVal)
-				}
-			},
-		},
-		{
-			name:         "nested structures with all Python literals",
-			pythonSchema: `{'type': 'object', 'properties': {'items': {'type': 'array', 'items': {'type': 'object', 'properties': {'enabled': {'type': 'boolean', 'default': None}}, 'additionalProperties': False}}}, 'additionalProperties': False}`,
-			validateResult: func(t *testing.T, schema map[string]any) {
-				// Verify top-level False
-				if additionalProps, ok := schema["additionalProperties"].(bool); !ok || additionalProps != false {
-					t.Errorf("expected top-level additionalProperties to be false, got %v", schema["additionalProperties"])
-				}
-
-				// Verify nested False
-				properties := schema["properties"].(map[string]any)
-				items := properties["items"].(map[string]any)
-				arrayItems := items["items"].(map[string]any)
-				if additionalProps, ok := arrayItems["additionalProperties"].(bool); !ok || additionalProps != false {
-					t.Errorf("expected nested additionalProperties to be false, got %v", arrayItems["additionalProperties"])
-				}
-
-				// Verify None as null
-				itemProps := arrayItems["properties"].(map[string]any)
-				enabled := itemProps["enabled"].(map[string]any)
-				if defaultVal := enabled["default"]; defaultVal != nil {
-					t.Errorf("expected default to be null, got %v", defaultVal)
-				}
-			},
-		},
-		{
-			name:         "mixed Python literals in single schema",
-			pythonSchema: `{'type': 'object', 'required': True, 'nullable': False, 'default': None}`,
-			validateResult: func(t *testing.T, schema map[string]any) {
-				if required, ok := schema["required"].(bool); !ok || required != true {
-					t.Errorf("expected required to be true, got %v", schema["required"])
-				}
-				if nullable, ok := schema["nullable"].(bool); !ok || nullable != false {
-					t.Errorf("expected nullable to be false, got %v", schema["nullable"])
-				}
-				if defaultVal := schema["default"]; defaultVal != nil {
-					t.Errorf("expected default to be null, got %v", defaultVal)
-				}
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			at := &CustomAttestationType{
-				Name:        "test-type",
-				Description: "test description",
-				Versions: []Version{
-					{
-						Version:    1,
-						TypeSchema: tt.pythonSchema,
-						Evaluator: &Evaluator{
-							ContentType: "jq",
-							Rules:       []string{".field > 0"},
-						},
-					},
-				},
-			}
-
-			err := at.fromAPIFormat()
-			if err != nil {
-				t.Fatalf("expected no error normalizing Python literals, got %v", err)
-			}
-
-			// Parse and validate the normalized schema
-			var schema map[string]any
-			if err := json.Unmarshal([]byte(at.Schema), &schema); err != nil {
-				t.Fatalf("failed to unmarshal normalized schema: %v", err)
-			}
-
-			// Run test-specific validation
-			tt.validateResult(t, schema)
-		})
-	}
-}
-
-// TestNormalizePythonToJSON tests the normalization function directly
-func TestNormalizePythonToJSON(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "object with boolean values",
-			input:    "{'enabled': True, 'disabled': False, 'value': None}",
-			expected: `{"enabled": true, "disabled": false, "value": null}`,
-		},
-		{
-			name:     "array with boolean values",
-			input:    "{'flags': [True, False, None]}",
-			expected: `{"flags": [true, false, null]}`,
-		},
-		{
-			name:     "nested structures",
-			input:    "{'config': {'debug': True, 'items': [False, None]}}",
-			expected: `{"config": {"debug": true, "items": [false, null]}}`,
-		},
-		{
-			name:     "boolean as first array element",
-			input:    "[True, False, 'text']",
-			expected: `[true, false, "text"]`,
-		},
-		{
-			name:     "mixed contexts",
-			input:    "{'x': True, 'y': [False, None], 'z': {'nested': True}}",
-			expected: `{"x": true, "y": [false, null], "z": {"nested": true}}`,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := normalizePythonToJSON(tt.input)
-			if result != tt.expected {
-				t.Errorf("normalizePythonToJSON() = %q, expected %q", result, tt.expected)
-			}
-
-			// Verify it's valid JSON by unmarshaling
-			var jsonObj any
-			if err := json.Unmarshal([]byte(result), &jsonObj); err != nil {
-				t.Errorf("Result is not valid JSON: %v", err)
-			}
-		})
 	}
 }
 

@@ -9,16 +9,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	"regexp"
-	"strings"
-)
-
-// Package-level compiled regexes for Python-to-JSON normalization.
-// Compiled once at init time for performance.
-var (
-	pythonTrueRegex  = regexp.MustCompile(`\bTrue\b`)
-	pythonFalseRegex = regexp.MustCompile(`\bFalse\b`)
-	pythonNoneRegex  = regexp.MustCompile(`\bNone\b`)
 )
 
 // CustomAttestationType represents a custom attestation type in Kosli.
@@ -35,11 +25,11 @@ type CustomAttestationType struct {
 
 // Version represents a version of a custom attestation type.
 type Version struct {
-	Version    int        `json:"version"`
-	Timestamp  float64    `json:"timestamp"`
-	TypeSchema string     `json:"type_schema"`
-	Evaluator  *Evaluator `json:"evaluator"`
-	CreatedBy  string     `json:"created_by"`
+	Version    int             `json:"version"`
+	Timestamp  float64         `json:"timestamp"`
+	TypeSchema json.RawMessage `json:"type_schema"`
+	Evaluator  *Evaluator      `json:"evaluator"`
+	CreatedBy  string          `json:"created_by"`
 }
 
 // Evaluator represents the API's evaluator structure.
@@ -79,71 +69,28 @@ func (req *CreateCustomAttestationTypeRequest) toAPIFormat() map[string]any {
 	return data
 }
 
-// normalizePythonToJSON converts Python string representation to valid JSON.
-//
-// WORKAROUND: The Kosli API returns type_schema in Python repr() format rather than
-// valid JSON. This function normalizes the Python format to RFC 7159 JSON:
-// - Single quotes (') → double quotes (")
-// - Python booleans (True/False) → JSON (true/false)
-// - Python None → JSON null
-//
-// This handles Python literals in all contexts: object values, array elements, etc.
-//
-// KNOWN LIMITATION: The regex uses word boundaries and will convert Python keywords
-// even if they appear inside string values (e.g., "Set to None" → "Set to null").
-// This is acceptable because JSON schemas rarely contain prose with these keywords,
-// and the API returns structured data where these appear as literals, not strings.
-// See README.md "Known Issues" section for details.
-//
-// Note: This is a client-side workaround. Ideally the API should return valid JSON.
-func normalizePythonToJSON(pythonStr string) string {
-	// First, convert single quotes to double quotes
-	result := strings.ReplaceAll(pythonStr, "'", "\"")
-
-	// Use pre-compiled package-level regexes with word boundaries
-	// This handles all contexts: ": True", ", True", "[True", etc.
-	result = pythonTrueRegex.ReplaceAllString(result, "true")
-	result = pythonFalseRegex.ReplaceAllString(result, "false")
-	result = pythonNoneRegex.ReplaceAllString(result, "null")
-
-	return result
-}
-
 // fromAPIFormat converts API response to user-facing format.
 // Extracts schema and jq_rules from the latest version in the versions array.
 func (at *CustomAttestationType) fromAPIFormat() error {
-	// Get the latest version (first element in the array - newest is first)
 	if len(at.Versions) > 0 {
 		latestVersion := at.Versions[0]
+		raw := latestVersion.TypeSchema
 
-		// Extract and normalize schema from API
-		// The API returns Python-style string representation (single quotes),
-		// so we need to convert it to valid RFC 7159 JSON (double quotes)
-		schemaStr := latestVersion.TypeSchema
-
-		// Handle empty schema or "None" from API
-		if schemaStr == "" || schemaStr == "None" {
+		if len(raw) == 0 || string(raw) == "null" {
 			at.Schema = ""
 		} else {
-			// Normalize Python-style string representation to valid JSON
-			schemaStr = normalizePythonToJSON(schemaStr)
-
-			// Validate that it's valid JSON by unmarshaling and remarshaling
+			// Re-marshal to canonical compact JSON
 			var schemaObj any
-			if err := json.Unmarshal([]byte(schemaStr), &schemaObj); err != nil {
-				return fmt.Errorf("invalid JSON in type_schema after normalization: %w", err)
+			if err := json.Unmarshal(raw, &schemaObj); err != nil {
+				return fmt.Errorf("invalid JSON in type_schema: %w", err)
 			}
-
-			// Re-marshal to ensure proper JSON formatting
 			normalizedJSON, err := json.Marshal(schemaObj)
 			if err != nil {
 				return fmt.Errorf("failed to normalize schema JSON: %w", err)
 			}
-
 			at.Schema = string(normalizedJSON)
 		}
 
-		// Extract jq_rules from evaluator
 		if latestVersion.Evaluator != nil && latestVersion.Evaluator.ContentType == "jq" {
 			at.JqRules = latestVersion.Evaluator.Rules
 		}
