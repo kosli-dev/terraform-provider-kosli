@@ -153,6 +153,12 @@ func (r *flowResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	// Get current state from API
 	flow, err := r.client.GetFlow(ctx, data.Name.ValueString())
 	if err != nil {
+		if client.IsNotFound(err) {
+			// Flow was deleted outside Terraform; remove from state so Terraform
+			// can plan a recreation on the next apply.
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Error Reading Flow",
 			fmt.Sprintf("Could not read flow %q: %s", data.Name.ValueString(), err.Error()),
