@@ -23,7 +23,7 @@ func TestAccFlowResource_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
 					resource.TestCheckResourceAttr(resourceName, "visibility", "private"),
 					resource.TestCheckNoResourceAttr(resourceName, "description"),
-					resource.TestCheckNoResourceAttr(resourceName, "template"),
+					resource.TestCheckResourceAttrSet(resourceName, "template"),
 				),
 			},
 		},
