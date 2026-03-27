@@ -96,7 +96,7 @@ func (c *Client) CreateFlow(ctx context.Context, req *CreateFlowRequest) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode >= 400 {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return parseErrorResponse(resp)
 	}
 
