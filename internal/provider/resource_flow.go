@@ -72,6 +72,7 @@ func (r *flowResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 					"Can be provided as an inline heredoc or loaded from a file using `file()`. " +
 					"If omitted, the flow is created without a template.",
 				Optional: true,
+				Computed: true,
 			},
 		},
 	}

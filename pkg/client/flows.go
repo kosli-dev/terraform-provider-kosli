@@ -69,11 +69,9 @@ func createFlowMultipartRequest(payload map[string]any, template string) (io.Rea
 // The template_file field is only included when a YAML template is provided.
 func (c *Client) CreateFlow(ctx context.Context, req *CreateFlowRequest) error {
 	payload := map[string]any{
-		"name":       req.Name,
-		"visibility": req.Visibility,
-	}
-	if req.Description != "" {
-		payload["description"] = req.Description
+		"name":        req.Name,
+		"description": req.Description,
+		"visibility":  req.Visibility,
 	}
 
 	path := fmt.Sprintf("/flows/%s/template_file", c.Organization())
