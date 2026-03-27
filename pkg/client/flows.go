@@ -24,7 +24,7 @@ type CreateFlowRequest struct {
 	Name        string
 	Description string
 	Visibility  string
-	Template    string // YAML content; empty means no template
+	Template    string // Optional YAML template content; when empty, template_file is omitted from the multipart request
 }
 
 // createFlowMultipartRequest builds a multipart/form-data body for flow creation.
@@ -63,10 +63,9 @@ func createFlowMultipartRequest(payload map[string]any, template string) (io.Rea
 	return &buf, contentType, nil
 }
 
-// CreateFlow creates or updates a flow using the template_file multipart endpoint.
-// Per ADR 002, this method is a thin wrapper that returns what the API returns.
-// The data_json field always contains the flow metadata (name, description, visibility).
-// The template_file field is only included when a YAML template is provided.
+// CreateFlow creates or updates a flow via a multipart/form-data PUT request.
+// The request always includes a data_json field with flow metadata (name, description, visibility).
+// The template_file field is conditionally included when a YAML template is provided.
 func (c *Client) CreateFlow(ctx context.Context, req *CreateFlowRequest) error {
 	payload := map[string]any{
 		"name":        req.Name,
