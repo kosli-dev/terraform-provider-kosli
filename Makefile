@@ -24,7 +24,7 @@ INSTALL_DIR=~/.terraform.d/plugins/registry.terraform.io/kosli-dev/kosli/dev/$(O
 # Coverage output
 COVERAGE_OUT=coverage.out
 
-.PHONY: all build clean test test-coverage testacc testacc-action testacc-action-datasource testacc-custom-attestation-type testacc-custom-attestation-type-datasource testacc-environment testacc-environment-datasource testacc-logical-environment testacc-logical-environment-datasource testacc-policy testacc-policy-datasource testacc-policy-attachment check-testacc-env fmt vet lint install docs help default
+.PHONY: all build clean test test-coverage testacc testacc-action testacc-action-datasource testacc-custom-attestation-type testacc-custom-attestation-type-datasource testacc-environment testacc-environment-datasource testacc-flow testacc-logical-environment testacc-logical-environment-datasource testacc-policy testacc-policy-datasource testacc-policy-attachment check-testacc-env fmt vet lint install docs help default
 
 # Default target
 default: build
@@ -140,6 +140,11 @@ testacc-policy-datasource: check-testacc-env
 	@echo "Running acceptance tests for policy data source..."
 	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccPolicyDataSource' -timeout 30m
 
+# Run acceptance tests for flow resource
+testacc-flow: check-testacc-env
+	@echo "Running acceptance tests for flow resource..."
+	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccFlowResource' -timeout 30m
+
 # Run acceptance tests for policy attachment resource
 testacc-policy-attachment: check-testacc-env
 	@echo "Running acceptance tests for policy_attachment resource..."
@@ -205,6 +210,8 @@ help:
 	@echo "                Run acceptance tests for environment resource"
 	@echo "  testacc-environment-datasource"
 	@echo "                Run acceptance tests for environment data source"
+	@echo "  testacc-flow"
+	@echo "                Run acceptance tests for flow resource"
 	@echo "  testacc-logical-environment"
 	@echo "                Run acceptance tests for logical environment resource"
 	@echo "  testacc-logical-environment-datasource"
