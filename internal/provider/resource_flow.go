@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -69,7 +68,7 @@ func (r *flowResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 				Computed:            true,
 				Default:             stringdefault.StaticString("private"),
 				Validators: []validator.String{
-					stringvalidator.OneOf("public", "private"),
+					visibilityValidator{},
 				},
 			},
 			"template": schema.StringAttribute{
@@ -274,5 +273,30 @@ func mapFlowToModel(flow *client.Flow, data *flowResourceModel) {
 		data.Template = types.StringNull()
 	} else {
 		data.Template = types.StringValue(flow.Template)
+	}
+}
+
+// visibilityValidator enforces that visibility is one of "public" or "private".
+type visibilityValidator struct{}
+
+func (v visibilityValidator) Description(_ context.Context) string {
+	return `visibility must be "public" or "private"`
+}
+
+func (v visibilityValidator) MarkdownDescription(_ context.Context) string {
+	return "visibility must be `public` or `private`"
+}
+
+func (v visibilityValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	val := req.ConfigValue.ValueString()
+	if val != "public" && val != "private" {
+		resp.Diagnostics.AddAttributeError(
+			req.Path,
+			"Invalid visibility",
+			fmt.Sprintf("Expected \"public\" or \"private\", got: %q.", val),
+		)
 	}
 }
