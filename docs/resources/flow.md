@@ -112,5 +112,5 @@ terraform import kosli_flow.example my-flow-name
 ### Optional
 
 - `description` (String) Description of the flow. Explains the purpose and context of this pipeline.
-- `template` (String) YAML template defining the flow structure (trails, artifacts, attestations). Can be provided as an inline heredoc or loaded from a file using `file()`. If omitted, the flow is created without a template.
+- `template` (String) YAML template defining the flow structure (trails, artifacts, attestations). Can be provided as an inline heredoc or loaded from a file using `file()`. If omitted, the flow is created without a template. The API always returns a default template value, so this attribute is computed when not specified.
 - `visibility` (String) Visibility of the flow. Valid values: `public`, `private`. Defaults to `private`.
