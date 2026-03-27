@@ -253,6 +253,8 @@ func (r *flowResource) ImportState(ctx context.Context, req resource.ImportState
 
 // mapFlowToModel maps a Flow API response to the Terraform resource model.
 func mapFlowToModel(flow *client.Flow, data *flowResourceModel) {
+	data.Name = types.StringValue(flow.Name)
+
 	// Handle empty description as null to avoid inconsistency when not provided in config
 	if flow.Description == "" {
 		data.Description = types.StringNull()
