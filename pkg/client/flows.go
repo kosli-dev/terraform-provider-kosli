@@ -27,30 +27,32 @@ type CreateFlowRequest struct {
 	Template    string // YAML content; empty means no template
 }
 
-// createFlowMultipartRequest builds a multipart/form-data body for flow creation with a template.
+// createFlowMultipartRequest builds a multipart/form-data body for flow creation.
 // Fields:
-//   - payload: JSON with name, description, visibility
-//   - template_file: YAML template content
+//   - data_json: JSON with name, description, visibility
+//   - template_file: YAML template content (only included when template is non-empty)
 func createFlowMultipartRequest(payload map[string]any, template string) (io.Reader, string, error) {
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 
-	// Add payload field (JSON metadata)
+	// Add data_json field (JSON metadata)
 	payloadJSON, err := json.Marshal(payload)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to marshal payload: %w", err)
 	}
-	if err := writer.WriteField("payload", string(payloadJSON)); err != nil {
-		return nil, "", fmt.Errorf("failed to write payload field: %w", err)
+	if err := writer.WriteField("data_json", string(payloadJSON)); err != nil {
+		return nil, "", fmt.Errorf("failed to write data_json field: %w", err)
 	}
 
-	// Add template_file field
-	part, err := writer.CreateFormFile("template_file", "template.yml")
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to create template_file field: %w", err)
-	}
-	if _, err := part.Write([]byte(template)); err != nil {
-		return nil, "", fmt.Errorf("failed to write template_file content: %w", err)
+	// Add template_file field only when template is provided
+	if template != "" {
+		part, err := writer.CreateFormFile("template_file", "template.yml")
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to create template_file field: %w", err)
+		}
+		if _, err := part.Write([]byte(template)); err != nil {
+			return nil, "", fmt.Errorf("failed to write template_file content: %w", err)
+		}
 	}
 
 	contentType := writer.FormDataContentType()
@@ -61,56 +63,44 @@ func createFlowMultipartRequest(payload map[string]any, template string) (io.Rea
 	return &buf, contentType, nil
 }
 
-// CreateFlow creates or updates a flow.
+// CreateFlow creates or updates a flow using the template_file multipart endpoint.
 // Per ADR 002, this method is a thin wrapper that returns what the API returns.
-// When template is provided, uses multipart PUT to /flows/{org}/template_file.
-// When template is empty, uses JSON PUT to /flows/{org}.
+// The data_json field always contains the flow metadata (name, description, visibility).
+// The template_file field is only included when a YAML template is provided.
 func (c *Client) CreateFlow(ctx context.Context, req *CreateFlowRequest) error {
 	payload := map[string]any{
-		"name":        req.Name,
-		"description": req.Description,
-		"visibility":  req.Visibility,
+		"name":       req.Name,
+		"visibility": req.Visibility,
+	}
+	if req.Description != "" {
+		payload["description"] = req.Description
 	}
 
-	if req.Template != "" {
-		// Use multipart endpoint when template is provided
-		path := fmt.Sprintf("/flows/%s/template_file", c.Organization())
+	path := fmt.Sprintf("/flows/%s/template_file", c.Organization())
 
-		body, contentType, err := createFlowMultipartRequest(payload, req.Template)
-		if err != nil {
-			return fmt.Errorf("failed to create multipart request: %w", err)
-		}
-
-		httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, c.apiURL+path, body)
-		if err != nil {
-			return fmt.Errorf("failed to create HTTP request: %w", err)
-		}
-
-		httpReq.Header.Set("Content-Type", contentType)
-		httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiToken))
-		httpReq.Header.Set("User-Agent", c.userAgent)
-
-		resp, err := c.httpClient.Do(httpReq)
-		if err != nil {
-			return fmt.Errorf("failed to execute request: %w", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode >= 400 {
-			return parseErrorResponse(resp)
-		}
-
-		return nil
-	}
-
-	// Use JSON endpoint when no template
-	path := fmt.Sprintf("/flows/%s", c.Organization())
-
-	resp, err := c.Put(ctx, path, payload)
+	body, contentType, err := createFlowMultipartRequest(payload, req.Template)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create multipart request: %w", err)
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, c.apiURL+path, body)
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", contentType)
+	httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiToken))
+	httpReq.Header.Set("User-Agent", c.userAgent)
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return parseErrorResponse(resp)
+	}
 
 	return nil
 }
