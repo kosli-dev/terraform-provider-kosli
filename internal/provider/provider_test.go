@@ -126,6 +126,7 @@ func TestKosliProvider_Resources(t *testing.T) {
 		"kosli_action",
 		"kosli_custom_attestation_type",
 		"kosli_environment",
+		"kosli_flow",
 		"kosli_logical_environment",
 		"kosli_policy",
 		"kosli_policy_attachment",

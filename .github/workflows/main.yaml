@@ -221,6 +221,7 @@ jobs:
           - examples/resources/kosli_action
           - examples/resources/kosli_custom_attestation_type
           - examples/resources/kosli_environment
+          - examples/resources/kosli_flow
           - examples/resources/kosli_policy
           - examples/resources/kosli_policy_attachment
           - examples/data-sources/kosli_action
