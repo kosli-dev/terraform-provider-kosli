@@ -2,7 +2,7 @@ name: Main Pipeline
 
 on:
   push:
-    branches: ['**', main]
+    branches: [main]
 
 env:
   BUILD_NUMBER: ${{ github.run_number }}
