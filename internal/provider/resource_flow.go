@@ -46,7 +46,7 @@ func (r *flowResource) Metadata(ctx context.Context, req resource.MetadataReques
 // Schema defines the schema for the resource.
 func (r *flowResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a Kosli flow. Flows define CD pipeline templates that track software delivery with trails, artifacts, and attestations.\n\n" +
+		MarkdownDescription: "Manages a Kosli flow. A Kosli Flow represents a business or software process that requires change tracking. It allows you to monitor changes across all steps within a process or focus specifically on a subset of critical steps.\n\n" +
 			"~> **Note:** The `template` attribute accepts a YAML string defining the flow template structure. " +
 			"You can load it from a file using the `file()` function: `template = file(\"template.yml\")`. " +
 			"Minor YAML formatting differences between what you provide and what the API returns may result in a no-op change being shown in plans.",
