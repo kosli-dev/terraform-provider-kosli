@@ -36,7 +36,7 @@ jobs:
           # Don't require a scope (e.g., "feat(<scope>): ...")
           requireScope: false
           # Don't allow subject to start with uppercase letter
-          subjectPattern: ^(?![A-Z]).+$
+          subjectPattern: ^(?![A-Z][a-z]).+$
           subjectPatternError: |
             The subject (description) should start with a lowercase letter.
             Example: "feat(api): add new endpoint" (not "feat(api): Add new endpoint")
