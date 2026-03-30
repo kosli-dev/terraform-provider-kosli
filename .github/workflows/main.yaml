@@ -2,7 +2,7 @@ name: Main Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: ['**', main]
 
 env:
   BUILD_NUMBER: ${{ github.run_number }}
@@ -15,7 +15,7 @@ env:
   KOSLI_FLOW_NAME: ${{ github.event.repository.name }}
   KOSLI_ORG: ${{ vars.KOSLI_ORG }}
   REPO_NAME: ${{ github.event.repository.name }}
-  KOSLI_VERSION: 2.13.1
+  KOSLI_VERSION: 2.13.2
 
 permissions:
   contents: read
@@ -255,6 +255,20 @@ jobs:
 
       - name: Install provider
         run: make install
+
+      - name: Configure Terraform dev override
+        run: |
+          OS_ARCH="$(go env GOOS)_$(go env GOARCH)"
+          INSTALL_DIR="$HOME/.terraform.d/plugins/registry.terraform.io/kosli-dev/kosli/dev/$OS_ARCH"
+
+          cat > "$HOME/.terraformrc" <<EOF
+          provider_installation {
+            dev_overrides {
+              "registry.terraform.io/kosli-dev/kosli" = "$INSTALL_DIR"
+            }
+            direct {}
+          }
+          EOF
 
       - name: Validate example
         run: |
