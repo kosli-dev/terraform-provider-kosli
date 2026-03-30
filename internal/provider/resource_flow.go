@@ -4,14 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
@@ -34,7 +31,6 @@ type flowResource struct {
 type flowResourceModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
-	Visibility  types.String `tfsdk:"visibility"`
 	Template    types.String `tfsdk:"template"`
 }
 
@@ -62,15 +58,6 @@ func (r *flowResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"description": schema.StringAttribute{
 				MarkdownDescription: "Description of the flow. Explains the purpose and context of this pipeline.",
 				Optional:            true,
-			},
-			"visibility": schema.StringAttribute{
-				MarkdownDescription: "Visibility of the flow. Valid values: `public`, `private`. Defaults to `private`.",
-				Optional:            true,
-				Computed:            true,
-				Default:             stringdefault.StaticString("private"),
-				Validators: []validator.String{
-					stringvalidator.OneOf("public", "private"),
-				},
 			},
 			"template": schema.StringAttribute{
 				MarkdownDescription: "YAML template defining the flow structure (trails, artifacts, attestations). " +
@@ -115,7 +102,7 @@ func (r *flowResource) Create(ctx context.Context, req resource.CreateRequest, r
 	createReq := &client.CreateFlowRequest{
 		Name:        data.Name.ValueString(),
 		Description: data.Description.ValueString(),
-		Visibility:  data.Visibility.ValueString(),
+		Visibility:  "private", // NOTE: we only support private
 		Template:    data.Template.ValueString(),
 	}
 
@@ -192,7 +179,7 @@ func (r *flowResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	updateReq := &client.CreateFlowRequest{
 		Name:        data.Name.ValueString(),
 		Description: data.Description.ValueString(),
-		Visibility:  data.Visibility.ValueString(),
+		Visibility:  "private", //NOTE: we only support private
 		Template:    data.Template.ValueString(),
 	}
 
@@ -260,13 +247,6 @@ func mapFlowToModel(flow *client.Flow, data *flowResourceModel) {
 		data.Description = types.StringNull()
 	} else {
 		data.Description = types.StringValue(flow.Description)
-	}
-
-	// Visibility always has a value from the API
-	if flow.Visibility == "" {
-		data.Visibility = types.StringValue("private")
-	} else {
-		data.Visibility = types.StringValue(flow.Visibility)
 	}
 
 	// Handle empty template as null

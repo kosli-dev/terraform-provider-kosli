@@ -21,7 +21,6 @@ func TestAccFlowResource_basic(t *testing.T) {
 				Config: testAccFlowResourceConfig(rName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
-					resource.TestCheckResourceAttr(resourceName, "visibility", "private"),
 					resource.TestCheckNoResourceAttr(resourceName, "description"),
 					resource.TestCheckResourceAttrSet(resourceName, "template"),
 				),
@@ -30,7 +29,7 @@ func TestAccFlowResource_basic(t *testing.T) {
 	})
 }
 
-// TestAccFlowResource_full tests all attributes including description, visibility, and template
+// TestAccFlowResource_full tests all attributes including description, and template
 func TestAccFlowResource_full(t *testing.T) {
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	resourceName := "kosli_flow.test"
@@ -45,7 +44,6 @@ func TestAccFlowResource_full(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
 					resource.TestCheckResourceAttr(resourceName, "description", description),
-					resource.TestCheckResourceAttr(resourceName, "visibility", "public"),
 				),
 			},
 		},
@@ -65,7 +63,6 @@ func TestAccFlowResource_withTemplate(t *testing.T) {
 				Config: testAccFlowResourceConfigWithTemplate(rName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
-					resource.TestCheckResourceAttr(resourceName, "visibility", "private"),
 					resource.TestCheckResourceAttrSet(resourceName, "template"),
 				),
 			},
@@ -90,16 +87,14 @@ func TestAccFlowResource_update(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
 					resource.TestCheckResourceAttr(resourceName, "description", description1),
-					resource.TestCheckResourceAttr(resourceName, "visibility", "public"),
 				),
 			},
-			// Step 2: Update description and change visibility to private
+			// Step 2: Update description
 			{
 				Config: testAccFlowResourceConfigUpdate(rName, description2),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
 					resource.TestCheckResourceAttr(resourceName, "description", description2),
-					resource.TestCheckResourceAttr(resourceName, "visibility", "private"),
 				),
 			},
 			// Step 3: Add a template
@@ -191,26 +186,6 @@ func TestAccFlowResource_optionalDescription(t *testing.T) {
 	})
 }
 
-// TestAccFlowResource_publicVisibility tests creating a flow with public visibility
-func TestAccFlowResource_publicVisibility(t *testing.T) {
-	rName := acctest.RandomWithPrefix("tf-acc-test")
-	resourceName := "kosli_flow.test"
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccFlowResourceConfigPublic(rName),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "name", rName),
-					resource.TestCheckResourceAttr(resourceName, "visibility", "public"),
-				),
-			},
-		},
-	})
-}
-
 // testAccFlowResourceConfig returns basic configuration (name only)
 func testAccFlowResourceConfig(name string) string {
 	return fmt.Sprintf(`
@@ -220,13 +195,12 @@ resource "kosli_flow" "test" {
 `, name)
 }
 
-// testAccFlowResourceConfigFull returns full configuration with all attributes and template
+// testAccFlowResourceConfigFull returns configuration with name and description
 func testAccFlowResourceConfigFull(name, description string) string {
 	return fmt.Sprintf(`
 resource "kosli_flow" "test" {
   name        = %[1]q
   description = %[2]q
-  visibility  = "public"
 }
 `, name, description)
 }
@@ -258,7 +232,6 @@ func testAccFlowResourceConfigUpdate(name, description string) string {
 resource "kosli_flow" "test" {
   name        = %[1]q
   description = %[2]q
-  visibility  = "private"
 }
 `, name, description)
 }
@@ -269,7 +242,6 @@ func testAccFlowResourceConfigUpdateWithTemplate(name, description string) strin
 resource "kosli_flow" "test" {
   name        = %[1]q
   description = %[2]q
-  visibility  = "private"
   template    = <<-YAML
 version: 1
 trail:
@@ -281,14 +253,4 @@ trail:
 YAML
 }
 `, name, description)
-}
-
-// testAccFlowResourceConfigPublic returns configuration with public visibility
-func testAccFlowResourceConfigPublic(name string) string {
-	return fmt.Sprintf(`
-resource "kosli_flow" "test" {
-  name       = %[1]q
-  visibility = "public"
-}
-`, name)
 }

@@ -24,16 +24,15 @@ terraform {
   }
 }
 
-# Minimal flow with only a name (private visibility by default)
+# Minimal flow with only a name
 resource "kosli_flow" "minimal" {
   name = "my-service"
 }
 
-# Flow with description and public visibility
-resource "kosli_flow" "public_pipeline" {
+# Flow with description
+resource "kosli_flow" "with_description" {
   name        = "api-service"
   description = "CD pipeline for the API service"
-  visibility  = "public"
 }
 
 # Flow with a YAML template defining trails and attestations
@@ -41,7 +40,6 @@ resource "kosli_flow" "public_pipeline" {
 resource "kosli_flow" "with_template" {
   name        = "backend-service"
   description = "Backend service CD pipeline with full attestation template"
-  visibility  = "public"
 
   template = <<-YAML
 version: 1
@@ -73,7 +71,6 @@ YAML
 
 - `description` (String) Description of the flow. Explains the purpose and context of this pipeline.
 - `template` (String) YAML template defining the flow structure (trails, artifacts, attestations). Can be provided as an inline heredoc or loaded from a file using `file()`. If omitted, the flow is created without a template.
-- `visibility` (String) Visibility of the flow. Valid values: `public`, `private`. Defaults to `private`.
 
 ## Import
 

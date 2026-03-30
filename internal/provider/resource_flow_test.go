@@ -39,7 +39,7 @@ func TestFlowResource_Schema(t *testing.T) {
 
 	// Verify expected attributes exist
 	attrs := resp.Schema.Attributes
-	expectedAttrs := []string{"name", "description", "visibility", "template"}
+	expectedAttrs := []string{"name", "description", "template"}
 	for _, attr := range expectedAttrs {
 		if _, exists := attrs[attr]; !exists {
 			t.Errorf("Expected attribute %q to exist in schema", attr)
@@ -56,15 +56,6 @@ func TestFlowResource_Schema(t *testing.T) {
 	descAttr := attrs["description"]
 	if !descAttr.IsOptional() {
 		t.Error("Expected 'description' attribute to be optional")
-	}
-
-	// Verify visibility is optional and computed
-	visibilityAttr := attrs["visibility"]
-	if !visibilityAttr.IsOptional() {
-		t.Error("Expected 'visibility' attribute to be optional")
-	}
-	if !visibilityAttr.IsComputed() {
-		t.Error("Expected 'visibility' attribute to be computed")
 	}
 
 	// Verify template is optional
@@ -118,7 +109,6 @@ func TestFlowResourceModel_Structure(t *testing.T) {
 	model := flowResourceModel{
 		Name:        types.StringValue("my-flow"),
 		Description: types.StringValue("CD pipeline for my app"),
-		Visibility:  types.StringValue("public"),
 		Template:    types.StringValue("version: 1\ntrail:\n  attestations: []\n"),
 	}
 
@@ -130,10 +120,6 @@ func TestFlowResourceModel_Structure(t *testing.T) {
 		t.Error("Expected Description to be set correctly")
 	}
 
-	if model.Visibility.ValueString() != "public" {
-		t.Error("Expected Visibility to be set correctly")
-	}
-
 	if model.Template.ValueString() == "" {
 		t.Error("Expected Template to be set correctly")
 	}
@@ -143,7 +129,6 @@ func TestFlowResourceModel_WithNullValues(t *testing.T) {
 	model := flowResourceModel{
 		Name:        types.StringValue("my-flow"),
 		Description: types.StringNull(),
-		Visibility:  types.StringValue("private"),
 		Template:    types.StringNull(),
 	}
 
@@ -153,10 +138,6 @@ func TestFlowResourceModel_WithNullValues(t *testing.T) {
 
 	if !model.Description.IsNull() {
 		t.Error("Expected Description to be null")
-	}
-
-	if model.Visibility.ValueString() != "private" {
-		t.Error("Expected Visibility to be private")
 	}
 
 	if !model.Template.IsNull() {
