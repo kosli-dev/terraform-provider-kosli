@@ -131,11 +131,25 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v4
         with:
-          terraform_version: "1.10.0"
+          terraform_version: "~1.10.0"
           terraform_wrapper: false
 
       - name: Install provider
         run: make install
+
+      - name: Configure Terraform dev override
+        run: |
+          OS_ARCH="$(go env GOOS)_$(go env GOARCH)"
+          INSTALL_DIR="$HOME/.terraform.d/plugins/registry.terraform.io/kosli-dev/kosli/dev/$OS_ARCH"
+
+          cat > "$HOME/.terraformrc" <<EOF
+          provider_installation {
+            dev_overrides {
+              "registry.terraform.io/kosli-dev/kosli" = "$INSTALL_DIR"
+            }
+            direct {}
+          }
+          EOF
 
       - name: Validate example
         run: |

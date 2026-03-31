@@ -5,7 +5,7 @@
 
 > [!WARNING]
 > This is an early-stage provider under active development. Features and APIs may change.
-> We recommend not to use this provider in production environments yet, and to pin to specific versions when you do.
+> Be careful using this provider in production environments, and it's recommended to pin it to specific versions to avoid breaking changes.
 
 
 Manage [Kosli](https://kosli.com) resources using Terraform. This provider allows you to define and manage Kosli custom attestation types as Infrastructure-as-Code, enabling you to integrate proprietary tools, custom metrics, or specialized compliance requirements into your Kosli workflows.
