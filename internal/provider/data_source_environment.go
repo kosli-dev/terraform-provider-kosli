@@ -31,6 +31,7 @@ type environmentDataSourceModel struct {
 	IncludeScaling types.Bool    `tfsdk:"include_scaling"`
 	LastModifiedAt types.Float64 `tfsdk:"last_modified_at"`
 	LastReportedAt types.Float64 `tfsdk:"last_reported_at"`
+	Tags           types.Map     `tfsdk:"tags"`
 }
 
 // Metadata returns the data source type name.
@@ -67,6 +68,11 @@ func (d *environmentDataSource) Schema(ctx context.Context, req datasource.Schem
 			"last_reported_at": schema.Float64Attribute{
 				Computed:            true,
 				MarkdownDescription: "Unix timestamp (with fractional seconds) of when the environment was last reported. May be null if never reported.",
+			},
+			"tags": schema.MapAttribute{
+				Computed:            true,
+				MarkdownDescription: "Key-value pairs tagging the environment.",
+				ElementType:         types.StringType,
 			},
 		},
 	}
@@ -132,6 +138,14 @@ func (d *environmentDataSource) Read(ctx context.Context, req datasource.ReadReq
 	} else {
 		data.LastReportedAt = types.Float64Value(*env.LastReportedAt)
 	}
+
+	// Handle tags: always return a map (empty or populated) for consistency with the resource.
+	tagsValue, diags := types.MapValueFrom(ctx, types.StringType, env.Tags)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.Tags = tagsValue
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

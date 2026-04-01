@@ -40,7 +40,7 @@ func TestEnvironmentDataSource_Schema(t *testing.T) {
 
 	// Verify required attributes exist
 	attrs := resp.Schema.Attributes
-	requiredAttrs := []string{"name", "type", "description", "include_scaling", "last_modified_at", "last_reported_at"}
+	requiredAttrs := []string{"name", "type", "description", "include_scaling", "last_modified_at", "last_reported_at", "tags"}
 	for _, attr := range requiredAttrs {
 		if _, exists := attrs[attr]; !exists {
 			t.Errorf("Expected attribute %q to exist in schema", attr)
@@ -81,6 +81,12 @@ func TestEnvironmentDataSource_Schema(t *testing.T) {
 	lastReportedAtAttr := attrs["last_reported_at"]
 	if lastReportedAtAttr.IsComputed() == false {
 		t.Error("Expected 'last_reported_at' attribute to be computed")
+	}
+
+	// Verify tags is computed
+	tagsAttr := attrs["tags"]
+	if tagsAttr.IsComputed() == false {
+		t.Error("Expected 'tags' attribute to be computed")
 	}
 }
 
@@ -133,6 +139,7 @@ func TestEnvironmentDataSourceModel_Structure(t *testing.T) {
 		IncludeScaling: types.BoolValue(true),
 		LastModifiedAt: types.Float64Value(1640000000.123456),
 		LastReportedAt: types.Float64Value(1640000100.654321),
+		Tags:           types.MapNull(types.StringType),
 	}
 
 	if model.Name.ValueString() != "production-k8s" {
@@ -158,6 +165,48 @@ func TestEnvironmentDataSourceModel_Structure(t *testing.T) {
 	if model.LastReportedAt.ValueFloat64() != 1640000100.654321 {
 		t.Errorf("Expected LastReportedAt to be 1640000100.654321, got %f", model.LastReportedAt.ValueFloat64())
 	}
+
+	if !model.Tags.IsNull() {
+		t.Error("Expected Tags to be null")
+	}
+}
+
+func TestEnvironmentDataSourceModel_WithTags(t *testing.T) {
+	tagValues := map[string]string{
+		"env":  "production",
+		"team": "platform",
+	}
+	tagsMap, diags := types.MapValueFrom(context.TODO(), types.StringType, tagValues)
+	if diags.HasError() {
+		t.Fatalf("Failed to create tags map: %v", diags)
+	}
+
+	model := environmentDataSourceModel{
+		Name:           types.StringValue("production-k8s"),
+		Type:           types.StringValue("K8S"),
+		Description:    types.StringNull(),
+		IncludeScaling: types.BoolValue(false),
+		LastModifiedAt: types.Float64Value(1640000000.0),
+		LastReportedAt: types.Float64Null(),
+		Tags:           tagsMap,
+	}
+
+	if model.Tags.IsNull() {
+		t.Error("Expected Tags to not be null")
+	}
+
+	var resultTags map[string]string
+	diags = model.Tags.ElementsAs(context.TODO(), &resultTags, false)
+	if diags.HasError() {
+		t.Fatalf("Failed to extract tags: %v", diags)
+	}
+
+	if resultTags["env"] != "production" {
+		t.Errorf("Expected tags.env = 'production', got %q", resultTags["env"])
+	}
+	if resultTags["team"] != "platform" {
+		t.Errorf("Expected tags.team = 'platform', got %q", resultTags["team"])
+	}
 }
 
 func TestEnvironmentDataSourceModel_WithNullValues(t *testing.T) {
@@ -169,6 +218,7 @@ func TestEnvironmentDataSourceModel_WithNullValues(t *testing.T) {
 		IncludeScaling: types.BoolValue(false),
 		LastModifiedAt: types.Float64Value(1640000000.0),
 		LastReportedAt: types.Float64Null(),
+		Tags:           types.MapNull(types.StringType),
 	}
 
 	if model.Name.ValueString() != "test-env" {
@@ -185,6 +235,10 @@ func TestEnvironmentDataSourceModel_WithNullValues(t *testing.T) {
 
 	if model.IncludeScaling.ValueBool() != false {
 		t.Error("Expected IncludeScaling to be false")
+	}
+
+	if !model.Tags.IsNull() {
+		t.Error("Expected Tags to be null")
 	}
 }
 

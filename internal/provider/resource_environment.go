@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -34,6 +35,7 @@ type environmentResourceModel struct {
 	Type           types.String `tfsdk:"type"`
 	Description    types.String `tfsdk:"description"`
 	IncludeScaling types.Bool   `tfsdk:"include_scaling"`
+	Tags           types.Map    `tfsdk:"tags"`
 }
 
 // Metadata returns the resource type name.
@@ -45,8 +47,7 @@ func (r *environmentResource) Metadata(ctx context.Context, req resource.Metadat
 func (r *environmentResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Kosli environment. Environments represent deployment targets where artifacts are deployed. Supports physical environment types: K8S, ECS, S3, docker, server, and lambda.\n\n" +
-			"~> **Note:** This resource manages the environment configuration only. Environment tags are managed through a separate Kosli API. " +
-			"Environment policies will be available in a future release. " +
+			"~> **Note:** Environment policies will be available in a future release. " +
 			"For querying environment metadata such as `last_modified_at`, `last_reported_at`, and `archived` status, use the `kosli_environment` data source.",
 
 		Attributes: map[string]schema.Attribute{
@@ -73,6 +74,12 @@ func (r *environmentResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
+			},
+			"tags": schema.MapAttribute{
+				MarkdownDescription: "Key-value pairs to tag the environment.",
+				Optional:            true,
+				Computed:            true,
+				ElementType:         types.StringType,
 			},
 		},
 	}
@@ -123,6 +130,12 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
+	// Apply tags via the dedicated PATCH endpoint (no prior tags on a new environment)
+	applyTags(ctx, r.client, data.Name.ValueString(), types.MapNull(types.StringType), data.Tags, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// Per ADR 002: PUT returns "OK", so we must GET to populate state
 	env, err := r.client.GetEnvironment(ctx, data.Name.ValueString())
 	if err != nil {
@@ -133,15 +146,11 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	// Map API response to Terraform state (configuration fields only, no timestamps)
-	data.Type = types.StringValue(env.Type)
-	// Handle empty description as null to avoid inconsistency when not provided in config
-	if env.Description == "" {
-		data.Description = types.StringNull()
-	} else {
-		data.Description = types.StringValue(env.Description)
+	// Map API response to Terraform state
+	mapEnvToState(ctx, env, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
-	data.IncludeScaling = types.BoolValue(env.IncludeScaling)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -167,15 +176,11 @@ func (r *environmentResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	// Map API response to Terraform state (configuration fields only, no timestamps)
-	data.Type = types.StringValue(env.Type)
-	// Handle empty description as null to avoid inconsistency when not provided in config
-	if env.Description == "" {
-		data.Description = types.StringNull()
-	} else {
-		data.Description = types.StringValue(env.Description)
+	// Map API response to Terraform state
+	mapEnvToState(ctx, env, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
-	data.IncludeScaling = types.BoolValue(env.IncludeScaling)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -185,9 +190,16 @@ func (r *environmentResource) Read(ctx context.Context, req resource.ReadRequest
 // Per the API behavior, PUT is idempotent and updates the environment.
 func (r *environmentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data environmentResourceModel
+	var oldData environmentResourceModel
 
-	// Read Terraform plan data into the model
+	// Read Terraform plan data (desired state) into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Read prior state to compute tag diff
+	resp.Diagnostics.Append(req.State.Get(ctx, &oldData)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -209,6 +221,12 @@ func (r *environmentResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
+	// Apply tag diff via the dedicated PATCH endpoint
+	applyTags(ctx, r.client, data.Name.ValueString(), oldData.Tags, data.Tags, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// GET to populate state
 	env, err := r.client.GetEnvironment(ctx, data.Name.ValueString())
 	if err != nil {
@@ -219,15 +237,11 @@ func (r *environmentResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	// Map API response to Terraform state (configuration fields only, no timestamps)
-	data.Type = types.StringValue(env.Type)
-	// Handle empty description as null to avoid inconsistency when not provided in config
-	if env.Description == "" {
-		data.Description = types.StringNull()
-	} else {
-		data.Description = types.StringValue(env.Description)
+	// Map API response to Terraform state
+	mapEnvToState(ctx, env, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
-	data.IncludeScaling = types.BoolValue(env.IncludeScaling)
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -260,4 +274,81 @@ func (r *environmentResource) Delete(ctx context.Context, req resource.DeleteReq
 func (r *environmentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	// Import by name
 	resource.ImportStatePassthroughID(ctx, path.Root("name"), req, resp)
+}
+
+// mapEnvToState maps an API Environment response to the Terraform resource model.
+func mapEnvToState(ctx context.Context, env *client.Environment, data *environmentResourceModel, diags *diag.Diagnostics) {
+	// Map API response to data source model
+	data.Name = types.StringValue(env.Name)
+	data.Type = types.StringValue(env.Type)
+	// Handle empty description as null to avoid inconsistency when not provided in config
+	if env.Description == "" {
+		data.Description = types.StringNull()
+	} else {
+		data.Description = types.StringValue(env.Description)
+	}
+	data.IncludeScaling = types.BoolValue(env.IncludeScaling)
+
+	// Handle tags: always return a map (empty or populated) so that
+	// setting tags = {} in config doesn't drift against null in state.
+	tagsValue, d := types.MapValueFrom(ctx, types.StringType, env.Tags)
+	diags.Append(d...)
+	if !diags.HasError() {
+		data.Tags = tagsValue
+	}
+}
+
+// applyTags computes the tag diff between oldTags and newTags and calls the API
+// PATCH tags endpoint if there are any changes.
+func applyTags(ctx context.Context, c *client.Client, name string, oldTags, newTags types.Map, diags *diag.Diagnostics) {
+	// Extract old tag map
+	oldMap := map[string]string{}
+	if !oldTags.IsNull() && !oldTags.IsUnknown() {
+		d := oldTags.ElementsAs(ctx, &oldMap, false)
+		diags.Append(d...)
+		if diags.HasError() {
+			return
+		}
+	}
+
+	// Extract new tag map
+	newMap := map[string]string{}
+	if !newTags.IsNull() && !newTags.IsUnknown() {
+		d := newTags.ElementsAs(ctx, &newMap, false)
+		diags.Append(d...)
+		if diags.HasError() {
+			return
+		}
+	}
+
+	payload := &client.TagResourcePayload{
+		SetTags:    map[string]string{},
+		RemoveTags: []string{},
+	}
+
+	// Tags to add or update (in new but not in old, or value changed)
+	for k, v := range newMap {
+		if oldV, exists := oldMap[k]; !exists || oldV != v {
+			payload.SetTags[k] = v
+		}
+	}
+
+	// Tags to remove (in old but not in new)
+	for k := range oldMap {
+		if _, exists := newMap[k]; !exists {
+			payload.RemoveTags = append(payload.RemoveTags, k)
+		}
+	}
+
+	// Only call API if there are changes
+	if len(payload.SetTags) == 0 && len(payload.RemoveTags) == 0 {
+		return
+	}
+
+	if err := c.TagResource(ctx, "environment", name, payload); err != nil {
+		diags.AddError(
+			"Error Updating Environment Tags",
+			fmt.Sprintf("Could not update tags for environment %q: %s", name, err.Error()),
+		)
+	}
 }

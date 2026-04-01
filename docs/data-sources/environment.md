@@ -27,16 +27,21 @@ terraform {
   }
 }
 
-# Query an existing environment
-data "kosli_environment" "production" {
-  name = "production-k8s"
+# Create an environment with tags
+resource "kosli_environment" "production" {
+  name        = "production-k8s"
+  type        = "K8S"
+  description = "Production Kubernetes cluster"
+  tags = {
+    managed-by  = "terraform"
+    environment = "production"
+    team        = "platform"
+  }
 }
 
-# Use the data source to create a similar environment
-resource "kosli_environment" "staging" {
-  name        = "staging-k8s"
-  type        = data.kosli_environment.production.type
-  description = "Staging environment similar to ${data.kosli_environment.production.name}"
+# Query the environment via data source to read back its attributes and tags
+data "kosli_environment" "production" {
+  name = kosli_environment.production.name
 }
 
 # Reference environment metadata for monitoring
@@ -58,6 +63,18 @@ output "production_type" {
 output "production_includes_scaling" {
   description = "Whether production environment includes scaling events"
   value       = data.kosli_environment.production.include_scaling
+}
+
+# Access tags applied to the environment
+output "production_tags" {
+  description = "Tags applied to the production environment"
+  value       = data.kosli_environment.production.tags
+}
+
+# Check if a specific tag exists
+output "production_managed_by" {
+  description = "Who manages the production environment (from tags)"
+  value       = try(data.kosli_environment.production.tags["managed-by"], "unknown")
 }
 
 # Conditional logic based on environment metadata
@@ -103,4 +120,5 @@ Data sources provide read-only access to environment metadata. To modify environ
 - `include_scaling` (Boolean) Whether the environment includes scaling events in snapshots.
 - `last_modified_at` (Number) Unix timestamp (with fractional seconds) of when the environment was last modified.
 - `last_reported_at` (Number) Unix timestamp (with fractional seconds) of when the environment was last reported. May be null if never reported.
+- `tags` (Map of String) Key-value pairs tagging the environment.
 - `type` (String) The environment type (e.g., K8S, ECS, S3, docker, server, lambda).
