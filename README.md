@@ -83,6 +83,7 @@ For more details on attestation types, see the [Kosli documentation](https://doc
 ### Data Sources
 - `kosli_custom_attestation_type` - Reference existing attestation types
 - `kosli_environment` - Reference existing physical environments
+- `kosli_flow` - Reference existing flows
 - `kosli_logical_environment` - Reference existing logical environments
 - `kosli_action` - Reference existing actions
 - `kosli_policy` - Reference existing policies
