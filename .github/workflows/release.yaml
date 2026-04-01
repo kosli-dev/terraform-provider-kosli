@@ -107,3 +107,4 @@ jobs:
           title: "chore: update CHANGELOG.md for ${{ github.ref_name }}"
           body: "Auto-generated changelog entry for ${{ github.ref_name }}. Please review before merging."
           base: ${{ github.event.repository.default_branch }}
+          add-paths: CHANGELOG.md
