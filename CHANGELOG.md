@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.5.0 (April 1, 2026)
+
+FEATURES:
+
+* **New Resource**: `kosli_flow` for managing Kosli flows with full CRUD lifecycle support, including `name`, `description`, and `template` attributes
+* **New Data Source**: `kosli_flow` for querying existing Kosli flows by name, exposing `name`, `description`, and `template` attributes
+
+IMPROVEMENTS:
+
+* docs: Added documentation and examples for `kosli_flow` resource and data source
+
+BUG FIXES:
+
+* ci: Fixed CI workflows when adding new Terraform resources to use local provider build instead of released version [GH-166]
+* ci: Fixed GitHub Actions bot email to produce verified commits on GHA-created PRs [GH-164]
+
 ## 0.4.2 (March 26, 2026)
 
 IMPROVEMENTS:
