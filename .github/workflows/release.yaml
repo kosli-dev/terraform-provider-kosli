@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   release:
+    name: Release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -43,7 +44,6 @@ jobs:
       - name: Generate changelog entry
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
             echo "ERROR: Set ANTHROPIC_API_KEY " >&2
@@ -98,17 +98,12 @@ jobs:
           fi
           mv /tmp/cl.md CHANGELOG.md
 
-          # Push to a branch and open a PR for review
-          BRANCH="changelog/${VERSION}"
-          git checkout -b "${BRANCH}"
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          git commit -m "chore: update CHANGELOG.md for ${VERSION}"
-          git push origin "${BRANCH}"
-
-          gh pr create \
-            --title "chore: update CHANGELOG.md for ${VERSION}" \
-            --body "Auto-generated changelog entry for ${VERSION}. Please review before merging." \
-            --base "${{ github.event.repository.default_branch }}" \
-            --head "${BRANCH}"
+      - name: Create changelog PR
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update CHANGELOG.md for ${{ github.ref_name }}"
+          branch: "changelog/${{ github.ref_name }}"
+          title: "chore: update CHANGELOG.md for ${{ github.ref_name }}"
+          body: "Auto-generated changelog entry for ${{ github.ref_name }}. Please review before merging."
+          base: ${{ github.event.repository.default_branch }}
