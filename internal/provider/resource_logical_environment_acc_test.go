@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -308,4 +309,131 @@ resource "kosli_logical_environment" "test" {
   included_environments = []
 }
 `, name)
+}
+
+// TestAccLogicalEnvironmentResource_tags tests tags CRUD lifecycle
+func TestAccLogicalEnvironmentResource_tags(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc-test-logical")
+	envName1 := acctest.RandomWithPrefix("tf-acc-test-env1")
+	envName2 := acctest.RandomWithPrefix("tf-acc-test-env2")
+	resourceName := "kosli_logical_environment.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1: Create with tags
+			{
+				Config: testAccLogicalEnvironmentResourceConfigWithTags(rName, envName1, envName2, &map[string]string{
+					"env":        "test",
+					"managed-by": "terraform",
+				}),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+					resource.TestCheckResourceAttr(resourceName, "type", "logical"),
+					resource.TestCheckResourceAttr(resourceName, "tags.env", "test"),
+					resource.TestCheckResourceAttr(resourceName, "tags.managed-by", "terraform"),
+				),
+			},
+			// Step 2: Update tags (modify value, add key, remove key)
+			{
+				Config: testAccLogicalEnvironmentResourceConfigWithTags(rName, envName1, envName2, &map[string]string{
+					"env":  "staging",
+					"team": "platform",
+				}),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "tags.env", "staging"),
+					resource.TestCheckResourceAttr(resourceName, "tags.team", "platform"),
+					resource.TestCheckNoResourceAttr(resourceName, "tags.managed-by"),
+				),
+			},
+			// Step 3: Remove all tags by setting explicit empty map
+			{
+				Config: testAccLogicalEnvironmentResourceConfigWithTags(rName, envName1, envName2, &map[string]string{}),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+					resource.TestCheckResourceAttr(resourceName, "tags.%", "0"),
+				),
+			},
+			// Step 4: Omit tags block entirely — Computed keeps previous value (empty map)
+			{
+				Config: testAccLogicalEnvironmentResourceConfigWithTags(rName, envName1, envName2, nil),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+					resource.TestCheckResourceAttr(resourceName, "tags.%", "0"),
+				),
+			},
+		},
+	})
+}
+
+// TestAccLogicalEnvironmentResource_tagsImport tests that tags are preserved through import
+func TestAccLogicalEnvironmentResource_tagsImport(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc-test-logical")
+	envName1 := acctest.RandomWithPrefix("tf-acc-test-env1")
+	envName2 := acctest.RandomWithPrefix("tf-acc-test-env2")
+	resourceName := "kosli_logical_environment.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1: Create with tags
+			{
+				Config: testAccLogicalEnvironmentResourceConfigWithTags(rName, envName1, envName2, &map[string]string{
+					"managed-by": "terraform",
+				}),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "tags.managed-by", "terraform"),
+				),
+			},
+			// Step 2: Import and verify tags are preserved
+			{
+				ResourceName:                         resourceName,
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        rName,
+				ImportStateVerifyIdentifierAttribute: "name",
+			},
+		},
+	})
+}
+
+// testAccLogicalEnvironmentResourceConfigWithTags returns configuration with specified tags.
+// Pass nil to omit the tags attribute entirely (exercises the Optional+Computed path);
+// pass a non-nil empty map to emit tags = {} (exercises explicit removal).
+func testAccLogicalEnvironmentResourceConfigWithTags(name, env1, env2 string, tags *map[string]string) string {
+	tagsHCL := ""
+	if tags != nil {
+		keys := make([]string, 0, len(*tags))
+		for k := range *tags {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		tagsHCL = "  tags = {\n"
+		for _, k := range keys {
+			tagsHCL += fmt.Sprintf("    %q = %q\n", k, (*tags)[k])
+		}
+		tagsHCL += "  }\n"
+	}
+
+	return fmt.Sprintf(`
+resource "kosli_environment" "env1" {
+  name = %[2]q
+  type = "K8S"
+}
+
+resource "kosli_environment" "env2" {
+  name = %[3]q
+  type = "ECS"
+}
+
+resource "kosli_logical_environment" "test" {
+  name = %[1]q
+  included_environments = [
+    kosli_environment.env1.name,
+    kosli_environment.env2.name,
+  ]
+%[4]s}
+`, name, env1, env2, tagsHCL)
 }

@@ -71,3 +71,8 @@ output "production_includes_k8s" {
   description = "Whether production aggregates a K8S environment"
   value       = local.includes_k8s
 }
+
+output "production_tags" {
+  description = "Tags on the production logical environment"
+  value       = data.kosli_logical_environment.production.tags
+}

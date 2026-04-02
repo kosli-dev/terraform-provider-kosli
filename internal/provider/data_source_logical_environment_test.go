@@ -40,7 +40,7 @@ func TestLogicalEnvironmentDataSource_Schema(t *testing.T) {
 
 	// Verify required attributes exist
 	attrs := resp.Schema.Attributes
-	requiredAttrs := []string{"name", "type", "description", "included_environments", "last_modified_at"}
+	requiredAttrs := []string{"name", "type", "description", "included_environments", "last_modified_at", "tags"}
 	for _, attr := range requiredAttrs {
 		if _, exists := attrs[attr]; !exists {
 			t.Errorf("Expected attribute %q to exist in schema", attr)
@@ -75,6 +75,15 @@ func TestLogicalEnvironmentDataSource_Schema(t *testing.T) {
 	lastModifiedAtAttr := attrs["last_modified_at"]
 	if lastModifiedAtAttr.IsComputed() == false {
 		t.Error("Expected 'last_modified_at' attribute to be computed")
+	}
+
+	// Verify tags is computed (read-only in data source)
+	tagsAttr := attrs["tags"]
+	if tagsAttr.IsComputed() == false {
+		t.Error("Expected 'tags' attribute to be computed")
+	}
+	if tagsAttr.IsOptional() == true {
+		t.Error("Expected 'tags' attribute to not be optional in data source")
 	}
 }
 
@@ -125,12 +134,15 @@ func TestLogicalEnvironmentDataSourceModel_Structure(t *testing.T) {
 		t.Fatalf("Unexpected diagnostics creating list: %v", diags)
 	}
 
+	tagsMap, _ := types.MapValueFrom(context.TODO(), types.StringType, map[string]string{"team": "platform"})
+
 	model := logicalEnvironmentDataSourceModel{
 		Name:                 types.StringValue("production-aggregate"),
 		Type:                 types.StringValue("logical"),
 		Description:          types.StringValue("All production environments"),
 		IncludedEnvironments: includedEnvs,
 		LastModifiedAt:       types.Float64Value(1640000000.123456),
+		Tags:                 tagsMap,
 	}
 
 	if model.Name.ValueString() != "production-aggregate" {
@@ -164,6 +176,10 @@ func TestLogicalEnvironmentDataSourceModel_Structure(t *testing.T) {
 
 	if model.LastModifiedAt.ValueFloat64() != 1640000000.123456 {
 		t.Errorf("Expected LastModifiedAt to be 1640000000.123456, got %f", model.LastModifiedAt.ValueFloat64())
+	}
+
+	if model.Tags.IsNull() {
+		t.Error("Expected Tags to be set")
 	}
 }
 

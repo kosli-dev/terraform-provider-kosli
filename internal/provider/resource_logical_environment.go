@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -34,6 +35,7 @@ type logicalEnvironmentResourceModel struct {
 	Type                 types.String `tfsdk:"type"`
 	Description          types.String `tfsdk:"description"`
 	IncludedEnvironments types.List   `tfsdk:"included_environments"`
+	Tags                 types.Map    `tfsdk:"tags"`
 }
 
 // Metadata returns the resource type name.
@@ -73,6 +75,12 @@ func (r *logicalEnvironmentResource) Schema(ctx context.Context, req resource.Sc
 				ElementType:         types.StringType,
 				MarkdownDescription: "List of physical environment names to aggregate. Only physical environments are allowed (K8S, ECS, S3, docker, server, lambda). Can be empty.",
 				Required:            true,
+			},
+			"tags": schema.MapAttribute{
+				MarkdownDescription: "Key-value pairs to tag the logical environment.",
+				Optional:            true,
+				Computed:            true,
+				ElementType:         types.StringType,
 			},
 		},
 	}
@@ -131,6 +139,12 @@ func (r *logicalEnvironmentResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
+	// Apply tags via the dedicated PATCH endpoint (no prior tags on a new environment)
+	applyTags(ctx, r.client, data.Name.ValueString(), "logical environment", types.MapNull(types.StringType), data.Tags, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// Per ADR 002: PUT returns "OK", so we must GET to populate state
 	env, err := r.client.GetEnvironment(ctx, data.Name.ValueString())
 	if err != nil {
@@ -142,26 +156,10 @@ func (r *logicalEnvironmentResource) Create(ctx context.Context, req resource.Cr
 	}
 
 	// Map API response to Terraform state
-	data.Type = types.StringValue(env.Type)
-	// Handle empty description as null to avoid inconsistency when not provided in config
-	if env.Description == "" {
-		data.Description = types.StringNull()
-	} else {
-		data.Description = types.StringValue(env.Description)
-	}
-
-	// Map included_environments from API response
-	// Normalize nil to empty slice to ensure consistent state (empty list vs null)
-	includedEnvs := env.IncludedEnvironments
-	if includedEnvs == nil {
-		includedEnvs = []string{}
-	}
-	includedEnvsList, diags := types.ListValueFrom(ctx, types.StringType, includedEnvs)
-	resp.Diagnostics.Append(diags...)
+	mapLogicalEnvToState(ctx, env, &data, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	data.IncludedEnvironments = includedEnvsList
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -188,26 +186,10 @@ func (r *logicalEnvironmentResource) Read(ctx context.Context, req resource.Read
 	}
 
 	// Map API response to Terraform state
-	data.Type = types.StringValue(env.Type)
-	// Handle empty description as null to avoid inconsistency when not provided in config
-	if env.Description == "" {
-		data.Description = types.StringNull()
-	} else {
-		data.Description = types.StringValue(env.Description)
-	}
-
-	// Map included_environments from API response
-	// Normalize nil to empty slice to ensure consistent state (empty list vs null)
-	includedEnvs := env.IncludedEnvironments
-	if includedEnvs == nil {
-		includedEnvs = []string{}
-	}
-	includedEnvsList, diags := types.ListValueFrom(ctx, types.StringType, includedEnvs)
-	resp.Diagnostics.Append(diags...)
+	mapLogicalEnvToState(ctx, env, &data, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	data.IncludedEnvironments = includedEnvsList
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -217,9 +199,16 @@ func (r *logicalEnvironmentResource) Read(ctx context.Context, req resource.Read
 // Per the API behavior, PUT is idempotent and updates the environment.
 func (r *logicalEnvironmentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data logicalEnvironmentResourceModel
+	var oldData logicalEnvironmentResourceModel
 
-	// Read Terraform plan data into the model
+	// Read Terraform plan data (desired state) into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Read prior state to compute tag diff
+	resp.Diagnostics.Append(req.State.Get(ctx, &oldData)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -248,6 +237,12 @@ func (r *logicalEnvironmentResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
+	// Apply tag diff via the dedicated PATCH endpoint
+	applyTags(ctx, r.client, data.Name.ValueString(), "logical environment", oldData.Tags, data.Tags, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// GET to populate state
 	env, err := r.client.GetEnvironment(ctx, data.Name.ValueString())
 	if err != nil {
@@ -259,26 +254,10 @@ func (r *logicalEnvironmentResource) Update(ctx context.Context, req resource.Up
 	}
 
 	// Map API response to Terraform state
-	data.Type = types.StringValue(env.Type)
-	// Handle empty description as null to avoid inconsistency when not provided in config
-	if env.Description == "" {
-		data.Description = types.StringNull()
-	} else {
-		data.Description = types.StringValue(env.Description)
-	}
-
-	// Map included_environments from API response
-	// Normalize nil to empty slice to ensure consistent state (empty list vs null)
-	includedEnvs := env.IncludedEnvironments
-	if includedEnvs == nil {
-		includedEnvs = []string{}
-	}
-	includedEnvsList, diags := types.ListValueFrom(ctx, types.StringType, includedEnvs)
-	resp.Diagnostics.Append(diags...)
+	mapLogicalEnvToState(ctx, env, &data, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	data.IncludedEnvironments = includedEnvsList
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -311,4 +290,46 @@ func (r *logicalEnvironmentResource) Delete(ctx context.Context, req resource.De
 func (r *logicalEnvironmentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	// Import by name
 	resource.ImportStatePassthroughID(ctx, path.Root("name"), req, resp)
+}
+
+// mapLogicalEnvToState maps an API Environment response to the logical environment resource model.
+func mapLogicalEnvToState(ctx context.Context, env *client.Environment, data *logicalEnvironmentResourceModel, diags *diag.Diagnostics) {
+	data.Type = types.StringValue(env.Type)
+	data.Description = logicalEnvDescription(env.Description)
+	data.IncludedEnvironments = logicalEnvIncludedList(ctx, env.IncludedEnvironments, diags)
+	if diags.HasError() {
+		return
+	}
+	data.Tags = logicalEnvTags(ctx, env.Tags, diags)
+}
+
+// logicalEnvDescription converts the API description string to types.String,
+// returning null when the description is empty to match Optional schema behaviour.
+func logicalEnvDescription(desc string) types.String {
+	if desc == "" {
+		return types.StringNull()
+	}
+	return types.StringValue(desc)
+}
+
+// logicalEnvIncludedList converts the API included_environments slice to types.List,
+// normalising nil to an empty slice so state never holds a null list.
+func logicalEnvIncludedList(ctx context.Context, envs []string, diags *diag.Diagnostics) types.List {
+	if envs == nil {
+		envs = []string{}
+	}
+	list, d := types.ListValueFrom(ctx, types.StringType, envs)
+	diags.Append(d...)
+	return list
+}
+
+// logicalEnvTags converts the API tags map to types.Map,
+// normalising nil to an empty map so state never holds a null map.
+func logicalEnvTags(ctx context.Context, tags map[string]string, diags *diag.Diagnostics) types.Map {
+	if tags == nil {
+		tags = map[string]string{}
+	}
+	m, d := types.MapValueFrom(ctx, types.StringType, tags)
+	diags.Append(d...)
+	return m
 }

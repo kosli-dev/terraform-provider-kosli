@@ -93,6 +93,23 @@ resource "kosli_logical_environment" "simple" {
     kosli_environment.production_k8s.name,
   ]
 }
+
+# Logical environment with tags
+resource "kosli_logical_environment" "tagged" {
+  name        = "production-tagged"
+  description = "Tagged production logical environment"
+
+  included_environments = [
+    kosli_environment.production_k8s.name,
+    kosli_environment.production_ecs.name,
+  ]
+
+  tags = {
+    managed-by  = "terraform"
+    environment = "production"
+    team        = "platform"
+  }
+}
 ```
 
 ## Complete Example
@@ -193,6 +210,7 @@ terraform import kosli_logical_environment.future_environments future-environmen
 ### Optional
 
 - `description` (String) Description of the logical environment. Explains the purpose and aggregation strategy.
+- `tags` (Map of String) Key-value pairs to tag the logical environment.
 
 ### Read-Only
 

@@ -32,6 +32,8 @@ func TestAccLogicalEnvironmentDataSource_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(dataSourceName, "included_environments.#", "2"),
 					// Verify timestamp field is populated
 					resource.TestCheckResourceAttrSet(dataSourceName, "last_modified_at"),
+					// Verify tags map is present (empty when none set)
+					resource.TestCheckResourceAttr(dataSourceName, "tags.%", "0"),
 				),
 			},
 		},
@@ -310,6 +312,60 @@ resource "kosli_logical_environment" "test" {
 }
 
 # Query logical environment via data source
+data "kosli_logical_environment" "test" {
+  name = kosli_logical_environment.test.name
+}
+`, name, env1, env2)
+}
+
+// TestAccLogicalEnvironmentDataSource_tags tests that tags are returned by the data source
+func TestAccLogicalEnvironmentDataSource_tags(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc-test-logical-ds-tags")
+	envName1 := acctest.RandomWithPrefix("tf-acc-test-env1")
+	envName2 := acctest.RandomWithPrefix("tf-acc-test-env2")
+	dataSourceName := "data.kosli_logical_environment.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccLogicalEnvironmentDataSourceConfigWithTags(rName, envName1, envName2),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dataSourceName, "name", rName),
+					resource.TestCheckResourceAttr(dataSourceName, "tags.managed-by", "terraform"),
+					resource.TestCheckResourceAttr(dataSourceName, "tags.environment", "test"),
+				),
+			},
+		},
+	})
+}
+
+// testAccLogicalEnvironmentDataSourceConfigWithTags returns config with tagged logical environment
+func testAccLogicalEnvironmentDataSourceConfigWithTags(name, env1, env2 string) string {
+	return fmt.Sprintf(`
+resource "kosli_environment" "env1" {
+  name = %[2]q
+  type = "K8S"
+}
+
+resource "kosli_environment" "env2" {
+  name = %[3]q
+  type = "ECS"
+}
+
+resource "kosli_logical_environment" "test" {
+  name = %[1]q
+  included_environments = [
+    kosli_environment.env1.name,
+    kosli_environment.env2.name,
+  ]
+  tags = {
+    "managed-by"  = "terraform"
+    "environment" = "test"
+  }
+}
+
 data "kosli_logical_environment" "test" {
   name = kosli_logical_environment.test.name
 }

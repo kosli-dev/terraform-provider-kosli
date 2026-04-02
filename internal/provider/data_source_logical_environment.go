@@ -30,6 +30,7 @@ type logicalEnvironmentDataSourceModel struct {
 	Description          types.String  `tfsdk:"description"`
 	IncludedEnvironments types.List    `tfsdk:"included_environments"`
 	LastModifiedAt       types.Float64 `tfsdk:"last_modified_at"`
+	Tags                 types.Map     `tfsdk:"tags"`
 }
 
 // Metadata returns the data source type name.
@@ -63,6 +64,11 @@ func (d *logicalEnvironmentDataSource) Schema(ctx context.Context, req datasourc
 			"last_modified_at": schema.Float64Attribute{
 				Computed:            true,
 				MarkdownDescription: "Unix timestamp (with fractional seconds) of when the logical environment was last modified.",
+			},
+			"tags": schema.MapAttribute{
+				Computed:            true,
+				MarkdownDescription: "Key-value pairs tagging the logical environment.",
+				ElementType:         types.StringType,
 			},
 		},
 	}
@@ -124,28 +130,13 @@ func (d *logicalEnvironmentDataSource) Read(ctx context.Context, req datasource.
 	// Map API response to data source model
 	data.Name = types.StringValue(env.Name)
 	data.Type = types.StringValue("logical")
-
-	// Handle empty description as null for consistency
-	if env.Description == "" {
-		data.Description = types.StringNull()
-	} else {
-		data.Description = types.StringValue(env.Description)
-	}
-
-	// Convert included_environments from API response to types.List
-	// Normalize nil to empty slice to ensure consistent state (empty list vs null)
-	includedEnvs := env.IncludedEnvironments
-	if includedEnvs == nil {
-		includedEnvs = []string{}
-	}
-	includedEnvsList, diags := types.ListValueFrom(ctx, types.StringType, includedEnvs)
-	resp.Diagnostics.Append(diags...)
+	data.Description = logicalEnvDescription(env.Description)
+	data.IncludedEnvironments = logicalEnvIncludedList(ctx, env.IncludedEnvironments, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	data.IncludedEnvironments = includedEnvsList
-
 	data.LastModifiedAt = types.Float64Value(env.LastModifiedAt)
+	data.Tags = logicalEnvTags(ctx, env.Tags, &resp.Diagnostics)
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
