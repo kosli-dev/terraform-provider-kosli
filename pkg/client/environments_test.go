@@ -253,7 +253,7 @@ func TestCreateEnvironment_Success(t *testing.T) {
 	req := &CreateEnvironmentRequest{
 		Name:           "production-k8s",
 		Type:           "K8S",
-		Description:    "Production cluster",
+		Description:    stringPtr("Production cluster"),
 		IncludeScaling: true,
 		Policies:       []any{}, // Resource layer will send empty array initially
 	}
@@ -299,7 +299,7 @@ func TestCreateEnvironment_Idempotent(t *testing.T) {
 	req := &CreateEnvironmentRequest{
 		Name:           "production-k8s",
 		Type:           "K8S",
-		Description:    "Production cluster",
+		Description:    stringPtr("Production cluster"),
 		IncludeScaling: false,
 		Policies:       []any{},
 	}
@@ -355,7 +355,7 @@ func TestCreateEnvironment_WithLogicalEnvironment(t *testing.T) {
 	req := &CreateEnvironmentRequest{
 		Name:                 "logical-env",
 		Type:                 "logical",
-		Description:          "Logical environment",
+		Description:          stringPtr("Logical environment"),
 		IncludedEnvironments: []string{"env1", "env2"},
 		Policies:             []any{},
 	}
@@ -418,7 +418,7 @@ func TestCreateEnvironment_RecreateArchived(t *testing.T) {
 	req := &CreateEnvironmentRequest{
 		Name:        "previously-archived",
 		Type:        "K8S",
-		Description: "Recreated environment",
+		Description: stringPtr("Recreated environment"),
 		Policies:    []any{},
 	}
 
@@ -588,7 +588,7 @@ func TestCreateEnvironment_LogicalWithEmptyList(t *testing.T) {
 	req := &CreateEnvironmentRequest{
 		Name:                 "logical-env",
 		Type:                 "logical",
-		Description:          "Test logical environment",
+		Description:          stringPtr("Test logical environment"),
 		IncludedEnvironments: []string{}, // Empty list
 		Policies:             []any{},
 	}
@@ -651,7 +651,7 @@ func TestCreateEnvironment_LogicalUpdate(t *testing.T) {
 	req := &CreateEnvironmentRequest{
 		Name:                 "logical-env",
 		Type:                 "logical",
-		Description:          "Logical environment",
+		Description:          stringPtr("Logical environment"),
 		IncludedEnvironments: []string{"env1", "env2"},
 		Policies:             []any{},
 	}
@@ -751,4 +751,9 @@ func TestListEnvironments_WithLogical(t *testing.T) {
 // Helper function to create a pointer to a float64
 func floatPtr(f float64) *float64 {
 	return &f
+}
+
+// Helper function to create a pointer to a string
+func stringPtr(s string) *string {
+	return &s
 }

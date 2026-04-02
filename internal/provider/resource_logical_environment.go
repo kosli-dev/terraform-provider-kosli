@@ -125,7 +125,7 @@ func (r *logicalEnvironmentResource) Create(ctx context.Context, req resource.Cr
 	createReq := &client.CreateEnvironmentRequest{
 		Name:                 data.Name.ValueString(),
 		Type:                 "logical",
-		Description:          data.Description.ValueString(),
+		Description:          data.Description.ValueStringPointer(),
 		IncludedEnvironments: includedEnvironments,
 	}
 
@@ -224,7 +224,7 @@ func (r *logicalEnvironmentResource) Update(ctx context.Context, req resource.Up
 	createReq := &client.CreateEnvironmentRequest{
 		Name:                 data.Name.ValueString(),
 		Type:                 "logical",
-		Description:          data.Description.ValueString(),
+		Description:          data.Description.ValueStringPointer(),
 		IncludedEnvironments: includedEnvironments,
 	}
 

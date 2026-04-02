@@ -26,7 +26,7 @@ type Environment struct {
 type CreateEnvironmentRequest struct {
 	Name                 string
 	Type                 string
-	Description          string
+	Description          *string // pointer so nil sends JSON null (clears the field) vs empty string which is ignored by API
 	IncludeScaling       bool
 	IncludedEnvironments []string // for logical environments only
 	Policies             []any    // policies to attach to the environment

@@ -118,7 +118,7 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 	createReq := &client.CreateEnvironmentRequest{
 		Name:           data.Name.ValueString(),
 		Type:           data.Type.ValueString(),
-		Description:    data.Description.ValueString(),
+		Description:    data.Description.ValueStringPointer(),
 		IncludeScaling: data.IncludeScaling.ValueBool(),
 	}
 
@@ -209,7 +209,7 @@ func (r *environmentResource) Update(ctx context.Context, req resource.UpdateReq
 	createReq := &client.CreateEnvironmentRequest{
 		Name:           data.Name.ValueString(),
 		Type:           data.Type.ValueString(),
-		Description:    data.Description.ValueString(),
+		Description:    data.Description.ValueStringPointer(),
 		IncludeScaling: data.IncludeScaling.ValueBool(),
 	}
 
