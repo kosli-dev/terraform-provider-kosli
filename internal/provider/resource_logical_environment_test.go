@@ -40,7 +40,7 @@ func TestLogicalEnvironmentResource_Schema(t *testing.T) {
 
 	// Verify required attributes exist
 	attrs := resp.Schema.Attributes
-	requiredAttrs := []string{"name", "type", "description", "included_environments"}
+	requiredAttrs := []string{"name", "type", "description", "included_environments", "tags"}
 	for _, attr := range requiredAttrs {
 		if _, exists := attrs[attr]; !exists {
 			t.Errorf("Expected attribute %q to exist in schema", attr)
@@ -72,6 +72,15 @@ func TestLogicalEnvironmentResource_Schema(t *testing.T) {
 	includedEnvsAttr := attrs["included_environments"]
 	if includedEnvsAttr.IsRequired() == false {
 		t.Error("Expected 'included_environments' attribute to be required")
+	}
+
+	// Verify tags is optional and computed
+	tagsAttr := attrs["tags"]
+	if tagsAttr.IsOptional() == false {
+		t.Error("Expected 'tags' attribute to be optional")
+	}
+	if tagsAttr.IsComputed() == false {
+		t.Error("Expected 'tags' attribute to be computed")
 	}
 }
 
@@ -222,6 +231,72 @@ func TestLogicalEnvironmentResource_Implements(t *testing.T) {
 	// Verify the resource implements required interfaces
 	var _ resource.Resource = &logicalEnvironmentResource{}
 	var _ resource.ResourceWithImportState = &logicalEnvironmentResource{}
+}
+
+func TestLogicalEnvironmentResourceModel_WithTags(t *testing.T) {
+	includedEnvs, _ := types.ListValueFrom(context.TODO(), types.StringType, []string{"prod-k8s"})
+	tagsMap, diags := types.MapValueFrom(context.TODO(), types.StringType, map[string]string{
+		"managed-by":  "terraform",
+		"environment": "production",
+	})
+	if diags.HasError() {
+		t.Fatalf("Unexpected diagnostics creating tags map: %v", diags)
+	}
+
+	model := logicalEnvironmentResourceModel{
+		Name:                 types.StringValue("tagged-logical"),
+		Type:                 types.StringValue("logical"),
+		Description:          types.StringValue("Tagged logical environment"),
+		IncludedEnvironments: includedEnvs,
+		Tags:                 tagsMap,
+	}
+
+	if model.Tags.IsNull() {
+		t.Error("Expected Tags to be set")
+	}
+	if model.Tags.IsUnknown() {
+		t.Error("Expected Tags to be known")
+	}
+
+	var tags map[string]string
+	diags = model.Tags.ElementsAs(context.TODO(), &tags, false)
+	if diags.HasError() {
+		t.Fatalf("Unexpected diagnostics converting Tags: %v", diags)
+	}
+	if len(tags) != 2 {
+		t.Errorf("Expected 2 tags, got %d", len(tags))
+	}
+	if tags["managed-by"] != "terraform" {
+		t.Errorf("Expected managed-by=terraform, got %q", tags["managed-by"])
+	}
+	if tags["environment"] != "production" {
+		t.Errorf("Expected environment=production, got %q", tags["environment"])
+	}
+}
+
+func TestLogicalEnvironmentResourceModel_EmptyTags(t *testing.T) {
+	includedEnvs, _ := types.ListValueFrom(context.TODO(), types.StringType, []string{})
+	emptyTags, diags := types.MapValueFrom(context.TODO(), types.StringType, map[string]string{})
+	if diags.HasError() {
+		t.Fatalf("Unexpected diagnostics creating empty tags map: %v", diags)
+	}
+
+	model := logicalEnvironmentResourceModel{
+		Name:                 types.StringValue("no-tags-logical"),
+		Type:                 types.StringValue("logical"),
+		IncludedEnvironments: includedEnvs,
+		Tags:                 emptyTags,
+	}
+
+	if model.Tags.IsNull() {
+		t.Error("Expected Tags to be non-null (empty map, not null)")
+	}
+
+	var tags map[string]string
+	model.Tags.ElementsAs(context.TODO(), &tags, false)
+	if len(tags) != 0 {
+		t.Errorf("Expected 0 tags, got %d", len(tags))
+	}
 }
 
 // Note: Full CRUD operation tests require acceptance testing

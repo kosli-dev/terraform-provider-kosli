@@ -139,8 +139,12 @@ func (d *environmentDataSource) Read(ctx context.Context, req datasource.ReadReq
 		data.LastReportedAt = types.Float64Value(*env.LastReportedAt)
 	}
 
-	// Handle tags: always return a map (empty or populated) for consistency with the resource.
-	tagsValue, diags := types.MapValueFrom(ctx, types.StringType, env.Tags)
+	// Normalize nil tags to empty map to prevent drift when tags = {} is set in config.
+	tags := env.Tags
+	if tags == nil {
+		tags = map[string]string{}
+	}
+	tagsValue, diags := types.MapValueFrom(ctx, types.StringType, tags)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

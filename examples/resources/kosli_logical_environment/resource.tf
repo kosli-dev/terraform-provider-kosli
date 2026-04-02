@@ -62,3 +62,20 @@ resource "kosli_logical_environment" "simple" {
     kosli_environment.production_k8s.name,
   ]
 }
+
+# Logical environment with tags
+resource "kosli_logical_environment" "tagged" {
+  name        = "production-tagged"
+  description = "Tagged production logical environment"
+
+  included_environments = [
+    kosli_environment.production_k8s.name,
+    kosli_environment.production_ecs.name,
+  ]
+
+  tags = {
+    managed-by  = "terraform"
+    environment = "production"
+    team        = "platform"
+  }
+}

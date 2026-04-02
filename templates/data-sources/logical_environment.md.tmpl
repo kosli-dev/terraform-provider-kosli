@@ -99,14 +99,4 @@ locals {
 }
 ```
 
-## Returned Attributes
-
-The data source returns all attributes of the logical environment:
-
-- `name` - The name of the logical environment
-- `type` - Always "logical" for logical environments
-- `description` - Description of the logical environment (may be empty)
-- `included_environments` - List of physical environment names included in this logical environment
-- `last_modified_at` - RFC3339 timestamp of when the logical environment was last modified
-
 {{ .SchemaMarkdown | trimspace }}
