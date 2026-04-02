@@ -3,14 +3,14 @@ page_title: "kosli_environment Resource - terraform-provider-kosli"
 subcategory: ""
 description: |-
   Manages a Kosli environment. Environments represent deployment targets where artifacts are deployed. Supports physical environment types: K8S, ECS, S3, docker, server, and lambda.
-  ~> Note: This resource manages the environment configuration only. Environment tags are managed through a separate Kosli API. Environment policies will be available in a future release. For querying environment metadata such as last_modified_at, last_reported_at, and archived status, use the kosli_environment data source.
+  ~> Note: Environment policies will be available in a future release. For querying environment metadata such as last_modified_at, last_reported_at, and archived status, use the kosli_environment data source.
 ---
 
 # Resource: kosli_environment
 
 Manages a Kosli environment. Environments represent deployment targets where artifacts are deployed. Supports physical environment types: K8S, ECS, S3, docker, server, and lambda.
 
-~> **Note:** This resource manages the environment configuration only. Environment tags are managed through a separate Kosli API. Environment policies will be available in a future release. For querying environment metadata such as `last_modified_at`, `last_reported_at`, and `archived` status, use the `kosli_environment` data source.
+~> **Note:** Environment policies will be available in a future release. For querying environment metadata such as `last_modified_at`, `last_reported_at`, and `archived` status, use the `kosli_environment` data source.
 
 Kosli environments track deployments and provide visibility into what's running in your infrastructure. Physical environments represent actual runtime locations such as:
 
@@ -80,6 +80,18 @@ resource "kosli_environment" "serverless_functions" {
   type        = "lambda"
   description = "AWS Lambda functions"
 }
+
+# K8S environment with tags for IaC traceability
+resource "kosli_environment" "tagged" {
+  name        = "production-k8s-tagged"
+  type        = "K8S"
+  description = "Production cluster managed by Terraform"
+  tags = {
+    managed-by  = "terraform"
+    environment = "production"
+    team        = "platform"
+  }
+}
 ```
 
 ## Environment Types
@@ -130,3 +142,4 @@ For querying environment metadata such as `last_modified_at` and `last_reported_
 
 - `description` (String) Description of the environment. Explains the purpose and characteristics of this deployment target.
 - `include_scaling` (Boolean) Whether to include scaling information when reporting environment snapshots. Defaults to `false`.
+- `tags` (Map of String) Key-value pairs to tag the environment.

@@ -48,3 +48,15 @@ resource "kosli_environment" "serverless_functions" {
   type        = "lambda"
   description = "AWS Lambda functions"
 }
+
+# K8S environment with tags for IaC traceability
+resource "kosli_environment" "tagged" {
+  name        = "production-k8s-tagged"
+  type        = "K8S"
+  description = "Production cluster managed by Terraform"
+  tags = {
+    managed-by  = "terraform"
+    environment = "production"
+    team        = "platform"
+  }
+}

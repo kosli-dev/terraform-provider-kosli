@@ -256,6 +256,11 @@ func (c *Client) Put(ctx context.Context, path string, body any) (*http.Response
 	return c.doRequest(ctx, http.MethodPut, path, body)
 }
 
+// Patch performs a PATCH request to the specified path with the given body.
+func (c *Client) Patch(ctx context.Context, path string, body any) (*http.Response, error) {
+	return c.doRequest(ctx, http.MethodPatch, path, body)
+}
+
 // Delete performs a DELETE request to the specified path.
 func (c *Client) Delete(ctx context.Context, path string) (*http.Response, error) {
 	return c.doRequest(ctx, http.MethodDelete, path, nil)

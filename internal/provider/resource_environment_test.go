@@ -40,7 +40,7 @@ func TestEnvironmentResource_Schema(t *testing.T) {
 
 	// Verify required attributes exist
 	attrs := resp.Schema.Attributes
-	requiredAttrs := []string{"name", "type", "description", "include_scaling"}
+	requiredAttrs := []string{"name", "type", "description", "include_scaling", "tags"}
 	for _, attr := range requiredAttrs {
 		if _, exists := attrs[attr]; !exists {
 			t.Errorf("Expected attribute %q to exist in schema", attr)
@@ -72,6 +72,12 @@ func TestEnvironmentResource_Schema(t *testing.T) {
 	}
 	if includeScalingAttr.IsComputed() == false {
 		t.Error("Expected 'include_scaling' attribute to be computed")
+	}
+
+	// Verify tags is optional
+	tagsAttr := attrs["tags"]
+	if tagsAttr.IsOptional() == false {
+		t.Error("Expected 'tags' attribute to be optional")
 	}
 }
 
@@ -122,6 +128,7 @@ func TestEnvironmentResourceModel_Structure(t *testing.T) {
 		Type:           types.StringValue("K8S"),
 		Description:    types.StringValue("Production cluster"),
 		IncludeScaling: types.BoolValue(true),
+		Tags:           types.MapNull(types.StringType),
 	}
 
 	if model.Name.ValueString() != "production-k8s" {
@@ -139,6 +146,46 @@ func TestEnvironmentResourceModel_Structure(t *testing.T) {
 	if model.IncludeScaling.ValueBool() != true {
 		t.Error("Expected IncludeScaling to be set correctly")
 	}
+
+	if !model.Tags.IsNull() {
+		t.Error("Expected Tags to be null")
+	}
+}
+
+func TestEnvironmentResourceModel_WithTags(t *testing.T) {
+	tagValues := map[string]string{
+		"env":  "production",
+		"team": "platform",
+	}
+	tagsMap, diags := types.MapValueFrom(context.TODO(), types.StringType, tagValues)
+	if diags.HasError() {
+		t.Fatalf("Failed to create tags map: %v", diags)
+	}
+
+	model := environmentResourceModel{
+		Name:           types.StringValue("production-k8s"),
+		Type:           types.StringValue("K8S"),
+		Description:    types.StringNull(),
+		IncludeScaling: types.BoolValue(false),
+		Tags:           tagsMap,
+	}
+
+	if model.Tags.IsNull() {
+		t.Error("Expected Tags to not be null")
+	}
+
+	var resultTags map[string]string
+	diags = model.Tags.ElementsAs(context.TODO(), &resultTags, false)
+	if diags.HasError() {
+		t.Fatalf("Failed to extract tags: %v", diags)
+	}
+
+	if resultTags["env"] != "production" {
+		t.Errorf("Expected tags.env = 'production', got %q", resultTags["env"])
+	}
+	if resultTags["team"] != "platform" {
+		t.Errorf("Expected tags.team = 'platform', got %q", resultTags["team"])
+	}
 }
 
 func TestEnvironmentResourceModel_WithNullValues(t *testing.T) {
@@ -148,6 +195,7 @@ func TestEnvironmentResourceModel_WithNullValues(t *testing.T) {
 		Type:           types.StringValue("docker"),
 		Description:    types.StringNull(),
 		IncludeScaling: types.BoolValue(false),
+		Tags:           types.MapNull(types.StringType),
 	}
 
 	if model.Name.ValueString() != "test-env" {
@@ -160,6 +208,10 @@ func TestEnvironmentResourceModel_WithNullValues(t *testing.T) {
 
 	if model.IncludeScaling.ValueBool() != false {
 		t.Error("Expected IncludeScaling to be false")
+	}
+
+	if !model.Tags.IsNull() {
+		t.Error("Expected Tags to be null")
 	}
 }
 

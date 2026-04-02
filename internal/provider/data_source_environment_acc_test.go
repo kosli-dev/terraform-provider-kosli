@@ -249,3 +249,46 @@ data "kosli_environment" "test" {
 }
 `, name)
 }
+
+// TestAccEnvironmentDataSource_tags tests that tags are surfaced correctly in the data source
+func TestAccEnvironmentDataSource_tags(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc-test-ds-tags")
+	resourceName := "kosli_environment.test"
+	dataSourceName := "data.kosli_environment.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccEnvironmentDataSourceConfigWithTags(rName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					// Verify data source exposes the same tags as the resource
+					resource.TestCheckResourceAttr(dataSourceName, "tags.managed-by", "terraform"),
+					resource.TestCheckResourceAttr(dataSourceName, "tags.env", "test"),
+					// Verify tags match between resource and data source
+					resource.TestCheckResourceAttrPair(dataSourceName, "tags.managed-by", resourceName, "tags.managed-by"),
+					resource.TestCheckResourceAttrPair(dataSourceName, "tags.env", resourceName, "tags.env"),
+				),
+			},
+		},
+	})
+}
+
+// testAccEnvironmentDataSourceConfigWithTags returns config with tagged resource and data source
+func testAccEnvironmentDataSourceConfigWithTags(name string) string {
+	return fmt.Sprintf(`
+resource "kosli_environment" "test" {
+  name = %[1]q
+  type = "K8S"
+  tags = {
+    "managed-by" = "terraform"
+    "env"        = "test"
+  }
+}
+
+data "kosli_environment" "test" {
+  name = kosli_environment.test.name
+}
+`, name)
+}
