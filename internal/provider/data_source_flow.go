@@ -23,13 +23,10 @@ type flowDataSource struct {
 	client *client.Client
 }
 
-// flowDataSourceModel describes the data source data model.
-type flowDataSourceModel struct {
-	Name        types.String `tfsdk:"name"`
-	Description types.String `tfsdk:"description"`
-	Template    types.String `tfsdk:"template"`
-	Tags        types.Map    `tfsdk:"tags"`
-}
+// flowDataSourceModel is an alias for flowResourceModel: the data source exposes
+// the same fields as the resource, so a single model and mapper (mapFlowToModel)
+// serve both.
+type flowDataSourceModel = flowResourceModel
 
 // Metadata returns the data source type name.
 func (d *flowDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -101,32 +98,11 @@ func (d *flowDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
-	// Map API response to data source model
-	data.Name = types.StringValue(flow.Name)
-
-	if flow.Description == "" {
-		data.Description = types.StringNull()
-	} else {
-		data.Description = types.StringValue(flow.Description)
-	}
-
-	if flow.Template == "" {
-		data.Template = types.StringNull()
-	} else {
-		data.Template = types.StringValue(flow.Template)
-	}
-
-	// Normalize nil tags to empty map to prevent drift when tags = {} is set in config.
-	tags := flow.Tags
-	if tags == nil {
-		tags = map[string]string{}
-	}
-	tagsValue, diags := types.MapValueFrom(ctx, types.StringType, tags)
-	resp.Diagnostics.Append(diags...)
+	// Map API response to model (shared with the resource)
+	mapFlowToModel(ctx, flow, &data, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	data.Tags = tagsValue
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
