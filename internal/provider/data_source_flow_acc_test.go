@@ -177,8 +177,8 @@ func testAccFlowDataSourceConfigWithTags(name string) string {
 resource "kosli_flow" "test" {
   name = %[1]q
   tags = {
-    "managed-by" = "terraform"
-    "team"       = "platform"
+    managed-by = "terraform"
+    team       = "platform"
   }
 }
 

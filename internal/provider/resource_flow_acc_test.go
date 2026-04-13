@@ -341,7 +341,7 @@ func testAccFlowResourceConfigWithTags(name string, tags map[string]string) stri
 	sort.Strings(keys)
 	tagsHCL := "  tags = {\n"
 	for _, k := range keys {
-		tagsHCL += fmt.Sprintf("    %q = %q\n", k, tags[k])
+		tagsHCL += fmt.Sprintf("    %s = %q\n", k, tags[k])
 	}
 	tagsHCL += "  }\n"
 

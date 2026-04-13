@@ -206,7 +206,7 @@ func (r *flowResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	updateReq := &client.CreateFlowRequest{
 		Name:        data.Name.ValueString(),
 		Description: data.Description.ValueString(),
-		Visibility:  "private", //NOTE: we only support private
+		Visibility:  "private", // NOTE: we only support private
 		Template:    data.Template.ValueString(),
 	}
 
