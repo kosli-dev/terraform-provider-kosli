@@ -124,7 +124,7 @@ func (r *flowResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 
 	// Apply tags via the dedicated PATCH endpoint (no prior tags on a new flow)
-	applyTags(ctx, r.client, data.Name.ValueString(), "flow", "flow", types.MapNull(types.StringType), data.Tags, &resp.Diagnostics)
+	applyTags(ctx, r.client, data.Name.ValueString(), "flow", types.MapNull(types.StringType), data.Tags, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -220,7 +220,7 @@ func (r *flowResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	}
 
 	// Apply tag diff via the dedicated PATCH endpoint
-	applyTags(ctx, r.client, data.Name.ValueString(), "flow", "flow", oldData.Tags, data.Tags, &resp.Diagnostics)
+	applyTags(ctx, r.client, data.Name.ValueString(), "flow", oldData.Tags, data.Tags, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}

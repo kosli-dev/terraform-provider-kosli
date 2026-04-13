@@ -132,7 +132,7 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	// Apply tags via the dedicated PATCH endpoint (no prior tags on a new environment)
-	applyTags(ctx, r.client, data.Name.ValueString(), "environment", "environment", types.MapNull(types.StringType), data.Tags, &resp.Diagnostics)
+	applyTags(ctx, r.client, data.Name.ValueString(), "environment", types.MapNull(types.StringType), data.Tags, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -223,7 +223,7 @@ func (r *environmentResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 
 	// Apply tag diff via the dedicated PATCH endpoint
-	applyTags(ctx, r.client, data.Name.ValueString(), "environment", "environment", oldData.Tags, data.Tags, &resp.Diagnostics)
+	applyTags(ctx, r.client, data.Name.ValueString(), "environment", oldData.Tags, data.Tags, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -304,9 +304,8 @@ func mapEnvToState(ctx context.Context, env *client.Environment, data *environme
 
 // applyTags computes the tag diff between oldTags and newTags and calls the API
 // PATCH tags endpoint if there are any changes. resourceType is the Kosli API
-// resource type string (e.g. "environment", "flow"). kind is used only in error
-// messages to identify the resource type (e.g. "environment", "logical environment").
-func applyTags(ctx context.Context, c *client.Client, name, resourceType, kind string, oldTags, newTags types.Map, diags *diag.Diagnostics) {
+// resource type string (e.g. "environment", "flow") and is also used in error messages.
+func applyTags(ctx context.Context, c *client.Client, name, resourceType string, oldTags, newTags types.Map, diags *diag.Diagnostics) {
 	// Extract old tag map
 	oldMap := map[string]string{}
 	if !oldTags.IsNull() && !oldTags.IsUnknown() {
@@ -353,8 +352,8 @@ func applyTags(ctx context.Context, c *client.Client, name, resourceType, kind s
 
 	if err := c.TagResource(ctx, resourceType, name, payload); err != nil {
 		diags.AddError(
-			fmt.Sprintf("Error Updating %s%s Tags", strings.ToUpper(kind[:1]), kind[1:]),
-			fmt.Sprintf("Could not update tags for %s %q: %s", kind, name, err.Error()),
+			fmt.Sprintf("Error Updating %s%s Tags", strings.ToUpper(resourceType[:1]), resourceType[1:]),
+			fmt.Sprintf("Could not update tags for %s %q: %s", resourceType, name, err.Error()),
 		)
 	}
 }
