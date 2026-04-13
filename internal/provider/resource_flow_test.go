@@ -4,8 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
 
 func TestFlowResource_Metadata(t *testing.T) {
@@ -228,4 +230,67 @@ func TestFlowResource_Implements(t *testing.T) {
 	// Verify the resource implements required interfaces
 	var _ resource.Resource = &flowResource{}
 	var _ resource.ResourceWithImportState = &flowResource{}
+}
+
+// TestMapFlowToModel_Tags exercises the three tag-normalization paths in
+// mapFlowToModel: nil (must become empty map), empty map, and populated map.
+func TestMapFlowToModel_Tags(t *testing.T) {
+	tests := []struct {
+		name         string
+		apiTags      map[string]string
+		wantNull     bool
+		wantLen      int
+		wantTagKey   string
+		wantTagValue string
+	}{
+		{
+			name:     "nil tags normalized to empty map",
+			apiTags:  nil,
+			wantNull: false,
+			wantLen:  0,
+		},
+		{
+			name:     "empty map preserved as empty map",
+			apiTags:  map[string]string{},
+			wantNull: false,
+			wantLen:  0,
+		},
+		{
+			name:         "populated tags mapped correctly",
+			apiTags:      map[string]string{"managed-by": "terraform", "team": "platform"},
+			wantNull:     false,
+			wantLen:      2,
+			wantTagKey:   "managed-by",
+			wantTagValue: "terraform",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			flow := &client.Flow{Name: "my-flow", Tags: tt.apiTags}
+			var data flowResourceModel
+			var diags diag.Diagnostics
+
+			mapFlowToModel(context.Background(), flow, &data, &diags)
+
+			if diags.HasError() {
+				t.Fatalf("unexpected diagnostics: %v", diags)
+			}
+			if data.Tags.IsNull() != tt.wantNull {
+				t.Errorf("Tags.IsNull() = %v, want %v", data.Tags.IsNull(), tt.wantNull)
+			}
+			if got := len(data.Tags.Elements()); got != tt.wantLen {
+				t.Errorf("len(Tags.Elements()) = %d, want %d", got, tt.wantLen)
+			}
+			if tt.wantTagKey != "" {
+				elems := data.Tags.Elements()
+				v, ok := elems[tt.wantTagKey]
+				if !ok {
+					t.Errorf("tag key %q not found in %v", tt.wantTagKey, elems)
+				} else if v.String() != `"`+tt.wantTagValue+`"` {
+					t.Errorf("tag %q = %s, want %q", tt.wantTagKey, v.String(), tt.wantTagValue)
+				}
+			}
+		})
+	}
 }
