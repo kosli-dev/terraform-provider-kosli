@@ -27,3 +27,8 @@ output "flow_template" {
   description = "The YAML template of the flow"
   value       = data.kosli_flow.example.template
 }
+
+output "flow_tags" {
+  description = "The tags of the flow"
+  value       = data.kosli_flow.example.tags
+}

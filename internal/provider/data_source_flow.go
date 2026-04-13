@@ -28,6 +28,7 @@ type flowDataSourceModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
 	Template    types.String `tfsdk:"template"`
+	Tags        types.Map    `tfsdk:"tags"`
 }
 
 // Metadata returns the data source type name.
@@ -52,6 +53,11 @@ func (d *flowDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 			"template": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "YAML template defining the flow structure (trails, artifacts, attestations).",
+			},
+			"tags": schema.MapAttribute{
+				Computed:            true,
+				MarkdownDescription: "Key-value pairs tagging the flow.",
+				ElementType:         types.StringType,
 			},
 		},
 	}
@@ -109,6 +115,18 @@ func (d *flowDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	} else {
 		data.Template = types.StringValue(flow.Template)
 	}
+
+	// Normalize nil tags to empty map to prevent drift when tags = {} is set in config.
+	tags := flow.Tags
+	if tags == nil {
+		tags = map[string]string{}
+	}
+	tagsValue, diags := types.MapValueFrom(ctx, types.StringType, tags)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	data.Tags = tagsValue
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

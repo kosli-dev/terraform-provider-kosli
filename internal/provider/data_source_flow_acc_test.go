@@ -148,3 +148,42 @@ data "kosli_flow" "test" {
 }
 `, name)
 }
+
+// TestAccFlowDataSource_withTags tests that tags are returned by the data source
+func TestAccFlowDataSource_withTags(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc-test-ds")
+	dataSourceName := "data.kosli_flow.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccFlowDataSourceConfigWithTags(rName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dataSourceName, "name", rName),
+					resource.TestCheckResourceAttr(dataSourceName, "tags.managed-by", "terraform"),
+					resource.TestCheckResourceAttr(dataSourceName, "tags.team", "platform"),
+				),
+			},
+		},
+	})
+}
+
+// testAccFlowDataSourceConfigWithTags returns a config where the flow resource has tags
+// and the data source reads them back
+func testAccFlowDataSourceConfigWithTags(name string) string {
+	return fmt.Sprintf(`
+resource "kosli_flow" "test" {
+  name = %[1]q
+  tags = {
+    "managed-by" = "terraform"
+    "team"       = "platform"
+  }
+}
+
+data "kosli_flow" "test" {
+  name = kosli_flow.test.name
+}
+`, name)
+}

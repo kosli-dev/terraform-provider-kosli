@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -32,6 +33,7 @@ type flowResourceModel struct {
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
 	Template    types.String `tfsdk:"template"`
+	Tags        types.Map    `tfsdk:"tags"`
 }
 
 // Metadata returns the resource type name.
@@ -65,6 +67,12 @@ func (r *flowResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 					"If omitted, the flow is created without a template.",
 				Optional: true,
 				Computed: true,
+			},
+			"tags": schema.MapAttribute{
+				MarkdownDescription: "Key-value pairs to tag the flow.",
+				Optional:            true,
+				Computed:            true,
+				ElementType:         types.StringType,
 			},
 		},
 	}
@@ -115,6 +123,12 @@ func (r *flowResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
+	// Apply tags via the dedicated PATCH endpoint (no prior tags on a new flow)
+	applyTags(ctx, r.client, data.Name.ValueString(), "flow", "flow", types.MapNull(types.StringType), data.Tags, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// Per ADR 002: PUT returns "OK", so we must GET to populate state
 	flow, err := r.client.GetFlow(ctx, data.Name.ValueString())
 	if err != nil {
@@ -126,7 +140,10 @@ func (r *flowResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 
 	// Map API response to Terraform state
-	mapFlowToModel(flow, &data)
+	mapFlowToModel(ctx, flow, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -159,7 +176,10 @@ func (r *flowResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	}
 
 	// Map API response to Terraform state
-	mapFlowToModel(flow, &data)
+	mapFlowToModel(ctx, flow, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -168,9 +188,16 @@ func (r *flowResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *flowResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data flowResourceModel
+	var oldData flowResourceModel
 
-	// Read Terraform plan data into the model
+	// Read Terraform plan data (desired state) into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Read prior state to compute tag diff
+	resp.Diagnostics.Append(req.State.Get(ctx, &oldData)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -192,6 +219,12 @@ func (r *flowResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
+	// Apply tag diff via the dedicated PATCH endpoint
+	applyTags(ctx, r.client, data.Name.ValueString(), "flow", "flow", oldData.Tags, data.Tags, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// GET to populate state
 	flow, err := r.client.GetFlow(ctx, data.Name.ValueString())
 	if err != nil {
@@ -203,7 +236,10 @@ func (r *flowResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	}
 
 	// Map API response to Terraform state
-	mapFlowToModel(flow, &data)
+	mapFlowToModel(ctx, flow, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -239,7 +275,7 @@ func (r *flowResource) ImportState(ctx context.Context, req resource.ImportState
 }
 
 // mapFlowToModel maps a Flow API response to the Terraform resource model.
-func mapFlowToModel(flow *client.Flow, data *flowResourceModel) {
+func mapFlowToModel(ctx context.Context, flow *client.Flow, data *flowResourceModel, diags *diag.Diagnostics) {
 	data.Name = types.StringValue(flow.Name)
 
 	// Handle empty description as null to avoid inconsistency when not provided in config
@@ -254,5 +290,16 @@ func mapFlowToModel(flow *client.Flow, data *flowResourceModel) {
 		data.Template = types.StringNull()
 	} else {
 		data.Template = types.StringValue(flow.Template)
+	}
+
+	// Normalize nil tags to empty map to prevent drift when tags = {} is set in config.
+	tags := flow.Tags
+	if tags == nil {
+		tags = map[string]string{}
+	}
+	tagsValue, d := types.MapValueFrom(ctx, types.StringType, tags)
+	diags.Append(d...)
+	if !diags.HasError() {
+		data.Tags = tagsValue
 	}
 }

@@ -140,7 +140,7 @@ func (r *logicalEnvironmentResource) Create(ctx context.Context, req resource.Cr
 	}
 
 	// Apply tags via the dedicated PATCH endpoint (no prior tags on a new environment)
-	applyTags(ctx, r.client, data.Name.ValueString(), "logical environment", types.MapNull(types.StringType), data.Tags, &resp.Diagnostics)
+	applyTags(ctx, r.client, data.Name.ValueString(), "environment", "logical environment", types.MapNull(types.StringType), data.Tags, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -238,7 +238,7 @@ func (r *logicalEnvironmentResource) Update(ctx context.Context, req resource.Up
 	}
 
 	// Apply tag diff via the dedicated PATCH endpoint
-	applyTags(ctx, r.client, data.Name.ValueString(), "logical environment", oldData.Tags, data.Tags, &resp.Diagnostics)
+	applyTags(ctx, r.client, data.Name.ValueString(), "environment", "logical environment", oldData.Tags, data.Tags, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}

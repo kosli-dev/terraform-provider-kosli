@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -253,4 +254,100 @@ trail:
 YAML
 }
 `, name, description)
+}
+
+// TestAccFlowResource_tags tests the full tags CRUD lifecycle
+func TestAccFlowResource_tags(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc-test")
+	resourceName := "kosli_flow.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1: Create with tags
+			{
+				Config: testAccFlowResourceConfigWithTags(rName, map[string]string{
+					"env":  "test",
+					"team": "platform",
+				}),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+					resource.TestCheckResourceAttr(resourceName, "tags.env", "test"),
+					resource.TestCheckResourceAttr(resourceName, "tags.team", "platform"),
+				),
+			},
+			// Step 2: Update tags (modify value and add a key)
+			{
+				Config: testAccFlowResourceConfigWithTags(rName, map[string]string{
+					"env":     "staging",
+					"team":    "platform",
+					"managed": "terraform",
+				}),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "tags.env", "staging"),
+					resource.TestCheckResourceAttr(resourceName, "tags.team", "platform"),
+					resource.TestCheckResourceAttr(resourceName, "tags.managed", "terraform"),
+				),
+			},
+			// Step 3: Remove all tags by setting explicit empty map
+			{
+				Config: testAccFlowResourceConfigWithTags(rName, map[string]string{}),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+					resource.TestCheckResourceAttr(resourceName, "tags.%", "0"),
+				),
+			},
+		},
+	})
+}
+
+// TestAccFlowResource_tagsImport tests that tags are preserved through import
+func TestAccFlowResource_tagsImport(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc-test")
+	resourceName := "kosli_flow.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1: Create with tags
+			{
+				Config: testAccFlowResourceConfigWithTags(rName, map[string]string{
+					"managed-by": "terraform",
+				}),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "tags.managed-by", "terraform"),
+				),
+			},
+			// Step 2: Import and verify tags are preserved
+			{
+				ResourceName:                         resourceName,
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        rName,
+				ImportStateVerifyIdentifierAttribute: "name",
+			},
+		},
+	})
+}
+
+// testAccFlowResourceConfigWithTags returns configuration with specified tags
+func testAccFlowResourceConfigWithTags(name string, tags map[string]string) string {
+	keys := make([]string, 0, len(tags))
+	for k := range tags {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	tagsHCL := "  tags = {\n"
+	for _, k := range keys {
+		tagsHCL += fmt.Sprintf("    %q = %q\n", k, tags[k])
+	}
+	tagsHCL += "  }\n"
+
+	return fmt.Sprintf(`
+resource "kosli_flow" "test" {
+  name = %[1]q
+%[2]s}
+`, name, tagsHCL)
 }
