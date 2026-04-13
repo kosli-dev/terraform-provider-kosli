@@ -23,12 +23,10 @@ type flowDataSource struct {
 	client *client.Client
 }
 
-// flowDataSourceModel describes the data source data model.
-type flowDataSourceModel struct {
-	Name        types.String `tfsdk:"name"`
-	Description types.String `tfsdk:"description"`
-	Template    types.String `tfsdk:"template"`
-}
+// flowDataSourceModel is an alias for flowResourceModel: the data source exposes
+// the same fields as the resource, so a single model and mapper (mapFlowToModel)
+// serve both.
+type flowDataSourceModel = flowResourceModel
 
 // Metadata returns the data source type name.
 func (d *flowDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -52,6 +50,11 @@ func (d *flowDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 			"template": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "YAML template defining the flow structure (trails, artifacts, attestations).",
+			},
+			"tags": schema.MapAttribute{
+				Computed:            true,
+				MarkdownDescription: "Key-value pairs tagging the flow.",
+				ElementType:         types.StringType,
 			},
 		},
 	}
@@ -95,19 +98,10 @@ func (d *flowDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 
-	// Map API response to data source model
-	data.Name = types.StringValue(flow.Name)
-
-	if flow.Description == "" {
-		data.Description = types.StringNull()
-	} else {
-		data.Description = types.StringValue(flow.Description)
-	}
-
-	if flow.Template == "" {
-		data.Template = types.StringNull()
-	} else {
-		data.Template = types.StringValue(flow.Template)
+	// Map API response to model (shared with the resource)
+	mapFlowToModel(ctx, flow, &data, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	// Save data into Terraform state

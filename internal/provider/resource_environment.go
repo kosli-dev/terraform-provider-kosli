@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -299,64 +298,5 @@ func mapEnvToState(ctx context.Context, env *client.Environment, data *environme
 	diags.Append(d...)
 	if !diags.HasError() {
 		data.Tags = tagsValue
-	}
-}
-
-// applyTags computes the tag diff between oldTags and newTags and calls the API
-// PATCH tags endpoint if there are any changes. kind is used in error messages
-// to identify the resource type (e.g. "environment", "logical environment").
-func applyTags(ctx context.Context, c *client.Client, name, kind string, oldTags, newTags types.Map, diags *diag.Diagnostics) {
-	// Extract old tag map
-	oldMap := map[string]string{}
-	if !oldTags.IsNull() && !oldTags.IsUnknown() {
-		d := oldTags.ElementsAs(ctx, &oldMap, false)
-		diags.Append(d...)
-		if diags.HasError() {
-			return
-		}
-	}
-
-	// Extract new tag map
-	newMap := map[string]string{}
-	if !newTags.IsNull() && !newTags.IsUnknown() {
-		d := newTags.ElementsAs(ctx, &newMap, false)
-		diags.Append(d...)
-		if diags.HasError() {
-			return
-		}
-	}
-
-	payload := &client.TagResourcePayload{
-		SetTags:    map[string]string{},
-		RemoveTags: []string{},
-	}
-
-	// Tags to add or update (in new but not in old, or value changed)
-	for k, v := range newMap {
-		if oldV, exists := oldMap[k]; !exists || oldV != v {
-			payload.SetTags[k] = v
-		}
-	}
-
-	// Tags to remove (in old but not in new)
-	for k := range oldMap {
-		if _, exists := newMap[k]; !exists {
-			payload.RemoveTags = append(payload.RemoveTags, k)
-		}
-	}
-
-	// Only call API if there are changes
-	if len(payload.SetTags) == 0 && len(payload.RemoveTags) == 0 {
-		return
-	}
-
-	// The Kosli tags API uses "environment" as the resource type for both
-	// physical and logical environments: PATCH /api/v2/tags/{org}/environment/{name}.
-	// kind is only used for human-readable error messages, not the API path.
-	if err := c.TagResource(ctx, "environment", name, payload); err != nil {
-		diags.AddError(
-			fmt.Sprintf("Error Updating %s%s Tags", strings.ToUpper(kind[:1]), kind[1:]),
-			fmt.Sprintf("Could not update tags for %s %q: %s", kind, name, err.Error()),
-		)
 	}
 }
