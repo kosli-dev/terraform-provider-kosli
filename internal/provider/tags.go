@@ -10,6 +10,14 @@ import (
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
 
+// titleCase returns s with its first byte uppercased. It is safe on empty strings.
+func titleCase(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
+}
+
 // applyTags computes the tag diff between oldTags and newTags and calls the API
 // PATCH tags endpoint if there are any changes. resourceType is the Kosli API
 // resource type string (e.g. "environment", "flow") and is also used in error messages.
@@ -60,7 +68,7 @@ func applyTags(ctx context.Context, c *client.Client, name, resourceType string,
 
 	if err := c.TagResource(ctx, resourceType, name, payload); err != nil {
 		diags.AddError(
-			fmt.Sprintf("Error Updating %s%s Tags", strings.ToUpper(resourceType[:1]), resourceType[1:]),
+			fmt.Sprintf("Error Updating %s Tags", titleCase(resourceType)),
 			fmt.Sprintf("Could not update tags for %s %q: %s", resourceType, name, err.Error()),
 		)
 	}
