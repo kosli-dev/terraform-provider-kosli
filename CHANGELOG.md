@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.6.0 (April 15, 2026)
+
+FEATURES:
+
+* resource/kosli_environment: Added `tags` attribute for managing resource tags via dedicated Kosli tags API endpoint
+* data_source/kosli_environment: Added `tags` attribute for reading resource tags
+* resource/kosli_logical_environment: Added `tags` attribute for managing resource tags
+* data_source/kosli_logical_environment: Added `tags` attribute for reading resource tags
+* resource/kosli_flow: Added `tags` attribute for managing resource tags
+* data_source/kosli_flow: Added `tags` attribute for reading resource tags
+
+IMPROVEMENTS:
+
+* client: Added `Patch()` HTTP method to support tag management via dedicated API endpoint
+* client: Added `TagResource()` client method for applying tag diffs (`set_tags`/`remove_tags`) via `PATCH /api/v2/tags/{org}/{resourceType}/{name}`
+* resource/kosli_environment: Tags are applied as a diff (only changed tags are sent to the API) to avoid unnecessary updates
+* resource/kosli_flow: Generalized `applyTags` helper to accept a `resourceType` parameter, enabling reuse across environment, logical environment, and flow resources
+* resource/kosli_logical_environment: Introduced `mapLogicalEnvToState()` to consolidate state mapping and normalize nil tags to an empty map, preventing state drift
+* resource/kosli_flow: Nil API tags normalized to empty map in `mapFlowToModel` to prevent drift when `tags = {}` is set in config
+* docs: Updated schema documentation and examples for environment, logical environment, and flow resources to include tags usage
+
 ## 0.5.0 (April 1, 2026)
 
 FEATURES:
