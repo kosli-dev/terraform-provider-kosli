@@ -139,8 +139,17 @@ func (r *logicalEnvironmentResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
-	// Apply tags via the dedicated PATCH endpoint (no prior tags on a new environment)
-	applyTags(ctx, r.client, data.Name.ValueString(), "logical environment", types.MapNull(types.StringType), data.Tags, &resp.Diagnostics)
+	// Apply tags via the dedicated PATCH endpoint (no prior tags on a new environment).
+	// Collect separately so errors can be surfaced with the correct resource label.
+	var createTagDiags diag.Diagnostics
+	applyTags(ctx, r.client, data.Name.ValueString(), "environment", types.MapNull(types.StringType), data.Tags, &createTagDiags)
+	for _, d := range createTagDiags {
+		if d.Severity() == diag.SeverityError {
+			resp.Diagnostics.AddError("Error Updating Logical Environment Tags", d.Detail())
+		} else {
+			resp.Diagnostics.Append(d)
+		}
+	}
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -237,8 +246,17 @@ func (r *logicalEnvironmentResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	// Apply tag diff via the dedicated PATCH endpoint
-	applyTags(ctx, r.client, data.Name.ValueString(), "logical environment", oldData.Tags, data.Tags, &resp.Diagnostics)
+	// Apply tag diff via the dedicated PATCH endpoint.
+	// Collect separately so errors can be surfaced with the correct resource label.
+	var updateTagDiags diag.Diagnostics
+	applyTags(ctx, r.client, data.Name.ValueString(), "environment", oldData.Tags, data.Tags, &updateTagDiags)
+	for _, d := range updateTagDiags {
+		if d.Severity() == diag.SeverityError {
+			resp.Diagnostics.AddError("Error Updating Logical Environment Tags", d.Detail())
+		} else {
+			resp.Diagnostics.Append(d)
+		}
+	}
 	if resp.Diagnostics.HasError() {
 		return
 	}

@@ -40,3 +40,14 @@ trail:
           type: snyk
 YAML
 }
+
+# Flow with tags for IaC traceability
+resource "kosli_flow" "tagged" {
+  name        = "api-service-tagged"
+  description = "API service CD pipeline managed by Terraform"
+  tags = {
+    managed-by  = "terraform"
+    team        = "platform"
+    environment = "production"
+  }
+}
