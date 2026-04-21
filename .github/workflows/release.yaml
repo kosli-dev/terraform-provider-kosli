@@ -10,6 +10,15 @@ permissions:
   pull-requests: write
 
 jobs:
+  notify-start:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: kosli-dev/reusable-actions/slack-release-notify@main
+        with:
+          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
+          slack-channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+          stage: start
+
   release:
     name: Release
     runs-on: ubuntu-latest
@@ -108,3 +117,28 @@ jobs:
           body: "Auto-generated changelog entry for ${{ github.ref_name }}. Please review before merging."
           base: ${{ github.event.repository.default_branch }}
           add-paths: CHANGELOG.md
+
+  notify-finish:
+    needs: [notify-start, release]
+    if: always() && needs.notify-start.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read     # ← needed to fetch run_started_at for duration
+      contents: read    # ← needed to read release notes via `gh release view`
+    steps:
+      - name: Determine status
+        id: status
+        run: |
+          if [[ "${{ needs.release.result }}" == "success" \
+             && "${{ needs.release.result }}" == "success" ]]; then
+            echo "value=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=failure" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: kosli-dev/reusable-actions/slack-release-notify@main
+        with:
+          slack-bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
+          slack-channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+          stage: finish
+          status: ${{ steps.status.outputs.value }}
