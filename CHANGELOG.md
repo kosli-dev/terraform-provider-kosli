@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.6.1 (April 21, 2026)
+
+IMPROVEMENTS:
+
+* ci: Expanded PR validation to cover all 13 examples, matching the main pipeline and preventing broken examples from slipping through review [GH-177]
+* ci: Added Slack notification on release to improve release visibility [GH-181]
+
+BUG FIXES:
+
+* client: Bumped `hc-install` to v0.9.4 to resolve `openpgp: key expired` errors caused by an expired HashiCorp GPG key that was breaking acceptance tests [GH-180]
+
+NOTES:
+
+* Dependency: Updated `kosli-dev/setup-cli-action` from v3 to v4; note that omitting the `version` input now defaults to `latest` [GH-179]
+
 ## 0.6.0 (April 15, 2026)
 
 FEATURES:
