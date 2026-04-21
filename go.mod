@@ -1,6 +1,6 @@
 module github.com/kosli-dev/terraform-provider-kosli
 
-go 1.25.8
+go 1.25.9
 
 require (
 	github.com/hashicorp/go-retryablehttp v0.7.8
