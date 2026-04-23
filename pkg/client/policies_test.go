@@ -67,7 +67,7 @@ func TestCreatePolicy_Success(t *testing.T) {
 
 	err = c.CreatePolicy(context.Background(), &CreatePolicyRequest{
 		Name:    "test-policy",
-		Content: "_schema: https://kosli.com/schemas/policy/environment/v1\n",
+		Content: "_schema: https://docs.kosli.com/schemas/policy/v1\n",
 	})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -102,7 +102,7 @@ func TestCreatePolicy_DefaultsTypeToEnv(t *testing.T) {
 	// Type is empty — should default to "env"
 	err = c.CreatePolicy(context.Background(), &CreatePolicyRequest{
 		Name:    "test-policy",
-		Content: "_schema: https://kosli.com/schemas/policy/environment/v1\n",
+		Content: "_schema: https://docs.kosli.com/schemas/policy/v1\n",
 	})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -117,7 +117,7 @@ func TestGetPolicy_Success(t *testing.T) {
 		Versions: []PolicyVersion{
 			{
 				Version:   2,
-				Content:   "_schema: https://kosli.com/schemas/policy/environment/v1\n",
+				Content:   "_schema: https://docs.kosli.com/schemas/policy/v1\n",
 				CreatedAt: 1700000001.0,
 				CreatedBy: "user@example.com",
 			},

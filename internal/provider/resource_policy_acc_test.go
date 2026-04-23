@@ -10,13 +10,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
-const testPolicyContent = `_schema: https://kosli.com/schemas/policy/environment/v1
+const testPolicyContent = `_schema: https://docs.kosli.com/schemas/policy/v1
 artifacts:
   provenance:
     required: true
 `
 
-const testPolicyContentUpdated = `_schema: https://kosli.com/schemas/policy/environment/v1
+const testPolicyContentUpdated = `_schema: https://docs.kosli.com/schemas/policy/v1
 artifacts:
   provenance:
     required: true

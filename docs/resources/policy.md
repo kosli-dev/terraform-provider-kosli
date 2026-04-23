@@ -31,7 +31,7 @@ terraform {
 resource "kosli_policy" "minimal" {
   name = "basic-requirements"
   content = <<-YAML
-    _schema: https://kosli.com/schemas/policy/environment/v1
+    _schema: https://docs.kosli.com/schemas/policy/v1
     artifacts:
       provenance:
         required: true
@@ -43,7 +43,7 @@ resource "kosli_policy" "production" {
   name        = "prod-requirements"
   description = "Compliance requirements for production environments"
   content     = <<-YAML
-    _schema: https://kosli.com/schemas/policy/environment/v1
+    _schema: https://docs.kosli.com/schemas/policy/v1
     artifacts:
       provenance:
         required: true
@@ -63,7 +63,7 @@ resource "kosli_policy" "production" {
 
 ### Required
 
-- `content` (String) YAML content of the policy, conforming to the Kosli policy schema (`_schema: https://kosli.com/schemas/policy/environment/v1`). Supports heredoc syntax for multi-line YAML. Updating this value creates a new policy version.
+- `content` (String) YAML content of the policy, conforming to the Kosli policy schema (`_schema: https://docs.kosli.com/schemas/policy/v1`). Supports heredoc syntax for multi-line YAML. Updating this value creates a new policy version.
 - `name` (String) Name of the policy. Must be unique within the organization. Changing this will force recreation of the resource.
 
 ### Optional
