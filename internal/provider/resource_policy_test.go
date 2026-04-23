@@ -125,7 +125,7 @@ func TestMapPolicyToModel_EmptyDescription(t *testing.T) {
 		Description: "",
 		CreatedAt:   1700000000.0,
 		Versions: []client.PolicyVersion{
-			{Version: 1, Content: "_schema: https://kosli.com/schemas/policy/environment/v1\n"},
+			{Version: 1, Content: "_schema: https://docs.kosli.com/schemas/policy/v1\n"},
 		},
 	}
 

@@ -94,7 +94,7 @@ func TestPolicyDataSourceModel_Structure(t *testing.T) {
 	model := policyDataSourceModel{
 		Name:          types.StringValue("prod-requirements"),
 		Description:   types.StringValue("Production policy"),
-		Content:       types.StringValue("_schema: https://kosli.com/schemas/policy/environment/v1\n"),
+		Content:       types.StringValue("_schema: https://docs.kosli.com/schemas/policy/v1\n"),
 		LatestVersion: types.Int64Value(3),
 		CreatedAt:     types.Float64Value(1633123457.123),
 	}

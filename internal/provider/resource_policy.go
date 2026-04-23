@@ -68,7 +68,7 @@ func (r *policyResource) Schema(ctx context.Context, req resource.SchemaRequest,
 			},
 			"content": schema.StringAttribute{
 				MarkdownDescription: "YAML content of the policy, conforming to the Kosli policy schema " +
-					"(`_schema: https://kosli.com/schemas/policy/environment/v1`). " +
+					"(`_schema: https://docs.kosli.com/schemas/policy/v1`). " +
 					"Supports heredoc syntax for multi-line YAML. Updating this value creates a new policy version.",
 				Required: true,
 			},
