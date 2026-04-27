@@ -205,7 +205,8 @@ func (r *logicalEnvironmentResource) Read(ctx context.Context, req resource.Read
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
-// Per the API behavior, PUT is idempotent and updates the environment.
+// Uses PATCH /environments/{org}/{env_name} so that fields like description
+// can be cleared by sending empty values (see issue #122).
 func (r *logicalEnvironmentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data logicalEnvironmentResourceModel
 	var oldData logicalEnvironmentResourceModel
@@ -222,23 +223,23 @@ func (r *logicalEnvironmentResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	// Extract included_environments from types.List to []string
-	var includedEnvironments []string
+	// Extract included_environments from types.List to []string. Always send a
+	// non-nil slice for logical environments so the field is included in the
+	// PATCH body (an empty list is still a valid logical-environment update).
+	includedEnvironments := []string{}
 	resp.Diagnostics.Append(data.IncludedEnvironments.ElementsAs(ctx, &includedEnvironments, false)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Create API request (PUT is idempotent)
-	createReq := &client.CreateEnvironmentRequest{
-		Name:                 data.Name.ValueString(),
-		Type:                 "logical",
-		Description:          data.Description.ValueString(),
+	description := data.Description.ValueString()
+	updateReq := &client.UpdateEnvironmentRequest{
+		Description:          &description,
 		IncludedEnvironments: includedEnvironments,
 	}
 
 	// Call API to update the environment
-	if err := r.client.CreateEnvironment(ctx, createReq); err != nil {
+	if err := r.client.UpdateEnvironment(ctx, data.Name.ValueString(), updateReq); err != nil {
 		resp.Diagnostics.AddError(
 			"Error Updating Logical Environment",
 			fmt.Sprintf("Could not update logical environment %q: %s", data.Name.ValueString(), err.Error()),

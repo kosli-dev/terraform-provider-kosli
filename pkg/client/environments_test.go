@@ -183,10 +183,8 @@ func TestGetEnvironment_NotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for archived environment, got nil")
 	}
-
-	// Verify error message contains archived information
-	if !strings.Contains(err.Error(), "404") {
-		t.Errorf("expected error to mention 404, got: %v", err)
+	if !IsNotFound(err) {
+		t.Errorf("expected IsNotFound to return true, got error: %v", err)
 	}
 }
 
@@ -310,7 +308,7 @@ func TestCreateEnvironment_Idempotent(t *testing.T) {
 		t.Fatalf("first call failed: %v", err)
 	}
 
-	// Second call (update) - should be idempotent
+	// Second identical call - PUT is idempotent and should also succeed
 	err = client.CreateEnvironment(context.Background(), req)
 	if err != nil {
 		t.Fatalf("second call failed: %v", err)
@@ -600,22 +598,21 @@ func TestCreateEnvironment_LogicalWithEmptyList(t *testing.T) {
 	}
 }
 
-// TestCreateEnvironment_LogicalUpdate tests updating included_environments
-func TestCreateEnvironment_LogicalUpdate(t *testing.T) {
+// TestUpdateEnvironment_LogicalChangedEnvironments tests updating
+// included_environments on a logical environment via PATCH.
+func TestUpdateEnvironment_LogicalChangedEnvironments(t *testing.T) {
 	callCount := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
+		if r.Method != http.MethodPatch {
+			t.Errorf("call %d: expected PATCH, got %s", callCount, r.Method)
+		}
+
 		var body map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			t.Fatalf("failed to decode request body: %v", err)
 		}
 
-		// Verify type is logical
-		if body["type"] != "logical" {
-			t.Errorf("call %d: expected type 'logical', got %v", callCount, body["type"])
-		}
-
-		// Verify included_environments changes between calls
 		rawIncludedEnvs, ok := body["included_environments"]
 		if !ok {
 			t.Fatalf("call %d: expected 'included_environments' field in request body", callCount)
@@ -633,6 +630,10 @@ func TestCreateEnvironment_LogicalUpdate(t *testing.T) {
 				t.Errorf("call 2: expected 3 environments, got %d", len(includedEnvs))
 			}
 		}
+		// include_scaling must be omitted for logical environments
+		if _, exists := body["include_scaling"]; exists {
+			t.Errorf("call %d: expected include_scaling to be omitted for logical environment, got %v", callCount, body["include_scaling"])
+		}
 
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`"OK"`))
@@ -647,23 +648,19 @@ func TestCreateEnvironment_LogicalUpdate(t *testing.T) {
 		t.Fatalf("failed to create client: %v", err)
 	}
 
-	// First call - create with 2 environments
-	req := &CreateEnvironmentRequest{
-		Name:                 "logical-env",
-		Type:                 "logical",
-		Description:          "Logical environment",
+	// First update with 2 environments
+	description := "Logical environment"
+	req := &UpdateEnvironmentRequest{
+		Description:          &description,
 		IncludedEnvironments: []string{"env1", "env2"},
-		Policies:             []any{},
 	}
-	err = client.CreateEnvironment(context.Background(), req)
-	if err != nil {
+	if err := client.UpdateEnvironment(context.Background(), "logical-env", req); err != nil {
 		t.Fatalf("first call failed: %v", err)
 	}
 
-	// Second call - update to 3 environments
+	// Second update with 3 environments
 	req.IncludedEnvironments = []string{"env1", "env2", "env3"}
-	err = client.CreateEnvironment(context.Background(), req)
-	if err != nil {
+	if err := client.UpdateEnvironment(context.Background(), "logical-env", req); err != nil {
 		t.Fatalf("second call failed: %v", err)
 	}
 
@@ -745,6 +742,255 @@ func TestListEnvironments_WithLogical(t *testing.T) {
 	}
 	if environments[1].IncludedEnvironments[0] != "production-k8s" {
 		t.Errorf("expected included environment 'production-k8s', got %s", environments[1].IncludedEnvironments[0])
+	}
+}
+
+// TestUpdateEnvironment_Success verifies PATCH method, path, and body structure
+func TestUpdateEnvironment_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPatch {
+			t.Errorf("expected PATCH, got %s", r.Method)
+		}
+		if !strings.Contains(r.URL.Path, "/environments/test-org/production-k8s") {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+
+		ct := r.Header.Get("Content-Type")
+		if !strings.Contains(ct, "application/json") {
+			t.Errorf("expected application/json, got %s", ct)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("failed to decode request body: %v", err)
+		}
+
+		if body["description"] != "Updated description" {
+			t.Errorf("expected description 'Updated description', got %v", body["description"])
+		}
+		if body["include_scaling"] != true {
+			t.Errorf("expected include_scaling true, got %v", body["include_scaling"])
+		}
+		// included_environments should be omitted for physical env updates
+		if _, exists := body["included_environments"]; exists {
+			t.Errorf("expected included_environments to be omitted, got %v", body["included_environments"])
+		}
+		// type and name should not be in the PATCH body (immutable)
+		if _, exists := body["type"]; exists {
+			t.Errorf("expected type not to be in PATCH body, got %v", body["type"])
+		}
+		if _, exists := body["name"]; exists {
+			t.Errorf("expected name not to be in PATCH body, got %v", body["name"])
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`"OK"`))
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	description := "Updated description"
+	includeScaling := true
+	req := &UpdateEnvironmentRequest{
+		Description:    &description,
+		IncludeScaling: &includeScaling,
+	}
+
+	if err := client.UpdateEnvironment(context.Background(), "production-k8s", req); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+// TestUpdateEnvironment_ClearDescription verifies that an empty description is
+// sent as an empty string (the whole point of the new PATCH endpoint - see #122).
+func TestUpdateEnvironment_ClearDescription(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("failed to decode request body: %v", err)
+		}
+
+		desc, exists := body["description"]
+		if !exists {
+			t.Fatal("expected description field in PATCH body, got missing")
+		}
+		if desc != "" {
+			t.Errorf("expected empty description, got %v", desc)
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`"OK"`))
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	description := ""
+	includeScaling := false
+	req := &UpdateEnvironmentRequest{
+		Description:    &description,
+		IncludeScaling: &includeScaling,
+	}
+
+	if err := client.UpdateEnvironment(context.Background(), "production-k8s", req); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+// TestUpdateEnvironment_OmitsNilFields verifies that nil pointer fields are
+// omitted from the request body — for example, a scaling-only update should
+// not contain a "description" key, leaving the existing description unchanged.
+func TestUpdateEnvironment_OmitsNilFields(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("failed to decode request body: %v", err)
+		}
+		if _, exists := body["description"]; exists {
+			t.Errorf("expected description to be omitted, got %v", body["description"])
+		}
+		if _, exists := body["included_environments"]; exists {
+			t.Errorf("expected included_environments to be omitted, got %v", body["included_environments"])
+		}
+		if body["include_scaling"] != true {
+			t.Errorf("expected include_scaling true, got %v", body["include_scaling"])
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`"OK"`))
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	includeScaling := true
+	req := &UpdateEnvironmentRequest{
+		IncludeScaling: &includeScaling,
+	}
+
+	if err := client.UpdateEnvironment(context.Background(), "production-k8s", req); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+// TestUpdateEnvironment_LogicalIncludesEnvironments verifies that
+// included_environments is sent for logical environment updates and that
+// include_scaling is omitted (logical envs don't have scaling).
+func TestUpdateEnvironment_LogicalIncludesEnvironments(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPatch {
+			t.Errorf("expected PATCH, got %s", r.Method)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("failed to decode request body: %v", err)
+		}
+
+		rawIncluded, exists := body["included_environments"]
+		if !exists {
+			t.Fatal("expected included_environments in PATCH body")
+		}
+		included, ok := rawIncluded.([]any)
+		if !ok {
+			t.Fatalf("expected included_environments to be an array, got %T", rawIncluded)
+		}
+		if len(included) != 2 || included[0] != "env1" || included[1] != "env2" {
+			t.Errorf("unexpected included_environments: %v", included)
+		}
+		// include_scaling does not apply to logical environments and must
+		// not be sent in the PATCH body.
+		if _, exists := body["include_scaling"]; exists {
+			t.Errorf("expected include_scaling to be omitted for logical environment, got %v", body["include_scaling"])
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`"OK"`))
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	description := "Logical update"
+	req := &UpdateEnvironmentRequest{
+		Description:          &description,
+		IncludedEnvironments: []string{"env1", "env2"},
+	}
+
+	if err := client.UpdateEnvironment(context.Background(), "logical-env", req); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
+// TestUpdateEnvironment_ServerError verifies error handling on 4xx
+func TestUpdateEnvironment_ServerError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Input payload validation failed"})
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	err = client.UpdateEnvironment(context.Background(), "test-env", &UpdateEnvironmentRequest{})
+	if err == nil {
+		t.Fatal("expected error on 400, got nil")
+	}
+}
+
+// TestUpdateEnvironment_NotFound verifies 404 is reported as IsNotFound.
+func TestUpdateEnvironment_NotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Environment 'missing' not found"})
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	err = client.UpdateEnvironment(context.Background(), "missing", &UpdateEnvironmentRequest{})
+	if err == nil {
+		t.Fatal("expected error on 404, got nil")
+	}
+	if !IsNotFound(err) {
+		t.Errorf("expected IsNotFound to return true, got error: %v", err)
 	}
 }
 

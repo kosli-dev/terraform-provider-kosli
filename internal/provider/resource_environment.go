@@ -187,7 +187,8 @@ func (r *environmentResource) Read(ctx context.Context, req resource.ReadRequest
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
-// Per the API behavior, PUT is idempotent and updates the environment.
+// Uses PATCH /environments/{org}/{env_name} so that fields like description
+// can be cleared by sending empty values (see issue #122).
 func (r *environmentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data environmentResourceModel
 	var oldData environmentResourceModel
@@ -204,16 +205,15 @@ func (r *environmentResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	// Create API request (PUT is idempotent)
-	createReq := &client.CreateEnvironmentRequest{
-		Name:           data.Name.ValueString(),
-		Type:           data.Type.ValueString(),
-		Description:    data.Description.ValueString(),
-		IncludeScaling: data.IncludeScaling.ValueBool(),
+	description := data.Description.ValueString()
+	includeScaling := data.IncludeScaling.ValueBool()
+	updateReq := &client.UpdateEnvironmentRequest{
+		Description:    &description,
+		IncludeScaling: &includeScaling,
 	}
 
 	// Call API to update the environment
-	if err := r.client.CreateEnvironment(ctx, createReq); err != nil {
+	if err := r.client.UpdateEnvironment(ctx, data.Name.ValueString(), updateReq); err != nil {
 		resp.Diagnostics.AddError(
 			"Error Updating Environment",
 			fmt.Sprintf("Could not update environment %q: %s", data.Name.ValueString(), err.Error()),
