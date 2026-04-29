@@ -155,8 +155,16 @@ func (r *logicalEnvironmentResource) Create(ctx context.Context, req resource.Cr
 	}
 
 	// Per ADR 002: PUT returns "OK", so we must GET to populate state.
+	// On 404, re-assert both the create PUT and the tags PATCH so a parallel
+	// destroy of a sibling resource sharing this name (label rename, see
+	// issue #121) can be recovered from in-place.
 	env, err := retryReadAfterCreate(ctx,
-		func(ctx context.Context) error { return r.client.CreateEnvironment(ctx, createReq) },
+		func(ctx context.Context) error {
+			if err := r.client.CreateEnvironment(ctx, createReq); err != nil {
+				return err
+			}
+			return applyTagsAsError(ctx, r.client, createReq.Name, "environment", types.MapNull(types.StringType), data.Tags)
+		},
 		func(ctx context.Context) (*client.Environment, error) {
 			return r.client.GetEnvironment(ctx, createReq.Name)
 		},
@@ -164,8 +172,7 @@ func (r *logicalEnvironmentResource) Create(ctx context.Context, req resource.Cr
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading Logical Environment After Creation",
-			fmt.Sprintf("Could not read logical environment %q after creation: %s%s",
-				data.Name.ValueString(), err.Error(), renameRaceHint),
+			renameRaceDetail("logical environment", createReq.Name, err),
 		)
 		return
 	}

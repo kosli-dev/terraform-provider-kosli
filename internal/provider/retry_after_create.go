@@ -2,10 +2,31 @@ package provider
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
+
+// ErrRenameRace is returned by retryReadAfterCreate when every retry attempt
+// observes a 404. Callers use errors.Is to decide whether to append the
+// rename-race hint to user diagnostics; transient errors (5xx, context
+// cancellation, re-PUT failures) are returned as-is and don't trigger the
+// hint. See issue #121.
+var ErrRenameRace = errors.New("post-create read kept returning 404 (likely Terraform label rename racing destroy on the same resource)")
+
+// retryAfterCreateBackoffs controls the sleep schedule between retry
+// attempts in retryReadAfterCreate. Exposed as a package-level var so tests
+// can override it to avoid real sleeps.
+var retryAfterCreateBackoffs = []time.Duration{
+	500 * time.Millisecond,
+	1 * time.Second,
+	2 * time.Second,
+	4 * time.Second,
+}
 
 // retryReadAfterCreate fetches a resource immediately after Create. If the
 // initial GET returns 404, a sibling resource with the same name is being
@@ -13,22 +34,24 @@ import (
 // destroy + create against the same Kosli resource). The destroy may archive
 // the resource between our PUT and our GET.
 //
-// On 404, the helper waits, re-issues the create PUT to re-assert desired
-// state, and re-GETs. Bounded backoff; non-404 errors are returned
-// immediately. See issue #121.
+// On 404, the helper waits, optionally re-asserts desired state via rePut,
+// and re-GETs. Pass rePut=nil to skip re-asserting (useful when the
+// underlying create endpoint is non-idempotent and re-issuing it would have
+// side effects, such as creating a new version). Bounded backoff; non-404
+// errors are returned immediately as-is. If every attempt returns 404, the
+// final error is wrapped with ErrRenameRace so callers can identify the
+// rename-race scenario specifically.
 func retryReadAfterCreate[T any](
 	ctx context.Context,
 	rePut func(context.Context) error,
 	get func(context.Context) (*T, error),
 ) (*T, error) {
-	backoffs := []time.Duration{500 * time.Millisecond, 1 * time.Second, 2 * time.Second, 4 * time.Second}
-
 	v, err := get(ctx)
 	if err == nil {
 		return v, nil
 	}
 
-	for _, wait := range backoffs {
+	for _, wait := range retryAfterCreateBackoffs {
 		if !client.IsNotFound(err) {
 			return nil, err
 		}
@@ -37,8 +60,10 @@ func retryReadAfterCreate[T any](
 			return nil, ctx.Err()
 		case <-time.After(wait):
 		}
-		if rePutErr := rePut(ctx); rePutErr != nil {
-			return nil, rePutErr
+		if rePut != nil {
+			if rePutErr := rePut(ctx); rePutErr != nil {
+				return nil, rePutErr
+			}
 		}
 		v, err = get(ctx)
 		if err == nil {
@@ -46,12 +71,40 @@ func retryReadAfterCreate[T any](
 		}
 	}
 
+	if client.IsNotFound(err) {
+		return nil, fmt.Errorf("%w: %w", ErrRenameRace, err)
+	}
 	return nil, err
 }
 
 // renameRaceHint is appended to "Error Reading ... After Creation" diagnostics
-// to point users at the correct workaround for an intentional label rename.
+// only when the underlying error is ErrRenameRace, to point users at the
+// correct workaround for an intentional label rename.
 const renameRaceHint = "\n\nThis can happen when a Terraform resource label is renamed while keeping the same `name`: " +
 	"Terraform plans the rename as a parallel destroy + create that target the same Kosli resource, " +
-	"and the destroy can archive the resource before this read. To rename the resource label without " +
-	"recreating, use `terraform state mv` instead."
+	"and the destroy can remove or archive the resource before this read completes. To rename the " +
+	"resource label without recreating, use `terraform state mv` instead."
+
+// renameRaceDetail formats a "Could not read X after creation" diagnostic
+// detail, appending renameRaceHint only when err is an ErrRenameRace.
+func renameRaceDetail(kind, name string, err error) string {
+	detail := fmt.Sprintf("Could not read %s %q after creation: %s", kind, name, err.Error())
+	if errors.Is(err, ErrRenameRace) {
+		detail += renameRaceHint
+	}
+	return detail
+}
+
+// applyTagsAsError invokes applyTags and collapses any error-severity
+// diagnostics into a single error. Used inside retry closures where the
+// surrounding code expects an `error` return rather than a *diag.Diagnostics.
+func applyTagsAsError(ctx context.Context, c *client.Client, name, resourceType string, oldTags, newTags types.Map) error {
+	var d diag.Diagnostics
+	applyTags(ctx, c, name, resourceType, oldTags, newTags, &d)
+	for _, entry := range d {
+		if entry.Severity() == diag.SeverityError {
+			return fmt.Errorf("%s: %s", entry.Summary(), entry.Detail())
+		}
+	}
+	return nil
+}
