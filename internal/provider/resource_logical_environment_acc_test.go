@@ -196,6 +196,40 @@ func TestAccLogicalEnvironmentResource_emptyList(t *testing.T) {
 }
 
 // TestAccLogicalEnvironmentResource_optionalDescription tests creating resource without description
+// TestAccLogicalEnvironmentResource_clearDescription is the regression test
+// for issue #122 against the logical-environment resource: once a description
+// is set, removing the attribute should clear it (relies on the PATCH endpoint).
+func TestAccLogicalEnvironmentResource_clearDescription(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc-test-logical")
+	envName1 := acctest.RandomWithPrefix("tf-acc-test-env1")
+	envName2 := acctest.RandomWithPrefix("tf-acc-test-env2")
+	resourceName := "kosli_logical_environment.test"
+	description := "Initial description"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1: Create with a description
+			{
+				Config: testAccLogicalEnvironmentResourceConfigFull(rName, envName1, envName2, description),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+					resource.TestCheckResourceAttr(resourceName, "description", description),
+				),
+			},
+			// Step 2: Remove the description attribute - should clear it
+			{
+				Config: testAccLogicalEnvironmentResourceConfigBasic(rName, envName1, envName2),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+					resource.TestCheckNoResourceAttr(resourceName, "description"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccLogicalEnvironmentResource_optionalDescription(t *testing.T) {
 	rName := acctest.RandomWithPrefix("tf-acc-test-logical")
 	envName1 := acctest.RandomWithPrefix("tf-acc-test-env1")

@@ -32,6 +32,21 @@ type CreateEnvironmentRequest struct {
 	Policies             []any    // policies to attach to the environment
 }
 
+// UpdateEnvironmentRequest represents the user-facing request format for updating
+// an existing environment via PATCH /api/v2/environments/{org}/{env_name}.
+//
+// Unlike CreateEnvironmentRequest, the PATCH endpoint does not accept Name or
+// Type (those are immutable) and "omitted fields are left unchanged". Pointer
+// fields are only sent when non-nil so callers can update individual fields
+// without disturbing others. To clear the description, set Description to a
+// non-nil pointer to an empty string ("") — the PATCH endpoint accepts that
+// (see issue #122).
+type UpdateEnvironmentRequest struct {
+	Description          *string  // nil to omit; pointer to "" to clear
+	IncludeScaling       *bool    // nil to omit (e.g. logical environments)
+	IncludedEnvironments []string // for logical environments only; nil to omit
+}
+
 // ListEnvironments retrieves all environments for the organization.
 func (c *Client) ListEnvironments(ctx context.Context) ([]Environment, error) {
 	// Build path: GET /api/v2/environments/{org}
@@ -91,6 +106,40 @@ func (c *Client) CreateEnvironment(ctx context.Context, req *CreateEnvironmentRe
 
 	// Call API
 	resp, err := c.Put(ctx, path, body)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
+}
+
+// UpdateEnvironment updates an existing environment using PATCH.
+//
+// Unlike CreateEnvironment (which uses PUT and silently ignores attempts to
+// clear the description by sending an empty string), this endpoint accepts
+// empty values and applies them — for example, an empty description will
+// clear the field. See issue #122 for context.
+func (c *Client) UpdateEnvironment(ctx context.Context, name string, req *UpdateEnvironmentRequest) error {
+	// Build path: PATCH /api/v2/environments/{org}/{env_name}
+	path := fmt.Sprintf("/environments/%s/%s", c.Organization(), name)
+
+	// Build request body. Only include optional fields when the caller
+	// provided them, so fields that don't apply to a given environment
+	// kind (e.g. include_scaling on a logical environment) are omitted.
+	body := map[string]any{}
+	if req.Description != nil {
+		body["description"] = *req.Description
+	}
+	if req.IncludeScaling != nil {
+		body["include_scaling"] = *req.IncludeScaling
+	}
+	if req.IncludedEnvironments != nil {
+		body["included_environments"] = req.IncludedEnvironments
+	}
+
+	// Call API
+	resp, err := c.Patch(ctx, path, body)
 	if err != nil {
 		return err
 	}

@@ -178,6 +178,39 @@ func TestAccEnvironmentResource_types(t *testing.T) {
 	}
 }
 
+// TestAccEnvironmentResource_clearDescription verifies that the description can
+// be removed from an existing environment by deleting the attribute. Regression
+// test for issue #122 — relies on the PATCH endpoint accepting an empty
+// description, which the legacy PUT endpoint silently ignored.
+func TestAccEnvironmentResource_clearDescription(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc-test")
+	resourceName := "kosli_environment.test"
+	description := "Initial description"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1: Create with a description
+			{
+				Config: testAccEnvironmentResourceConfigFull(rName, description),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+					resource.TestCheckResourceAttr(resourceName, "description", description),
+				),
+			},
+			// Step 2: Remove the description attribute - should clear it
+			{
+				Config: testAccEnvironmentResourceConfigNoDescription(rName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+					resource.TestCheckNoResourceAttr(resourceName, "description"),
+				),
+			},
+		},
+	})
+}
+
 // TestAccEnvironmentResource_optionalDescription tests creating resource without description
 func TestAccEnvironmentResource_optionalDescription(t *testing.T) {
 	rName := acctest.RandomWithPrefix("tf-acc-test")
@@ -219,6 +252,18 @@ resource "kosli_environment" "test" {
   include_scaling = true
 }
 `, name, description)
+}
+
+// testAccEnvironmentResourceConfigNoDescription returns configuration matching
+// testAccEnvironmentResourceConfigFull but without the description attribute.
+func testAccEnvironmentResourceConfigNoDescription(name string) string {
+	return fmt.Sprintf(`
+resource "kosli_environment" "test" {
+  name            = %[1]q
+  type            = "ECS"
+  include_scaling = true
+}
+`, name)
 }
 
 // testAccEnvironmentResourceConfigUpdate returns updated configuration
