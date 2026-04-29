@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.3 (April 29, 2026)
+
+BUG FIXES:
+
+* resource/kosli_environment: Fixed race condition where a parallel destroy+create (triggered by a Terraform resource label rename) could cause the post-create read to receive a 404 "has been archived" error. The provider now retries the create PUT and subsequent GET with bounded backoff when a 404 is encountered [GH-121]
+
+NOTES:
+
+* If you are intentionally renaming a Terraform resource label for a Kosli environment (while keeping the same `name`), the recommended approach is `terraform state mv`.
+
 ## 0.6.2 (April 29, 2026)
 
 IMPROVEMENTS:
