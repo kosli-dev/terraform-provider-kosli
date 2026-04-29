@@ -15,7 +15,7 @@ env:
   KOSLI_FLOW_NAME: ${{ github.event.repository.name }}
   KOSLI_ORG: ${{ vars.KOSLI_ORG }}
   REPO_NAME: ${{ github.event.repository.name }}
-  KOSLI_VERSION: 2.13.2
+  KOSLI_VERSION: 'latest'
 
 permissions:
   contents: read
