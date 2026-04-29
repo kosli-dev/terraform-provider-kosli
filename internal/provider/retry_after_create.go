@@ -99,12 +99,14 @@ func renameRaceDetail(kind, name string, err error) string {
 // post-create failure. Tag-PATCH failures returned from the rePut closure
 // (identified via ErrTagApplyFailed) are surfaced as a tag update error so
 // users aren't misled by a "Reading ... After Creation" header. All other
-// errors keep the read-after-creation summary.
-func afterCreateSummary(kind string, err error) string {
+// errors keep the read-after-creation summary. displayKind must already be
+// in the casing the user should see (e.g. "Logical Environment") so this
+// helper agrees with sibling diagnostics emitted on non-retry code paths.
+func afterCreateSummary(displayKind string, err error) string {
 	if errors.Is(err, ErrTagApplyFailed) {
-		return fmt.Sprintf("Error Updating %s Tags", titleCase(kind))
+		return fmt.Sprintf("Error Updating %s Tags", displayKind)
 	}
-	return fmt.Sprintf("Error Reading %s After Creation", titleCase(kind))
+	return fmt.Sprintf("Error Reading %s After Creation", displayKind)
 }
 
 // ErrTagApplyFailed wraps errors returned by applyTagsAsError so call sites

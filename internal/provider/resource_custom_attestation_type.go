@@ -147,7 +147,7 @@ func (r *customAttestationTypeResource) Create(ctx context.Context, req resource
 	)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			afterCreateSummary("custom attestation type", err),
+			afterCreateSummary("Custom Attestation Type", err),
 			renameRaceDetail("custom attestation type", createReq.Name, err),
 		)
 		return

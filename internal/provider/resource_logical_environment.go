@@ -171,7 +171,7 @@ func (r *logicalEnvironmentResource) Create(ctx context.Context, req resource.Cr
 	)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			afterCreateSummary("logical environment", err),
+			afterCreateSummary("Logical Environment", err),
 			renameRaceDetail("logical environment", createReq.Name, err),
 		)
 		return

@@ -146,7 +146,7 @@ func (r *flowResource) Create(ctx context.Context, req resource.CreateRequest, r
 	)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			afterCreateSummary("flow", err),
+			afterCreateSummary("Flow", err),
 			renameRaceDetail("flow", createReq.Name, err),
 		)
 		return

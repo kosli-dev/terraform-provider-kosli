@@ -199,15 +199,21 @@ func TestRenameRaceDetail_AppendsHintOnlyForRenameRace(t *testing.T) {
 
 func TestAfterCreateSummary_TagFailureRoutedToTagSummary(t *testing.T) {
 	tagErr := fmt.Errorf("%w: %w", ErrTagApplyFailed, errors.New("PATCH failed"))
-	if got := afterCreateSummary("environment", tagErr); got != "Error Updating Environment Tags" {
+	if got := afterCreateSummary("Environment", tagErr); got != "Error Updating Environment Tags" {
 		t.Errorf("expected tag-summary header, got %q", got)
 	}
-	if got := afterCreateSummary("logical environment", tagErr); got != "Error Updating Logical environment Tags" {
-		t.Errorf("expected logical environment tag header, got %q", got)
+	// Multi-word display labels must be honoured verbatim so retry-path
+	// summaries agree with sibling non-retry summaries (e.g. "Logical
+	// Environment", "Custom Attestation Type").
+	if got := afterCreateSummary("Logical Environment", tagErr); got != "Error Updating Logical Environment Tags" {
+		t.Errorf("expected fully-cased multi-word tag header, got %q", got)
 	}
 	other := errors.New("nope")
-	if got := afterCreateSummary("flow", other); got != "Error Reading Flow After Creation" {
+	if got := afterCreateSummary("Flow", other); got != "Error Reading Flow After Creation" {
 		t.Errorf("expected read-after-creation header for non-tag error, got %q", got)
+	}
+	if got := afterCreateSummary("Custom Attestation Type", other); got != "Error Reading Custom Attestation Type After Creation" {
+		t.Errorf("expected fully-cased multi-word read header, got %q", got)
 	}
 }
 
