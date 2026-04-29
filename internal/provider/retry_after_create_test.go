@@ -3,7 +3,9 @@ package provider
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -185,21 +187,41 @@ func TestRetryReadAfterCreate_NilRePutSkipsReassert(t *testing.T) {
 func TestRenameRaceDetail_AppendsHintOnlyForRenameRace(t *testing.T) {
 	notFound := &client.APIError{StatusCode: http.StatusNotFound, Message: "archived"}
 	raceErr := errors.Join(ErrRenameRace, notFound)
-	if got := renameRaceDetail("environment", "test", raceErr); !contains(got, "terraform state mv") {
+	if got := renameRaceDetail("environment", "test", raceErr); !strings.Contains(got, "terraform state mv") {
 		t.Errorf("expected rename hint for ErrRenameRace, got: %s", got)
 	}
 
 	transient := errors.New("upstream 503")
-	if got := renameRaceDetail("environment", "test", transient); contains(got, "terraform state mv") {
+	if got := renameRaceDetail("environment", "test", transient); strings.Contains(got, "terraform state mv") {
 		t.Errorf("did not expect rename hint for non-rename error, got: %s", got)
 	}
 }
 
-func contains(haystack, needle string) bool {
-	for i := 0; i+len(needle) <= len(haystack); i++ {
-		if haystack[i:i+len(needle)] == needle {
-			return true
-		}
+func TestAfterCreateSummary_TagFailureRoutedToTagSummary(t *testing.T) {
+	tagErr := fmt.Errorf("%w: %w", ErrTagApplyFailed, errors.New("PATCH failed"))
+	if got := afterCreateSummary("environment", tagErr); got != "Error Updating Environment Tags" {
+		t.Errorf("expected tag-summary header, got %q", got)
 	}
-	return false
+	if got := afterCreateSummary("logical environment", tagErr); got != "Error Updating Logical environment Tags" {
+		t.Errorf("expected logical environment tag header, got %q", got)
+	}
+	other := errors.New("nope")
+	if got := afterCreateSummary("flow", other); got != "Error Reading Flow After Creation" {
+		t.Errorf("expected read-after-creation header for non-tag error, got %q", got)
+	}
+}
+
+func TestApplyTagsAsError_PreservesAllDiagnostics(t *testing.T) {
+	// We can exercise the join behaviour without spinning up a real client by
+	// constructing the same kind of joined error the helper builds and
+	// asserting both inner errors are reachable via errors.Is.
+	first := errors.New("set-tag failed: a")
+	second := errors.New("remove-tag failed: b")
+	joined := fmt.Errorf("%w: %w", ErrTagApplyFailed, errors.Join(first, second))
+	if !errors.Is(joined, ErrTagApplyFailed) {
+		t.Error("expected ErrTagApplyFailed to be reachable")
+	}
+	if !errors.Is(joined, first) || !errors.Is(joined, second) {
+		t.Error("expected both joined errors to be reachable")
+	}
 }

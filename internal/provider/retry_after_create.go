@@ -95,16 +95,42 @@ func renameRaceDetail(kind, name string, err error) string {
 	return detail
 }
 
+// afterCreateSummary returns the diagnostic summary that best describes a
+// post-create failure. Tag-PATCH failures returned from the rePut closure
+// (identified via ErrTagApplyFailed) are surfaced as a tag update error so
+// users aren't misled by a "Reading ... After Creation" header. All other
+// errors keep the read-after-creation summary.
+func afterCreateSummary(kind string, err error) string {
+	if errors.Is(err, ErrTagApplyFailed) {
+		return fmt.Sprintf("Error Updating %s Tags", titleCase(kind))
+	}
+	return fmt.Sprintf("Error Reading %s After Creation", titleCase(kind))
+}
+
+// ErrTagApplyFailed wraps errors returned by applyTagsAsError so call sites
+// using the helper inside a retry closure can distinguish tag-PATCH failures
+// from create/read failures and surface a more accurate diagnostic summary
+// (e.g. "Error Updating Environment Tags" instead of "Error Reading
+// Environment After Creation").
+var ErrTagApplyFailed = errors.New("applying tags failed")
+
 // applyTagsAsError invokes applyTags and collapses any error-severity
-// diagnostics into a single error. Used inside retry closures where the
-// surrounding code expects an `error` return rather than a *diag.Diagnostics.
+// diagnostics into a single error using errors.Join so all reported errors
+// are preserved. The combined error is wrapped with ErrTagApplyFailed so
+// callers can identify it via errors.Is. Used inside retry closures where
+// the surrounding code expects an `error` return rather than a
+// *diag.Diagnostics.
 func applyTagsAsError(ctx context.Context, c *client.Client, name, resourceType string, oldTags, newTags types.Map) error {
 	var d diag.Diagnostics
 	applyTags(ctx, c, name, resourceType, oldTags, newTags, &d)
+	var errs []error
 	for _, entry := range d {
 		if entry.Severity() == diag.SeverityError {
-			return fmt.Errorf("%s: %s", entry.Summary(), entry.Detail())
+			errs = append(errs, fmt.Errorf("%s: %s", entry.Summary(), entry.Detail()))
 		}
 	}
-	return nil
+	if len(errs) == 0 {
+		return nil
+	}
+	return fmt.Errorf("%w: %w", ErrTagApplyFailed, errors.Join(errs...))
 }

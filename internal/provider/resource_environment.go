@@ -153,7 +153,7 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 	)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error Reading Environment After Creation",
+			afterCreateSummary("environment", err),
 			renameRaceDetail("environment", createReq.Name, err),
 		)
 		return
