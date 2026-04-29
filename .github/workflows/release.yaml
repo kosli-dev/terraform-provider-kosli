@@ -111,12 +111,13 @@ jobs:
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          branch: changelog/${{ github.ref_name }}
+          base: ${{ github.event.repository.default_branch }}
           commit-message: "chore: update CHANGELOG.md for ${{ github.ref_name }}"
-          branch: "changelog/${{ github.ref_name }}"
           title: "chore: update CHANGELOG.md for ${{ github.ref_name }}"
           body: "Auto-generated changelog entry for ${{ github.ref_name }}. Please review before merging."
-          base: ${{ github.event.repository.default_branch }}
           add-paths: CHANGELOG.md
+          sign-commits: true
 
   notify-finish:
     needs: [notify-start, release]
