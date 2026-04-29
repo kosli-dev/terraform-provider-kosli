@@ -129,12 +129,18 @@ func (r *flowResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	// Per ADR 002: PUT returns "OK", so we must GET to populate state
-	flow, err := r.client.GetFlow(ctx, data.Name.ValueString())
+	// Per ADR 002: PUT returns "OK", so we must GET to populate state.
+	flow, err := retryReadAfterCreate(ctx,
+		func(ctx context.Context) error { return r.client.CreateFlow(ctx, createReq) },
+		func(ctx context.Context) (*client.Flow, error) {
+			return r.client.GetFlow(ctx, createReq.Name)
+		},
+	)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading Flow After Creation",
-			fmt.Sprintf("Could not read flow %q after creation: %s", data.Name.ValueString(), err.Error()),
+			fmt.Sprintf("Could not read flow %q after creation: %s%s",
+				data.Name.ValueString(), err.Error(), renameRaceHint),
 		)
 		return
 	}

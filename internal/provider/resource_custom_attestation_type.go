@@ -132,12 +132,18 @@ func (r *customAttestationTypeResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	// Per ADR 002: POST returns "OK", so we must GET to populate state
-	attestationType, err := r.client.GetCustomAttestationType(ctx, data.Name.ValueString(), nil)
+	// Per ADR 002: POST returns "OK", so we must GET to populate state.
+	attestationType, err := retryReadAfterCreate(ctx,
+		func(ctx context.Context) error { return r.client.CreateCustomAttestationType(ctx, createReq) },
+		func(ctx context.Context) (*client.CustomAttestationType, error) {
+			return r.client.GetCustomAttestationType(ctx, createReq.Name, nil)
+		},
+	)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading Custom Attestation Type After Creation",
-			fmt.Sprintf("Could not read custom attestation type %q after creation: %s", data.Name.ValueString(), err.Error()),
+			fmt.Sprintf("Could not read custom attestation type %q after creation: %s%s",
+				data.Name.ValueString(), err.Error(), renameRaceHint),
 		)
 		return
 	}
