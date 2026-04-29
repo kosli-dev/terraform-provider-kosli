@@ -132,12 +132,23 @@ func (r *customAttestationTypeResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	// Per ADR 002: POST returns "OK", so we must GET to populate state
-	attestationType, err := r.client.GetCustomAttestationType(ctx, data.Name.ValueString(), nil)
+	// Per ADR 002: POST returns "OK", so we must GET to populate state.
+	// We pass nil for the rePut callback because CreateCustomAttestationType
+	// is a POST that allocates a new version on every call — re-issuing it
+	// during a rename-race retry (issue #121) would silently bump the
+	// version counter on the underlying type. The retry still surfaces the
+	// rename-race hint so users know to use `terraform state mv`; full
+	// recovery requires `state mv` or API support for upsert-on-archive.
+	attestationType, err := retryReadAfterCreate(ctx,
+		nil,
+		func(ctx context.Context) (*client.CustomAttestationType, error) {
+			return r.client.GetCustomAttestationType(ctx, createReq.Name, nil)
+		},
+	)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error Reading Custom Attestation Type After Creation",
-			fmt.Sprintf("Could not read custom attestation type %q after creation: %s", data.Name.ValueString(), err.Error()),
+			afterCreateSummary("Custom Attestation Type", err),
+			renameRaceDetail("custom attestation type", createReq.Name, err),
 		)
 		return
 	}

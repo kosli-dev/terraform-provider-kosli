@@ -129,12 +129,25 @@ func (r *flowResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
-	// Per ADR 002: PUT returns "OK", so we must GET to populate state
-	flow, err := r.client.GetFlow(ctx, data.Name.ValueString())
+	// Per ADR 002: PUT returns "OK", so we must GET to populate state.
+	// On 404, re-assert both the create PUT and the tags PATCH so a parallel
+	// destroy of a sibling resource sharing this name (label rename, see
+	// issue #121) can be recovered from in-place.
+	flow, err := retryReadAfterCreate(ctx,
+		func(ctx context.Context) error {
+			if err := r.client.CreateFlow(ctx, createReq); err != nil {
+				return err
+			}
+			return applyTagsAsError(ctx, r.client, createReq.Name, "flow", types.MapNull(types.StringType), data.Tags)
+		},
+		func(ctx context.Context) (*client.Flow, error) {
+			return r.client.GetFlow(ctx, createReq.Name)
+		},
+	)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error Reading Flow After Creation",
-			fmt.Sprintf("Could not read flow %q after creation: %s", data.Name.ValueString(), err.Error()),
+			afterCreateSummary("Flow", err),
+			renameRaceDetail("flow", createReq.Name, err),
 		)
 		return
 	}

@@ -8,6 +8,9 @@ on:
       - 'LICENSE'
       - '*.md'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+
 env:
   KOSLI_API_TOKEN: ${{ secrets.KOSLI_API_TOKEN }}
   KOSLI_ORG: ${{ vars.KOSLI_ORG }}
