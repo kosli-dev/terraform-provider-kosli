@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.2 (April 29, 2026)
+
+IMPROVEMENTS:
+
+* docs: Updated policy schema URL from `kosli.com/schemas/policy/environment/v1` to `docs.kosli.com/schemas/policy/v1` across all examples and documentation [GH-183]
+
+BUG FIXES:
+
+* resource/kosli_environment: Fixed clearing environment description by switching from PUT to PATCH endpoint - empty string descriptions are now correctly applied [GH-186]
+* resource/kosli_logical_environment: Fixed clearing environment description by switching from PUT to PATCH endpoint - empty string descriptions are now correctly applied [GH-186]
+
 ## 0.6.1 (April 21, 2026)
 
 IMPROVEMENTS:
