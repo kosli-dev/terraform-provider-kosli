@@ -8,7 +8,7 @@ BUG FIXES:
 
 NOTES:
 
-* If you are intentionally renaming a Terraform resource label for a Kosli environment (while keeping the same `name`), the recommended workaround is `terraform state mv` to avoid the parallel destroy+create race. Full race-proof behaviour requires a follow-up API change.
+* If you are intentionally renaming a Terraform resource label for a Kosli environment (while keeping the same `name`), the recommended approach is `terraform state mv`.
 
 ## 0.6.2 (April 29, 2026)
 
