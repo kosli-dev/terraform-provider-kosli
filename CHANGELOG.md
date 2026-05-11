@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.4 (May 11, 2026)
+
+IMPROVEMENTS:
+
+* provider: Bumped Go version to 1.26
+
 ## 0.6.3 (April 29, 2026)
 
 BUG FIXES:
