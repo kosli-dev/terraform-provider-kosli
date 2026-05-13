@@ -53,10 +53,10 @@
 **Open "what about" questions:**
 - How does multipart/form-data work with Pact matchers? (relevant for custom_attestation_type create in Step 4)
 
-## Step 3a: Consumer test for GetEnvironment
+## Step 3a: Consumer test for GetEnvironment (consumer side)
 
 **What was built:**
-- Consumer test in `spike/pact/environment_pact_test.go` — exercises `client.GetEnvironment()` against Pact mock server
+- Consumer test in `spike/pact/environment_pact_test.go` — exercises `client.GetEnvironment()` against Pact mock server, generates pact file
 - Pact file updated with real Kosli interaction: `GET /api/v2/environments/{org}/{name}`
 
 **What was observed:**
@@ -70,10 +70,10 @@
 - How to express "this field can be null OR a number" (e.g., `last_reported_at`)? Current contract says it's always a number.
 - The hello-world interaction from Step 1 accumulates in the same pact file. Need separate pact files or cleanup strategy?
 
-## Step 3b/3c: Provider verification against stub
+## Step 3b/3c: Provider verification against stub (provider side)
 
 **What was built:**
-- Provider verification test in `spike/pact/verify_test.go`
+- Provider verification test in `spike/pact/verify_test.go` — replays pact file against a local stub server and checks responses match the contract
 - Local stub HTTP server (`stubKosliAPI()`) mimicking Kosli API responses
 - State handlers for both interactions (no-ops since stub is static)
 
@@ -86,7 +86,7 @@
 
 **Dan's checkpoint decision:** Option 2 (local stub) for verification — keeps spike self-contained, makes deliberate breakage easy to test
 
-## Step 3d: Deliberate breakage — failure message quality
+## Step 3d: Deliberate breakage — failure message quality (provider side)
 
 **What was built:** Nothing permanent — three temporary mutations to the stub server, each reverted.
 
