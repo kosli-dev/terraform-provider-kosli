@@ -69,3 +69,19 @@
 **Open "what about" questions:**
 - How to express "this field can be null OR a number" (e.g., `last_reported_at`)? Current contract says it's always a number.
 - The hello-world interaction from Step 1 accumulates in the same pact file. Need separate pact files or cleanup strategy?
+
+## Step 3b/3c: Provider verification against stub
+
+**What was built:**
+- Provider verification test in `spike/pact/verify_test.go`
+- Local stub HTTP server (`stubKosliAPI()`) mimicking Kosli API responses
+- State handlers for both interactions (no-ops since stub is static)
+
+**What was observed:**
+- Verification passed with different response values than consumer test examples (e.g., different timestamps) — confirms type-based matching works as expected
+- Extra fields in stub response (`org`, `state`, `require_provenance`, `policies`) were ignored by Pact — Postel's Law working correctly
+- State handler called with `setup=true` before and `setup=false` (teardown) after each interaction
+- Verification output is human-readable: lists each interaction, checks status, headers, body, with OK/FAIL per check
+- Pact sends anonymous usage tracking by default (`PACT_DO_NOT_TRACK=true` to disable)
+
+**Dan's checkpoint decision:** Option 2 (local stub) for verification — keeps spike self-contained, makes deliberate breakage easy to test
