@@ -35,3 +35,37 @@
 **Open "what about" questions:**
 - CI setup: every runner needs the FFI library installed + `DYLD_LIBRARY_PATH` (or `LD_LIBRARY_PATH`). What does this cost in CI config maintenance?
 - Developer onboarding: new contributors need `sudo pact-go install` before tests work. How does that sit with the project's current zero-native-deps Go toolchain?
+
+## Step 2: Plugin framework integration check
+
+**What was built:** Nothing — analysis only.
+
+**What was observed:**
+- Three options investigated:
+  - (A) Parallel suite in separate package — pact tests import `pkg/client`, run via `go test ./spike/pact/...`, existing tests untouched
+  - (B) Embed in Terraform `resource.Test` framework — **not viable**. The framework controls the provider lifecycle and HTTP client internally; no hook to inject Pact's mock server.
+  - (C) Replace `httptest` mocks in `pkg/client/` with Pact mocks — technically possible but creates hard dependency on native FFI lib for all client unit tests
+- `custom_attestation_types.go` uses `multipart/form-data` for create, not JSON — potential Pact matcher challenge for Step 4
+- Existing unit tests use `httptest` features (request body inspection, call counting) that Pact doesn't replicate directly
+
+**Dan's checkpoint decision:** Option A — parallel suite. Pact tests as an additive layer alongside existing tests.
+
+**Open "what about" questions:**
+- How does multipart/form-data work with Pact matchers? (relevant for custom_attestation_type create in Step 4)
+
+## Step 3a: Consumer test for GetEnvironment
+
+**What was built:**
+- Consumer test in `spike/pact/environment_pact_test.go` — exercises `client.GetEnvironment()` against Pact mock server
+- Pact file updated with real Kosli interaction: `GET /api/v2/environments/{org}/{name}`
+
+**What was observed:**
+- Key Pact discipline: the contract should only include fields the consumer actually reads. Initial version included `state`, `policies`, `require_provenance`, `org` — none of which `data_source_environment.go` uses. Trimmed to 7 fields: `name`, `type`, `description`, `include_scaling`, `last_modified_at`, `last_reported_at`, `tags`.
+- Pact response matching is liberal (Postel's Law) — extra fields from the provider are allowed and ignored during verification. This means trimming doesn't lose safety, it gains precision.
+- `matchers.EachLike(..., 0)` is not allowed — Pact forces min 1 element in array matchers. Would be a problem for fields like `policies` that can be empty arrays.
+- Path matching with regex works: `matchers.Term(example, regex)` produces both an example for the mock and a regex for verification.
+- Wiring up `pkg/client` to Pact's mock server was straightforward: `client.WithBaseURL(fmt.Sprintf("http://%s:%d", config.Host, config.Port))`
+
+**Open "what about" questions:**
+- How to express "this field can be null OR a number" (e.g., `last_reported_at`)? Current contract says it's always a number.
+- The hello-world interaction from Step 1 accumulates in the same pact file. Need separate pact files or cleanup strategy?

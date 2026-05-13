@@ -24,6 +24,60 @@
         },
         "status": 200
       }
+    },
+    {
+      "description": "a request to get environment production-k8s",
+      "providerState": "environment production-k8s exists",
+      "request": {
+        "matchingRules": {
+          "$.path": {
+            "match": "regex",
+            "regex": "/api/v2/environments/[^/]+/[^/]+"
+          }
+        },
+        "method": "GET",
+        "path": "/api/v2/environments/test-org/production-k8s"
+      },
+      "response": {
+        "body": {
+          "description": "Production Kubernetes cluster",
+          "include_scaling": true,
+          "last_modified_at": 1234567890.123456,
+          "last_reported_at": 1234567891.123456,
+          "name": "production-k8s",
+          "tags": {
+            "env": "prod"
+          },
+          "type": "K8S"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "$.body.description": {
+            "match": "type"
+          },
+          "$.body.include_scaling": {
+            "match": "type"
+          },
+          "$.body.last_modified_at": {
+            "match": "type"
+          },
+          "$.body.last_reported_at": {
+            "match": "type"
+          },
+          "$.body.name": {
+            "match": "type"
+          },
+          "$.body.tags": {
+            "match": "type"
+          },
+          "$.body.type": {
+            "match": "type"
+          }
+        },
+        "status": 200
+      }
     }
   ],
   "metadata": {
