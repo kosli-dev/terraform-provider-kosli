@@ -85,3 +85,23 @@
 - Pact sends anonymous usage tracking by default (`PACT_DO_NOT_TRACK=true` to disable)
 
 **Dan's checkpoint decision:** Option 2 (local stub) for verification — keeps spike self-contained, makes deliberate breakage easy to test
+
+## Step 3d: Deliberate breakage — failure message quality
+
+**What was built:** Nothing permanent — three temporary mutations to the stub server, each reverted.
+
+**What was observed — three failure scenarios tested:**
+
+1. **Wrong type** (`"type": 42` instead of `"K8S"`):
+   - Message: `$.type -> Expected 42 (Integer) to be the same type as 'K8S' (String)`
+   - Verdict: Clear, actionable. Points to exact field and shows both actual and expected types.
+
+2. **Missing field** (`description` removed from response):
+   - Message: `$ -> Actual map is missing the following keys: description`
+   - Verdict: Clear, actionable. Names the missing field.
+
+3. **Wrong status code** (404 instead of 200):
+   - Message: `expected 200 but was 404`
+   - Verdict: Clear, actionable.
+
+**Failure message quality assessment:** All three failures were immediately understandable. The JSONPath notation (`$.type`, `$`) pinpoints the location. No stack traces or internal framework noise — just the mismatch.
