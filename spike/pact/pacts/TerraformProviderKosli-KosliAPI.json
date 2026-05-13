@@ -26,6 +26,122 @@
       }
     },
     {
+      "description": "a request to archive custom attestation type test-coverage",
+      "providerState": "attestation type test-coverage exists",
+      "request": {
+        "matchingRules": {
+          "$.path": {
+            "match": "regex",
+            "regex": "/api/v2/custom-attestation-types/[^/]+/[^/]+/archive"
+          }
+        },
+        "method": "PUT",
+        "path": "/api/v2/custom-attestation-types/test-org/test-coverage/archive"
+      },
+      "response": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a request to create custom attestation type test-coverage",
+      "providerState": "no attestation type named test-coverage exists",
+      "request": {
+        "matchingRules": {
+          "$.path": {
+            "match": "regex",
+            "regex": "/api/v2/custom-attestation-types/[^/]+"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v2/custom-attestation-types/test-org"
+      },
+      "response": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 201
+      }
+    },
+    {
+      "description": "a request to get custom attestation type test-coverage",
+      "providerState": "attestation type test-coverage exists with version 1",
+      "request": {
+        "matchingRules": {
+          "$.path": {
+            "match": "regex",
+            "regex": "/api/v2/custom-attestation-types/[^/]+/[^/]+"
+          }
+        },
+        "method": "GET",
+        "path": "/api/v2/custom-attestation-types/test-org/test-coverage"
+      },
+      "response": {
+        "body": {
+          "archived": false,
+          "description": "Code coverage attestation",
+          "name": "test-coverage",
+          "versions": [
+            {
+              "created_by": "Test User",
+              "evaluator": {
+                "content_type": "jq",
+                "rules": [
+                  ".coverage >= 80"
+                ]
+              },
+              "timestamp": 1700000000.123456,
+              "type_schema": {
+                "properties": {
+                  "coverage": {
+                    "type": "number"
+                  }
+                },
+                "type": "object"
+              },
+              "version": 1
+            }
+          ]
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "$.body.archived": {
+            "match": "type"
+          },
+          "$.body.description": {
+            "match": "type"
+          },
+          "$.body.name": {
+            "match": "type"
+          },
+          "$.body.versions": {
+            "match": "type",
+            "min": 1
+          },
+          "$.body.versions[*].created_by": {
+            "match": "type"
+          },
+          "$.body.versions[*].evaluator": {
+            "match": "type"
+          },
+          "$.body.versions[*].timestamp": {
+            "match": "type"
+          },
+          "$.body.versions[*].type_schema": {
+            "match": "type"
+          },
+          "$.body.versions[*].version": {
+            "match": "type"
+          }
+        },
+        "status": 200
+      }
+    },
+    {
       "description": "a request to get environment production-k8s",
       "providerState": "environment production-k8s exists",
       "request": {

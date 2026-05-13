@@ -105,3 +105,30 @@
    - Verdict: Clear, actionable.
 
 **Failure message quality assessment:** All three failures were immediately understandable. The JSONPath notation (`$.type`, `$`) pinpoints the location. No stack traces or internal framework noise — just the mismatch.
+
+## Step 4: Custom attestation type CRUD lifecycle
+
+### Step 4a-4e: Consumer tests + provider verification (consumer + provider side)
+
+**What was built:**
+- Consumer tests in `spike/pact/custom_attestation_type_pact_test.go` for create (POST), read (GET), delete/archive (PUT)
+- Updated stub server and state handlers in `spike/pact/verify_test.go` for all three interactions
+- Update (POST creating new version) skipped as a separate test — uses same endpoint/shape as create
+
+**Authoring time per interaction:**
+- Create: ~10 min (multipart issue discovery + workaround)
+- Read: ~5 min (pattern established)
+- Delete: ~3 min (simplest — no request body, no response body to match)
+- Verification stub additions: ~5 min
+
+**What was observed:**
+- **Multipart/form-data limitation:** `CreateCustomAttestationType` uses `multipart/form-data`, which Pact V2 can't match on the request body. Consumer test only verifies method, path, and response status/headers. The request body shape is not captured in the contract.
+- **Client bypass of doRequest():** `CreateCustomAttestationType` builds its own `http.Request` and calls `c.httpClient.Do()` directly, bypassing retry, auth header, and error handling in `doRequest()`. Should be refactored independently of Pact.
+- **JSON string response body:** The API returns `"OK"` (a bare JSON string) for create/archive. Pact's `JSONBody("OK")` base64-encoded this during verification (`T0s=`), causing a mismatch. Workaround: skip body matching for these responses since the consumer doesn't read them.
+- **Nested response structure:** The read response has a `versions` array with nested `type_schema` and `evaluator`. `matchers.EachLike` with nested `matchers.Like` handled this cleanly. The contract reflects the API shape, not the client's transformed shape.
+- **State handler count growing:** 6 state handlers now (2 from Step 1/3, 4 new). With a real API these would each need setup/teardown logic. Provider state code volume is directly proportional to interaction count.
+
+**Open "what about" questions:**
+- Multipart/form-data means ~50% of CRUD interactions for this resource have no request body contract. Is that acceptable?
+- `JSONBody` with string literals causes base64 encoding issues. Is this a pact-go bug or expected behavior for non-object bodies?
+- Provider state handler count scales linearly with interactions. For full provider coverage (~30+ endpoints), that's significant plumbing.

@@ -2,7 +2,6 @@ package pact_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -36,6 +35,45 @@ func stubKosliAPI() *httptest.Server {
 			"require_provenance": false,
 			"policies":          []any{},
 		})
+	})
+
+	// POST /api/v2/custom-attestation-types/{org} (create)
+	// GET /api/v2/custom-attestation-types/{org}/{name} (read)
+	// PUT /api/v2/custom-attestation-types/{org}/{name}/archive (delete/archive)
+	mux.HandleFunc("/api/v2/custom-attestation-types/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method {
+		case http.MethodPost:
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode("OK")
+		case http.MethodGet:
+			json.NewEncoder(w).Encode(map[string]any{
+				"name":        "test-coverage",
+				"description": "Code coverage attestation",
+				"archived":    false,
+				"org":         "test-org",
+				"versions": []map[string]any{
+					{
+						"version":   1,
+						"timestamp": 1700000000.123456,
+						"type_schema": map[string]any{
+							"type": "object",
+							"properties": map[string]any{
+								"coverage": map[string]any{"type": "number"},
+							},
+						},
+						"evaluator": map[string]any{
+							"content_type": "jq",
+							"rules":        []string{".coverage >= 80"},
+						},
+						"created_by": "Test User",
+					},
+				},
+			})
+		case http.MethodPut:
+			// Archive endpoint
+			json.NewEncoder(w).Encode("OK")
+		}
 	})
 
 	// Hello world endpoint from Step 1
@@ -78,8 +116,15 @@ func TestVerifyProvider(t *testing.T) {
 				return nil, nil
 			},
 			"environment production-k8s exists": func(setup bool, s models.ProviderState) (models.ProviderStateResponse, error) {
-				// Stub server always returns this environment — no setup needed
-				fmt.Printf("  State handler called: %q (setup=%v)\n", s.Name, setup)
+				return nil, nil
+			},
+			"no attestation type named test-coverage exists": func(setup bool, s models.ProviderState) (models.ProviderStateResponse, error) {
+				return nil, nil
+			},
+			"attestation type test-coverage exists with version 1": func(setup bool, s models.ProviderState) (models.ProviderStateResponse, error) {
+				return nil, nil
+			},
+			"attestation type test-coverage exists": func(setup bool, s models.ProviderState) (models.ProviderStateResponse, error) {
 				return nil, nil
 			},
 		},
