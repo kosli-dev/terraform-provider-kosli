@@ -140,7 +140,7 @@
 If each language has its own Kosli Client SDK, the pact sits between the SDK and the API — not between the end consumer and the API. The SDK is where HTTP happens.
 
 ```
-Terraform Provider ─┐
+Terraform Provider ──┐
                      ├─→ Go SDK (pkg/client) ──→ Kosli API
 CLI ─────────────────┘
 
