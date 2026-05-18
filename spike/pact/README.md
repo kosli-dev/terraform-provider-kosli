@@ -132,3 +132,45 @@
 - Multipart/form-data means ~50% of CRUD interactions for this resource have no request body contract. Is that acceptable?
 - `JSONBody` with string literals causes base64 encoding issues. Is this a pact-go bug or expected behavior for non-object bodies?
 - Provider state handler count scales linearly with interactions. For full provider coverage (~30+ endpoints), that's significant plumbing.
+
+### Step 4f: Generalization sniff-test
+
+**The contract boundary with SDKs:**
+
+If each language has its own Kosli Client SDK, the pact sits between the SDK and the API — not between the end consumer and the API. The SDK is where HTTP happens.
+
+```
+Terraform Provider ─┐
+                     ├─→ Go SDK (pkg/client) ──→ Kosli API
+CLI ─────────────────┘
+
+Backstage plugin ────┐
+                     ├─→ TypeScript SDK ────────→ Kosli API
+MCP server ──────────┘
+```
+
+Each SDK is a Pact consumer. Provider state handlers also live at the SDK level — the SDK pact tests set up and tear down API state, not the end consumers.
+
+| Pact consumer | Pact provider | Pact file |
+|--------------|---------------|-----------|
+| `KosliGoSDK` | `KosliAPI` | `KosliGoSDK-KosliAPI.json` |
+| `KosliTypeScriptSDK` | `KosliAPI` | `KosliTypeScriptSDK-KosliAPI.json` |
+
+**What reuses across consumers, and what doesn't:**
+
+| Artifact | Shared? | Notes |
+|----------|---------|-------|
+| Pact file format | Yes | JSON, language-neutral |
+| Provider name (`KosliAPI`) | Yes | All SDKs talk to same provider |
+| Provider verification infra | Yes | Runs once per SDK pact, not per end consumer |
+| Provider state handlers | Per SDK | SDK pact tests own the state setup, not end consumers |
+| SDK pact test code | Per SDK | Go SDK writes Go tests, TS SDK writes TS tests |
+| Native Pact library dependency | Per SDK | pact-go, pact-js, etc. each have their own FFI story |
+
+**Amortization picture:**
+- The Go SDK pact covers *all* Go consumers (Terraform provider + CLI) with one contract
+- The TypeScript SDK pact covers *all* TS consumers (Backstage + MCP server) with one contract
+- 2 pact files instead of 4+ (one per SDK, not one per end consumer)
+- Provider verification runs twice, not four+ times
+- The SDK pact is comprehensive — covers every API method the SDK exposes, since any consumer might use any of them
+- End consumers don't write pact tests. They trust the SDK.
