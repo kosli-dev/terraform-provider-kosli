@@ -123,7 +123,7 @@
 
 **What was observed:**
 - **Multipart/form-data limitation:** `CreateCustomAttestationType` uses `multipart/form-data`, which Pact V2 can't match on the request body. Consumer test only verifies method, path, and response status/headers. The request body shape is not captured in the contract.
-- **Client bypass of doRequest():** `CreateCustomAttestationType` builds its own `http.Request` and calls `c.httpClient.Do()` directly, bypassing retry, auth header, and error handling in `doRequest()`. Should be refactored independently of Pact.
+- **Client bypass of doRequest():** `CreateCustomAttestationType` builds its own `http.Request` and calls `c.httpClient.Do()` directly, bypassing retry, auth header, and error handling in `doRequest()`. Should be refactored independently of Pact. Tracked in kosli-dev/terraform-provider-kosli#198.
 - **JSON string response body:** The API returns `"OK"` (a bare JSON string) for create/archive. Pact's `JSONBody("OK")` base64-encoded this during verification (`T0s=`), causing a mismatch. Workaround: skip body matching for these responses since the consumer doesn't read them.
 - **Nested response structure:** The read response has a `versions` array with nested `type_schema` and `evaluator`. `matchers.EachLike` with nested `matchers.Like` handled this cleanly. The contract reflects the API shape, not the client's transformed shape.
 - **State handler count growing:** 6 state handlers now (2 from Step 1/3, 4 new). With a real API these would each need setup/teardown logic. Provider state code volume is directly proportional to interaction count.
