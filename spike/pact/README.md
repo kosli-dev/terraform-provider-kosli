@@ -174,3 +174,35 @@ Each SDK is a Pact consumer. Provider state handlers also live at the SDK level 
 - Provider verification runs twice, not four+ times
 - The SDK pact is comprehensive — covers every API method the SDK exposes, since any consumer might use any of them
 - End consumers don't write pact tests. They trust the SDK.
+
+## Step 5: Dependent resource cost estimate (logical environment)
+
+**What was built:** Nothing — estimate only.
+
+**What would be needed for `kosli_logical_environment` create:**
+- The logical environment uses the same client methods as physical environment (`CreateEnvironment`, `GetEnvironment`, `UpdateEnvironment`, `ArchiveEnvironment`)
+- But it has a dependency: `included_environments` is a list of physical environment names that must already exist
+
+**Provider state count:**
+
+| Interaction | Provider state | Preconditions |
+|---|---|---|
+| Create | physical env exists, no logical env exists | 1 physical env |
+| Read | logical env exists with included environments | 1 logical env (needs 1+ physical) |
+| Update | logical env exists, multiple physical envs exist | 1 logical env + 2 physical envs |
+| Delete | logical env exists | 1 logical env |
+
+4 interactions, 4 state handlers, each needing precondition setup.
+
+**Cost comparison against resource 2 (custom attestation type):**
+
+| | Custom attestation type | Logical environment |
+|---|---|---|
+| Interactions | 3 | 4 |
+| State handlers | 3 (self-contained) | 4 (each needs precondition setup) |
+| Precondition depth | 0 | 1 (physical envs first) |
+| State setup (real API, est.) | ~15 lines | ~30 lines |
+| Multipart issue | Yes (create) | No (all JSON) |
+| New consumer test code (est.) | ~90 lines | ~120 lines |
+
+**Is cost linear in dependency count?** The pact test code itself is roughly linear — same pattern, one more interaction. But provider state complexity grows worse than linear: each dependency adds a setup layer. A resource with 2 dependencies needs 3 layers of sequential state setup. With a real API that's real API calls in sequence, with error handling and teardown for each layer.
