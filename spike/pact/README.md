@@ -210,3 +210,21 @@ Each SDK is a Pact consumer. Provider state handlers also live at the SDK level 
 **Contrast with existing acceptance tests:** The existing acceptance tests in `resource_logical_environment_acc_test.go` handle the dependency setup for free — the HCL config declares both the physical environments and the logical environment, and Terraform's dependency graph creates them in the right order automatically. Every test config helper (e.g., `testAccLogicalEnvironmentResourceConfigBasic`) includes the prerequisite `kosli_environment` resources inline.
 
 With Pact, we're testing at the HTTP client level, so there's no dependency graph. Provider state handlers must manually orchestrate the same ordering: create physical envs first, then create the logical env, then clean up in reverse order. This is work the acceptance test framework already does for us. The more resource dependencies we have, the wider this cost gap becomes.
+
+## Step 6: Cross-language relevance check
+
+**Are any matchers Go-specific?**
+
+No. The pact file uses only standard Pact V2 matchers: `"match": "type"` and `"match": "regex"`. The metadata mentions `pact-go` and `pactRust`, but that's informational — it doesn't affect matching. A pact-js or pact-python consumer generates the identical matcher format.
+
+**Are field names and shapes language-neutral?**
+
+Yes. Response bodies use snake_case field names from the Kosli API (`include_scaling`, `last_modified_at`, `type_schema`), standard JSON types, and no Go-specific serialization artifacts. A TypeScript SDK consuming the same API would see identical fields and shapes.
+
+**Would the provider state machinery be reusable?**
+
+Two layers:
+- **State strings** (`"environment production-k8s exists"`) — plain English, language-neutral, shareable across SDKs. If multiple SDKs use consistent state names, the provider verification side handles them all with one set of handlers.
+- **State handler code** — not shareable as-is. Our Go handlers in `verify_test.go` are Go functions. But in a real Pact setup, state handlers belong on the **provider side** (written by the API team in whatever language the API uses). The API team writes one set of handlers, and all SDK consumers reference the same state strings. No per-SDK duplication on the provider side.
+
+**Bottom line for cross-language:** The pact files are fully portable. The contract format doesn't care what language generated it. The reusability bottleneck is not the pact files — it's the per-SDK native library dependency (pact-go, pact-js each have their own FFI/native story) and the per-SDK consumer test code.
