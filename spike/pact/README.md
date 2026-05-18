@@ -206,3 +206,7 @@ Each SDK is a Pact consumer. Provider state handlers also live at the SDK level 
 | New consumer test code (est.) | ~90 lines | ~120 lines |
 
 **Is cost linear in dependency count?** The pact test code itself is roughly linear — same pattern, one more interaction. But provider state complexity grows worse than linear: each dependency adds a setup layer. A resource with 2 dependencies needs 3 layers of sequential state setup. With a real API that's real API calls in sequence, with error handling and teardown for each layer.
+
+**Contrast with existing acceptance tests:** The existing acceptance tests in `resource_logical_environment_acc_test.go` handle the dependency setup for free — the HCL config declares both the physical environments and the logical environment, and Terraform's dependency graph creates them in the right order automatically. Every test config helper (e.g., `testAccLogicalEnvironmentResourceConfigBasic`) includes the prerequisite `kosli_environment` resources inline.
+
+With Pact, you're testing at the HTTP client level, so there's no dependency graph. Provider state handlers must manually orchestrate the same ordering: create physical envs first, then create the logical env, then clean up in reverse order. This is work the acceptance test framework already does for you. The more resource dependencies you have, the wider this cost gap becomes.
