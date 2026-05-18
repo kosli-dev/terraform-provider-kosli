@@ -124,3 +124,43 @@ What the spike showed:
 - **The provider verification side is shared.** The API team writes state handlers once, all SDKs reference the same state strings.
 - **The per-SDK cost is not shared.** Each SDK needs its own native Pact library, its own consumer tests, its own CI setup with FFI library installation.
 - **Full contract safety requires real API verification**, which is the most expensive mode (state handler plumbing). Stub-only verification documents shapes but doesn't prove the real API matches.
+
+### Key risks and open questions
+
+**1. Will the API provider side actually pick up Pact?**
+
+Contract testing is a two-sided investment. The consumer side (SDK pact tests) only generates pact files — JSON documents that describe expected behavior. Those files are inert unless the provider side runs verification against them. If the API team doesn't run verification in their CI pipeline, the contracts are never checked against reality, and the entire system provides no more safety than the stub-based verification we built in this spike.
+
+This is the largest adoption risk. It requires:
+- The API team agreeing to run `pact verify` in their CI
+- State handlers written in the API's language/framework
+- A process for handling verification failures (who fixes what, and when)
+
+Without provider-side buy-in, Pact reduces to documentation with extra steps.
+
+**2. Pact Broker: setup and buy vs. build**
+
+The pact files need to get from the consumer CI to the provider CI somehow. The Pact Broker is the standard mechanism — it stores pact files, tracks verification results, and enables "can I deploy?" checks.
+
+Options:
+- **PactFlow (SaaS)** — hosted Pact Broker by the Pact team. Paid service, zero infrastructure. Simplest path.
+- **Self-hosted Pact Broker** — open-source Docker image. Needs a database (Postgres), hosting, and maintenance.
+- **No broker** — commit pact files to a shared repo or artifact store. Loses the verification tracking and "can I deploy?" workflow, but avoids the infrastructure. This is roughly what our spike did (pact files on disk).
+
+The broker is not optional for the full Pact workflow across teams. Without it, there's no mechanism for the provider CI to know which pact files to verify, or for the consumer CI to know whether the provider has verified its latest contract.
+
+**3. What do we gain, and what does the ROI look like?**
+
+What Pact catches that nothing else does:
+- **API removes or renames a field the SDK depends on.** Unit tests pass (they mock the old shape). Acceptance tests may not cover the specific field. Pact verification fails on the provider side before the change ships.
+- **API changes a field's type** (e.g., string to number, or non-null to nullable). Same story — caught at contract level.
+- **A new SDK consumer starts using an endpoint differently** than the existing consumers. The new pact file makes the dependency explicit and verifiable.
+
+What Pact does not catch:
+- Business logic bugs, data persistence issues, authorization problems, race conditions, or anything that requires the API to actually process data correctly.
+
+ROI framing:
+- **Cost:** ~2-3 hours authoring per SDK, native library dependency per SDK, Pact Broker infrastructure, API team buy-in and state handler maintenance, ongoing maintenance as the API evolves.
+- **Benefit:** Early detection of breaking API changes across SDK boundaries. The value scales with: (a) how often the API changes response shapes, (b) how many SDKs consume the API, and (c) how painful a shape-mismatch bug is to debug in production vs. catching it in CI.
+
+If the API is stable and changes infrequently, the ROI is low — the contracts rarely catch anything, but the maintenance cost persists. If the API is evolving rapidly with multiple SDK consumers, the ROI improves because the contracts catch drift that would otherwise surface as runtime bugs across multiple codebases.
