@@ -28,7 +28,7 @@
 - pact-go v2 is a Go wrapper around a Rust FFI library (`libpact_ffi.dylib`, 13MB native binary). Not pure Go.
 - `pact-go install` requires write access to `/usr/local/lib` (needed `sudo` on macOS)
 - Even after install, `DYLD_LIBRARY_PATH=/usr/local/lib` is required at runtime — macOS `dyld` doesn't search `/usr/local/lib` by default (post-Big Sur security change). Linux would need equivalent `LD_LIBRARY_PATH`.
-- The pact-go v2 API is fluent/builder-style (not error-returning) — minor surprise if you're used to Go conventions
+- The pact-go v2 API is fluent/builder-style (not error-returning) — minor surprise if we're used to Go conventions
 - Cosmetic logger warning on every run (`can't set logger`) — harmless but noisy
 - The generated pact file is readable JSON: consumer/provider names, interactions with request/response, matchingRules, metadata
 
@@ -209,4 +209,4 @@ Each SDK is a Pact consumer. Provider state handlers also live at the SDK level 
 
 **Contrast with existing acceptance tests:** The existing acceptance tests in `resource_logical_environment_acc_test.go` handle the dependency setup for free — the HCL config declares both the physical environments and the logical environment, and Terraform's dependency graph creates them in the right order automatically. Every test config helper (e.g., `testAccLogicalEnvironmentResourceConfigBasic`) includes the prerequisite `kosli_environment` resources inline.
 
-With Pact, you're testing at the HTTP client level, so there's no dependency graph. Provider state handlers must manually orchestrate the same ordering: create physical envs first, then create the logical env, then clean up in reverse order. This is work the acceptance test framework already does for you. The more resource dependencies you have, the wider this cost gap becomes.
+With Pact, we're testing at the HTTP client level, so there's no dependency graph. Provider state handlers must manually orchestrate the same ordering: create physical envs first, then create the logical env, then clean up in reverse order. This is work the acceptance test framework already does for us. The more resource dependencies we have, the wider this cost gap becomes.
