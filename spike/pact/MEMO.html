@@ -311,7 +311,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   border: 1px solid rgba(69,162,109,0.25);
 }
 .arch-arrow {
-  color: rgba(255,255,255,0.25);
+  color: #EFB83F;
   font-family: 'Roboto Mono', monospace;
   font-size: 13px;
   padding: 0 12px;
@@ -326,10 +326,11 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
 .arch-label {
   font-family: 'Roboto Mono', monospace;
   font-size: 11px;
-  color: rgba(255,255,255,0.3);
+  color: #EFB83F;
   text-align: center;
   margin-top: 16px;
   letter-spacing: 0.05em;
+  opacity: 0.8;
 }
 
 /* Failure messages */
@@ -369,35 +370,57 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   list-style: none;
   padding: 0;
   counter-reset: wa;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 .what-about li {
   counter-increment: wa;
-  padding: 14px 18px 14px 52px;
+  padding: 18px 20px 18px 56px;
   border: 1px solid var(--kosli-border);
-  border-radius: 8px;
-  margin-bottom: 8px;
+  border-radius: 10px;
   background: #fff;
   font-size: 14px;
   color: var(--kosli-text-secondary);
   position: relative;
+  line-height: 1.5;
+  transition: box-shadow 0.15s;
+}
+.what-about li:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 .what-about li::before {
   content: counter(wa);
   position: absolute;
-  left: 16px;
-  top: 14px;
+  left: 18px;
+  top: 18px;
   font-family: 'Montserrat', sans-serif;
   font-size: 13px;
   font-weight: 700;
   color: var(--kosli-blue);
   background: var(--kosli-blue-light);
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+.what-about-tag {
+  display: inline-block;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+.what-about-tag.ci { background: var(--kosli-blue-light); color: var(--kosli-blue); }
+.what-about-tag.dx { background: var(--kosli-green-light); color: var(--kosli-green-dark); }
+.what-about-tag.pact { background: var(--kosli-yellow-light); color: var(--kosli-yellow-dark); }
+.what-about-tag.code { background: var(--kosli-red-light); color: var(--kosli-red-dark); }
 
 /* ─── Dashboard (Section 8) ─── */
 .dash-grid {
@@ -689,7 +712,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.35);
+  color: rgba(255,255,255,0.55);
   text-align: center;
   margin-bottom: 8px;
 }
@@ -736,7 +759,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
 .flow-arrow {
   font-family: 'Roboto Mono', monospace;
   font-size: 11px;
-  color: rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.55);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -754,17 +777,17 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   right: 0;
   top: -3px;
   border: 4px solid transparent;
-  border-left-color: rgba(255,255,255,0.2);
+  border-left-color: rgba(255,255,255,0.5);
 }
 .flow-arrow-line.left::after {
   right: auto;
   left: 0;
   border-left-color: transparent;
-  border-right-color: rgba(255,255,255,0.2);
+  border-right-color: rgba(255,255,255,0.5);
 }
 .flow-section-divider {
   grid-column: 1 / -1;
-  border-top: 1px dashed rgba(255,255,255,0.08);
+  border-top: 1px dashed rgba(255,255,255,0.2);
   margin: 16px 0;
 }
 .flow-section-label {
@@ -773,7 +796,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.5);
   text-align: center;
   margin-bottom: 12px;
 }
@@ -842,7 +865,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     </div>
 
     <div class="flow-lanes" style="margin-bottom: 0;">
-      <div class="flow-lane-label" style="color: rgba(255,255,255,0.15); font-size: 9px; margin-bottom: 4px;">PHASE 1: GENERATE CONTRACT</div>
+      <div class="flow-lane-label" style="color: rgba(255,255,255,0.5); font-size: 9px; margin-bottom: 4px;">PHASE 1: GENERATE CONTRACT</div>
       <div></div>
       <div></div>
     </div>
@@ -867,7 +890,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     </div>
 
     <div style="text-align: center; margin: 12px 0 4px;">
-      <div style="color: rgba(255,255,255,0.2); font-size: 18px;">&#8595;</div>
+      <div style="color: rgba(255,255,255,0.5); font-size: 18px;">&#8595;</div>
     </div>
 
     <div style="display: flex; justify-content: center; margin-bottom: 4px;">
@@ -875,7 +898,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     </div>
 
     <div style="text-align: center; margin: 4px 0;">
-      <div style="color: rgba(255,255,255,0.2); font-size: 18px;">&#8595;</div>
+      <div style="color: rgba(255,255,255,0.5); font-size: 18px;">&#8595;</div>
     </div>
 
     <div style="display: flex; justify-content: center; margin-bottom: 4px;">
@@ -883,7 +906,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     </div>
 
     <div style="text-align: center; margin: 4px 0;">
-      <div style="color: rgba(255,255,255,0.2); font-size: 18px;">&#8595;</div>
+      <div style="color: rgba(255,255,255,0.5); font-size: 18px;">&#8595;</div>
     </div>
 
     <div class="flow-section-divider"></div>
@@ -891,7 +914,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     <div class="flow-lanes" style="margin-bottom: 0;">
       <div></div>
       <div></div>
-      <div class="flow-lane-label" style="color: rgba(255,255,255,0.15); font-size: 9px; margin-bottom: 4px;">PHASE 2: VERIFY CONTRACT</div>
+      <div class="flow-lane-label" style="color: rgba(255,255,255,0.5); font-size: 9px; margin-bottom: 4px;">PHASE 2: VERIFY CONTRACT</div>
     </div>
 
     <div class="flow-lanes">
@@ -916,7 +939,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     <div class="flow-lanes" style="margin-top: 12px;">
       <div></div>
       <div style="text-align: center;">
-        <div style="color: rgba(255,255,255,0.2); font-size: 18px;">&#8595;</div>
+        <div style="color: rgba(255,255,255,0.5); font-size: 18px;">&#8595;</div>
       </div>
       <div></div>
     </div>
@@ -1016,7 +1039,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   <div class="arch" style="padding: 28px 24px;">
     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
       <div style="text-align: center;">
-        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 10px;">Unit tests</div>
+        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 10px;">Unit tests</div>
         <div class="flow-node flow-node-sdk" style="margin-bottom: 12px;">pkg/client<br><span style="font-size: 11px; opacity: 0.6;">httptest mocks</span></div>
         <div style="font-size: 12px; color: rgba(255,255,255,0.45); line-height: 1.4;">Does the client<br>parse responses<br>correctly?</div>
       </div>
@@ -1026,7 +1049,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
         <div style="font-size: 12px; color: rgba(255,255,255,0.45); line-height: 1.4;">Do the client and<br>API agree on<br>response shapes?</div>
       </div>
       <div style="text-align: center;">
-        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 10px;">Acceptance tests</div>
+        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 10px;">Acceptance tests</div>
         <div class="flow-node flow-node-api" style="margin-bottom: 12px;">resource.Test<br><span style="font-size: 11px; opacity: 0.6;">real Terraform + API</span></div>
         <div style="font-size: 12px; color: rgba(255,255,255,0.45); line-height: 1.4;">Does the full<br>Terraform lifecycle<br>work end-to-end?</div>
       </div>
@@ -1076,57 +1099,57 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
 
       <!-- Trigger -->
       <div style="text-align: center; flex-shrink: 0;">
-        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 6px;">Trigger</div>
+        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 6px;">Trigger</div>
         <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: rgba(255,255,255,0.5); font-weight: 500;">Push / PR</div>
       </div>
 
-      <div style="color: rgba(255,255,255,0.2); padding: 0 8px; font-size: 16px; margin-top: 16px;">&rarr;</div>
+      <div style="color: rgba(255,255,255,0.5); padding: 0 8px; font-size: 16px; margin-top: 16px;">&rarr;</div>
 
       <!-- Stage 1 -->
       <div style="text-align: center; flex-shrink: 0;">
-        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 6px;">~5s</div>
+        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 6px;">~5s</div>
         <div style="background: rgba(69,162,109,0.15); border: 1px solid rgba(69,162,109,0.25); border-radius: 8px; padding: 10px 14px;">
           <div style="font-size: 12px; color: #A0D8B8; font-weight: 600;">Unit tests</div>
-          <div style="font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 2px;">go test ./pkg/client/...</div>
+          <div style="font-size: 10px; color: rgba(255,255,255,0.55); margin-top: 2px;">go test ./pkg/client/...</div>
         </div>
       </div>
 
-      <div style="color: rgba(255,255,255,0.2); padding: 0 8px; font-size: 16px; margin-top: 16px;">&rarr;</div>
+      <div style="color: rgba(255,255,255,0.5); padding: 0 8px; font-size: 16px; margin-top: 16px;">&rarr;</div>
 
       <!-- Stage 2 -->
       <div style="text-align: center; flex-shrink: 0;">
         <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--kosli-yellow); margin-bottom: 6px;">~10s</div>
         <div style="background: rgba(239,184,63,0.12); border: 1px solid rgba(239,184,63,0.25); border-radius: 8px; padding: 10px 14px;">
           <div style="font-size: 12px; color: #EFB83F; font-weight: 600;">Contract tests</div>
-          <div style="font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 2px;">go test ./pact/...</div>
+          <div style="font-size: 10px; color: rgba(255,255,255,0.55); margin-top: 2px;">go test ./pact/...</div>
         </div>
       </div>
 
-      <div style="color: rgba(255,255,255,0.2); padding: 0 8px; font-size: 16px; margin-top: 16px;">&rarr;</div>
+      <div style="color: rgba(255,255,255,0.5); padding: 0 8px; font-size: 16px; margin-top: 16px;">&rarr;</div>
 
       <!-- Stage 3 -->
       <div style="text-align: center; flex-shrink: 0;">
-        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 6px;">~15 min</div>
+        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 6px;">~15 min</div>
         <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px;">
           <div style="font-size: 12px; color: rgba(255,255,255,0.5); font-weight: 600;">E2E / acceptance</div>
-          <div style="font-size: 10px; color: rgba(255,255,255,0.25); margin-top: 2px;">TF_ACC=1 go test ...</div>
+          <div style="font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px;">TF_ACC=1 go test ...</div>
         </div>
       </div>
 
-      <div style="color: rgba(255,255,255,0.2); padding: 0 8px; font-size: 16px; margin-top: 16px;">&rarr;</div>
+      <div style="color: rgba(255,255,255,0.5); padding: 0 8px; font-size: 16px; margin-top: 16px;">&rarr;</div>
 
       <!-- Deploy -->
       <div style="text-align: center; flex-shrink: 0;">
-        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 6px;">&nbsp;</div>
+        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 6px;">&nbsp;</div>
         <div style="background: rgba(28,75,198,0.2); border: 1px solid rgba(28,75,198,0.3); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--kosli-blue-300); font-weight: 600;">Deploy</div>
       </div>
 
     </div>
 
-    <div style="display: flex; align-items: flex-start; margin-top: 16px; padding-top: 14px; border-top: 1px dashed rgba(255,255,255,0.08);">
+    <div style="display: flex; align-items: flex-start; margin-top: 16px; padding-top: 14px; border-top: 1px dashed rgba(255,255,255,0.2);">
       <div style="flex: 1;">
-        <div style="font-size: 11px; color: rgba(255,255,255,0.25); font-family: 'Roboto Mono', monospace;">Integration drift caught here &uarr;</div>
-        <div style="font-size: 11px; color: rgba(255,255,255,0.15); font-family: 'Roboto Mono', monospace; margin-top: 2px;">Not 15 min later in e2e &rarr;</div>
+        <div style="font-size: 11px; color: rgba(255,255,255,0.5); font-family: 'Roboto Mono', monospace;">Integration drift caught here &uarr;</div>
+        <div style="font-size: 11px; color: rgba(255,255,255,0.5); font-family: 'Roboto Mono', monospace; margin-top: 2px;">Not 15 min later in e2e &rarr;</div>
       </div>
     </div>
   </div>
@@ -1171,25 +1194,16 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   <p>Without a shared SDK, every consumer talks to the API directly and needs its own pact tests. The same API interactions get tested repeatedly across consumers &mdash; violating DRY and multiplying maintenance:</p>
 
   <div class="arch">
-    <div class="arch-row">
-      <div class="arch-box arch-consumer">Terraform Provider</div>
+    <div style="display: grid; grid-template-columns: 160px auto 160px; gap: 8px 0; align-items: center; justify-items: center;">
+      <div class="arch-box arch-consumer" style="width: 100%;">Terraform Provider</div>
       <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
-      <div class="arch-box arch-api" style="grid-row: span 4;">Kosli API</div>
-    </div>
-    <div class="arch-row">
-      <div class="arch-box arch-consumer">CLI</div>
+      <div class="arch-box arch-api" style="width: 100%; grid-row: 1 / span 4;">Kosli API</div>
+      <div class="arch-box arch-consumer" style="width: 100%;">CLI</div>
       <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
-      <div class="arch-box arch-api">Kosli API</div>
-    </div>
-    <div class="arch-row">
-      <div class="arch-box arch-consumer">Backstage plugin</div>
+      <div class="arch-box arch-consumer" style="width: 100%;">Backstage plugin</div>
       <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
-      <div class="arch-box arch-api">Kosli API</div>
-    </div>
-    <div class="arch-row">
-      <div class="arch-box arch-consumer">MCP server</div>
+      <div class="arch-box arch-consumer" style="width: 100%;">MCP server</div>
       <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
-      <div class="arch-box arch-api">Kosli API</div>
     </div>
     <div class="arch-label">4 separate pact suites &middot; duplicated contract tests &middot; each consumer maintains its own HTTP client code</div>
   </div>
@@ -1354,15 +1368,37 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
 <!-- Tab: What about -->
 <div class="tab-panel" id="tab-whatabout">
   <h2>Section 7</h2>
-  <h3>The "what about" list</h3>
+  <h3>Open questions</h3>
+  <p>Issues surfaced during the spike that would need answers before production adoption:</p>
   <ol class="what-about">
-    <li>CI setup: every Linux runner needs the FFI library installed (<code>wget</code> + copy to <code>/usr/local/lib</code>). No official GitHub Action exists. Local dev on macOS additionally requires <code>DYLD_LIBRARY_PATH</code>.</li>
-    <li>Developer onboarding: <code>sudo pact-go install</code> required. How does that sit with the current zero-native-deps Go toolchain?</li>
-    <li>Nullable types: how to express "null OR number" (e.g., <code>last_reported_at</code>)? Pact V2 doesn't support union types. <a href="https://github.com/pact-foundation/pact-specification/tree/version-3">V3 adds a null matcher and OR combinator</a>.</li>
-    <li><code>matchers.EachLike(..., 0)</code> not allowed &mdash; Pact forces <a href="https://github.com/pact-foundation/pact-go/blob/master/docs/consumer.md">min 1 element</a>. Problem for fields like <code>policies</code> that can be empty arrays.</li>
-    <li>Multipart/form-data can't be matched on request body in Pact V2. <a href="https://github.com/pact-foundation/pact-go/blob/master/docs/consumer.md">V3+ adds multipart support</a> via the Rust FFI. ~50% of CRUD interactions for custom attestation type have no request body contract.</li>
-    <li><code>CreateCustomAttestationType</code> bypasses <code>doRequest()</code> &mdash; should be refactored. Tracked in <a href="https://github.com/kosli-dev/terraform-provider-kosli/issues/198">#198</a>.</li>
-    <li>Provider state handler count scales linearly. For ~30+ endpoints, that's significant plumbing.</li>
+    <li>
+      <div class="what-about-tag ci">CI / Infrastructure</div><br>
+      <strong>CI runner setup:</strong> Every Linux runner needs the FFI library installed (<code>wget</code> + copy to <code>/usr/local/lib</code>). No official GitHub Action exists. Local dev on macOS additionally requires <code>DYLD_LIBRARY_PATH</code>.
+    </li>
+    <li>
+      <div class="what-about-tag dx">Developer experience</div><br>
+      <strong>Onboarding friction:</strong> <code>sudo pact-go install</code> required for local development. This adds a native dependency to what is currently a zero-native-deps Go toolchain.
+    </li>
+    <li>
+      <div class="what-about-tag pact">Pact limitation</div><br>
+      <strong>Nullable types:</strong> How to express "null OR number" (e.g., <code>last_reported_at</code>)? Pact V2 doesn't support union types. <a href="https://github.com/pact-foundation/pact-specification/tree/version-3">V3 adds a null matcher and OR combinator</a>.
+    </li>
+    <li>
+      <div class="what-about-tag pact">Pact limitation</div><br>
+      <strong>Empty arrays:</strong> <code>matchers.EachLike(..., 0)</code> not allowed &mdash; Pact forces <a href="https://github.com/pact-foundation/pact-go/blob/master/docs/consumer.md">min 1 element</a>. Problem for fields like <code>policies</code> that can legitimately be empty.
+    </li>
+    <li>
+      <div class="what-about-tag pact">Pact limitation</div><br>
+      <strong>Multipart/form-data:</strong> Can't be matched on request body in Pact V2. <a href="https://github.com/pact-foundation/pact-go/blob/master/docs/consumer.md">V3+ adds multipart support</a>. ~50% of CRUD interactions for custom attestation type have no request body contract as a result.
+    </li>
+    <li>
+      <div class="what-about-tag code">Code quality</div><br>
+      <strong>Client bypass:</strong> <code>CreateCustomAttestationType</code> bypasses <code>doRequest()</code> and calls <code>httpClient.Do()</code> directly &mdash; skipping retry and auth logic. Should be refactored independently of Pact. Tracked in <a href="https://github.com/kosli-dev/terraform-provider-kosli/issues/198">#198</a>.
+    </li>
+    <li>
+      <div class="what-about-tag ci">CI / Infrastructure</div><br>
+      <strong>State handler scaling:</strong> Provider state handler count scales linearly with interactions. For full API coverage (~30+ endpoints), that's significant plumbing &mdash; especially for resources with dependencies that need multi-step setup.
+    </li>
   </ol>
 </div>
 
