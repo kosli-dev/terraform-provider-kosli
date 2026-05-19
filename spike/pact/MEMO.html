@@ -1073,11 +1073,48 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
 <div class="tab-panel" id="tab-state">
   <h2>Section 4</h2>
   <h3>Provider state experience</h3>
-  <p>Pact's provider state mechanism conflates two concerns:</p>
+
+  <h4>What is provider state?</h4>
+
+  <p>A contract says: <em>"when I GET <code>/environments/org/production-k8s</code>, the API returns a JSON object with these fields."</em> But that only works if the environment actually exists. <strong>Provider state</strong> is Pact's mechanism for expressing that precondition.</p>
+
+  <p>On the <strong>consumer side</strong>, the test declares a state as a plain-English string &mdash; purely a label:</p>
+
+  <pre style="background: var(--kosli-navy); color: #dce0e5; border-radius: 8px; padding: 14px 18px; font-size: 13px; line-height: 1.5; margin-bottom: 16px;"><code style="background:none; border:none; padding:0; color:inherit; font-size:inherit;">mockProvider.
+    AddInteraction().
+    <span style="color:#EFB83F">Given</span>(<span style="color:#A0D8B8">"environment production-k8s exists"</span>).  <span style="color:rgba(255,255,255,0.3)">// just a label</span>
+    UponReceiving(<span style="color:#A0D8B8">"a request to get environment"</span>).
+    WithRequest(<span style="color:#A0D8B8">"GET"</span>, <span style="color:#A0D8B8">"/api/v2/environments/..."</span>).
+    WillRespondWith(<span style="color:#EFB83F">200</span>, ...)</code></pre>
+
+  <p>The mock server doesn't enforce this state &mdash; it always returns the canned response. The string just gets written into the pact file as metadata.</p>
+
+  <p>On the <strong>provider side</strong>, during verification, Pact looks up that string in a map of <em>state handlers</em> &mdash; functions that run before each interaction to make the precondition true:</p>
+
+  <pre style="background: var(--kosli-navy); color: #dce0e5; border-radius: 8px; padding: 14px 18px; font-size: 13px; line-height: 1.5; margin-bottom: 16px;"><code style="background:none; border:none; padding:0; color:inherit; font-size:inherit;">StateHandlers: {
+    <span style="color:#A0D8B8">"environment production-k8s exists"</span>: <span style="color:#ABBDFF">func</span>(setup <span style="color:#ABBDFF">bool</span>, s ProviderState) {
+        <span style="color:rgba(255,255,255,0.3)">// Called with setup=true BEFORE the interaction</span>
+        <span style="color:rgba(255,255,255,0.3)">// Called with setup=false AFTER (teardown)</span>
+        <span style="color:#ABBDFF">if</span> setup {
+            apiClient.CreateEnvironment(ctx, &amp;CreateEnvironmentRequest{
+                Name: <span style="color:#A0D8B8">"production-k8s"</span>, Type: <span style="color:#A0D8B8">"K8S"</span>,
+            })
+        } <span style="color:#ABBDFF">else</span> {
+            apiClient.ArchiveEnvironment(ctx, <span style="color:#A0D8B8">"production-k8s"</span>)
+        }
+    },
+}</code></pre>
+
+  <p>With a stub server (what we used in the spike), these handlers are no-ops &mdash; the stub always returns the right shape regardless. With a real API, they become real code that creates and tears down test data.</p>
+
+  <h4>Why this matters</h4>
+
+  <p>Provider state conflates two concerns:</p>
   <ul>
-    <li><strong>The contract</strong> &mdash; "given state X, the response has shape Y." This is the value add.</li>
-    <li><strong>The state setup</strong> &mdash; "create this environment so it exists when Pact replays the GET." This is functional test infrastructure, not contract testing.</li>
+    <li><strong>The contract itself</strong> &mdash; "given state X, the response has shape Y." This is the value add.</li>
+    <li><strong>The state setup code</strong> &mdash; creating resources, managing dependencies, cleaning up. This is functional test infrastructure, not contract testing. It's also where the cost scales: each interaction needs its own handler, and dependent resources need multi-step setup.</li>
   </ul>
+
   <table>
     <thead><tr><th>Verification target</th><th>Contract safety</th><th>State handler cost</th></tr></thead>
     <tbody>
