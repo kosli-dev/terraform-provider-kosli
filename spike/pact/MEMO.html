@@ -1292,14 +1292,29 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     </div>
   </div>
 
-  <div class="bottom-line" style="margin: 0 0 32px; background: linear-gradient(135deg, var(--kosli-navy) 0%, #1a2d45 100%);">
-    <div class="bottom-line-label">Decision</div>
-    <p><strong>Wait with Pact on the consumer side until the first SDK exists.</strong> Contracts are consumer-driven, so the most reasonable provider-side work is to get familiar with Pact until the first contract has been created. When an SDK is built, that&rsquo;s the trigger to write consumer pact tests and stand up provider verification.</p>
+  <div class="roi-spectrum">
+    <h4>Weighted ROI position</h4>
+    <div class="spectrum-track">
+      <div class="spectrum-marker" id="roi-marker" style="left: 50%"></div>
+    </div>
+    <div class="spectrum-labels">
+      <span>Low ROI</span>
+      <span>High ROI</span>
+    </div>
+    <p class="spectrum-caption" id="roi-caption">Weighted score: calculating...</p>
   </div>
 
-  <div class="pullquote">
-    <span class="pullquote-title">Spike context</span>
-    This spike used the Terraform provider as the test vehicle, but the learning points toward Pact at the SDK level. Some findings are Terraform-specific &mdash; for example, the acceptance tests get dependency orchestration for free via Terraform&rsquo;s dependency graph, making Pact&rsquo;s state handlers feel like extra cost. That advantage disappears for SDK consumers, which don&rsquo;t have a dependency graph. The scores below reflect what we observed in the spike; at the SDK level, authoring cost and infrastructure overhead would look more favorable.
+  <p style="font-size: 13px; color: var(--kosli-text-tertiary); margin-bottom: 32px;"><strong style="color: var(--kosli-text-secondary);">Note:</strong> Scores reflect what we observed in the spike (Terraform provider as test vehicle). Some findings are Terraform-specific &mdash; e.g., acceptance tests get free dependency orchestration via Terraform&rsquo;s dependency graph. At the SDK level, authoring cost and infrastructure overhead would look more favorable.</p>
+
+  <div class="bottom-line" style="margin: 0 0 24px; background: linear-gradient(135deg, var(--kosli-navy) 0%, #1a2d45 100%);">
+    <div class="bottom-line-label">Decision</div>
+    <p style="margin-bottom: 16px;"><strong>Wait with Pact on the consumer side until the first SDK exists.</strong> Contracts are consumer-driven, so the most reasonable provider-side work is to get familiar with Pact until the first contract has been created. When an SDK is built, that&rsquo;s the trigger to write consumer pact tests and stand up provider verification.</p>
+    <p style="color: rgba(255,255,255,0.6); margin-bottom: 0;">Pact works mechanically and its failure messages are excellent. The value is narrow (shape drift only) and the infrastructure cost is real &mdash; but the <strong style="color: rgba(255,255,255,0.85);">SDK model makes amortization viable</strong>, and shifting integration checks out of e2e into contract tests would give us faster, more focused feedback.</p>
+  </div>
+
+  <div class="pullquote" style="border-left-color: var(--kosli-green); background: var(--kosli-green-light);">
+    <span class="pullquote-title">Shifting integration feedback left</span>
+    Today we rely on long-running e2e tests to catch conflicts between the API and clients. Contract testing would give us that signal earlier &mdash; in CI, on every SDK commit &mdash; with confidence that a given SDK version satisfies the API contract. This frees e2e tests to focus on what they&rsquo;re actually good at: testing functional behavior end-to-end, rather than also serving as integration compatibility checks.
   </div>
 
   <h4>Key risks</h4>
@@ -1314,30 +1329,6 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     <div class="risk-label">Medium risk</div>
     <div class="risk-title">Pact Broker infrastructure</div>
     <p>Pact files must flow from consumer CI to provider CI. Options: <strong>PactFlow</strong> (SaaS, paid, zero infra), <strong>self-hosted broker</strong> (Docker + Postgres), or <strong>no broker</strong> (loses "can I deploy?" workflow). The broker is not optional for the full cross-team workflow.</p>
-  </div>
-
-  <h4>ROI position</h4>
-
-  <div class="roi-spectrum">
-    <h4>Weighted ROI position</h4>
-    <div class="spectrum-track">
-      <div class="spectrum-marker" id="roi-marker" style="left: 50%"></div>
-    </div>
-    <div class="spectrum-labels">
-      <span>Low ROI</span>
-      <span>High ROI</span>
-    </div>
-    <p class="spectrum-caption" id="roi-caption">Weighted score: calculating...</p>
-  </div>
-
-  <div class="pullquote" style="border-left-color: var(--kosli-green); background: var(--kosli-green-light);">
-    <span class="pullquote-title">Shifting integration feedback left</span>
-    Today we rely on long-running e2e tests to catch conflicts between the API and clients. Contract testing would give us that signal earlier &mdash; in CI, on every SDK commit &mdash; with confidence that a given SDK version satisfies the API contract. This frees e2e tests to focus on what they&rsquo;re actually good at: testing functional behavior end-to-end, rather than also serving as integration compatibility checks.
-  </div>
-
-  <div class="bottom-line">
-    <div class="bottom-line-label">Bottom line</div>
-    <p>Pact works mechanically and its failure messages are excellent. The value is narrow (shape drift only) and the infrastructure cost is real &mdash; but the <strong>SDK model makes amortization viable</strong>, and shifting integration checks out of e2e into contract tests would give us faster, more focused feedback. The trigger is the first stable SDK.</p>
   </div>
 
   <h4>Suggested next steps</h4>
