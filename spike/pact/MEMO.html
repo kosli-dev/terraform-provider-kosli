@@ -1107,7 +1107,13 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
 
   <div class="card" style="margin-top: 20px; background: var(--kosli-surface);">
     <div class="card-label blue">What is JSONPath?</div>
-    <p style="font-size: 14px; margin-bottom: 8px;">JSONPath is a query language for addressing fields inside JSON &mdash; like XPath for XML. Pact generates it automatically from the matchers we define; we never write it ourselves. In error messages, <code>$.body.name</code> means: root (<code>$</code>) &rarr; response body (<code>.body</code>) &rarr; the <code>name</code> field.</p>
+    <p style="font-size: 14px; margin-bottom: 12px;">JSONPath is a query language for addressing fields inside JSON &mdash; like XPath for XML. Pact generates it automatically from the matchers we define; we never write it ourselves.</p>
+    <pre style="background: var(--kosli-navy); color: #dce0e5; border-radius: 8px; padding: 14px 18px; font-size: 12px; line-height: 1.5; margin-bottom: 10px;"><code style="background:none; border:none; padding:0; color:inherit; font-size:inherit;"><span style="color:#ABBDFF">"matchingRules"</span>: {
+  <span style="color:#ABBDFF">"$.body.name"</span>:   { <span style="color:#ABBDFF">"match"</span>: <span style="color:#A0D8B8">"type"</span> },  <span style="color:rgba(255,255,255,0.3)">// must be a string</span>
+  <span style="color:#ABBDFF">"$.body.type"</span>:   { <span style="color:#ABBDFF">"match"</span>: <span style="color:#A0D8B8">"type"</span> },  <span style="color:rgba(255,255,255,0.3)">// must be a string</span>
+  <span style="color:#ABBDFF">"$.body.version"</span>: { <span style="color:#ABBDFF">"match"</span>: <span style="color:#A0D8B8">"type"</span> }  <span style="color:rgba(255,255,255,0.3)">// must be a number</span>
+}</code></pre>
+    <p style="font-size: 13px; color: var(--kosli-text-tertiary); margin-bottom: 0;"><code>$.body.name</code> reads as: root (<code>$</code>) &rarr; response body (<code>.body</code>) &rarr; the <code>name</code> field.</p>
   </div>
 </div>
 
