@@ -178,4 +178,6 @@ ROI framing:
 - **Cost:** ~2-3 hours authoring per SDK, native library dependency per SDK, Pact Broker infrastructure, API team buy-in and state handler maintenance, ongoing maintenance as the API evolves.
 - **Benefit:** Early detection of breaking API changes across SDK boundaries. The value scales with: (a) how often the API changes response shapes, (b) how many SDKs consume the API, and (c) how painful a shape-mismatch bug is to debug in production vs. catching it in CI.
 
+**Shifting integration feedback left:** Today we rely on long-running e2e tests to catch conflicts between the API and clients. Contract testing would give us that signal earlier — in CI, on every SDK commit — with confidence that a given SDK version satisfies the API contract. This frees e2e tests to focus on what they're actually good at: testing functional behavior end-to-end, rather than also serving as integration compatibility checks.
+
 If the API is stable and changes infrequently, the ROI is low — the contracts rarely catch anything, but the maintenance cost persists. If the API is evolving rapidly with multiple SDK consumers, the ROI improves because the contracts catch drift that would otherwise surface as runtime bugs across multiple codebases.

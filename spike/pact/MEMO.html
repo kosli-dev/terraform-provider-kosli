@@ -1239,9 +1239,13 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     <p class="spectrum-caption">Position this marker based on how rapidly the Kosli API is evolving and how many SDK consumers are planned.</p>
   </div>
 
+  <div class="pullquote" style="border-left-color: var(--kosli-green); background: var(--kosli-green-light);">
+    <strong>Shifting integration feedback left:</strong> Today we rely on long-running e2e tests to catch conflicts between the API and clients. Contract testing would give us that signal earlier &mdash; in CI, on every SDK commit &mdash; with confidence that a given SDK version satisfies the API contract. This frees e2e tests to focus on what they&rsquo;re actually good at: testing functional behavior end-to-end, rather than also serving as integration compatibility checks.
+  </div>
+
   <div class="bottom-line">
     <div class="bottom-line-label">Bottom line</div>
-    <p>Pact works mechanically and its failure messages are excellent. The value is narrow (shape drift only) and the infrastructure cost is real &mdash; but the <strong>SDK model makes amortization viable</strong>. The trigger is the first stable SDK.</p>
+    <p>Pact works mechanically and its failure messages are excellent. The value is narrow (shape drift only) and the infrastructure cost is real &mdash; but the <strong>SDK model makes amortization viable</strong>, and shifting integration checks out of e2e into contract tests would give us faster, more focused feedback. The trigger is the first stable SDK.</p>
   </div>
 
   <h4>Suggested next steps</h4>
