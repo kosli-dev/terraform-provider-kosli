@@ -1194,16 +1194,25 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   <p>Without a shared SDK, every consumer talks to the API directly and needs its own pact tests. The same API interactions get tested repeatedly across consumers &mdash; violating DRY and multiplying maintenance:</p>
 
   <div class="arch">
-    <div style="display: grid; grid-template-columns: 160px auto 160px; gap: 8px 0; align-items: center; justify-items: center;">
-      <div class="arch-box arch-consumer" style="width: 100%;">Terraform Provider</div>
+    <div class="arch-row">
+      <div class="arch-box arch-consumer" style="min-width: 150px;">Terraform Provider</div>
       <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
-      <div class="arch-box arch-api" style="width: 100%; grid-row: 1 / span 4;">Kosli API</div>
-      <div class="arch-box arch-consumer" style="width: 100%;">CLI</div>
+      <div class="arch-box arch-api">Kosli API</div>
+    </div>
+    <div class="arch-row">
+      <div class="arch-box arch-consumer" style="min-width: 150px;">CLI</div>
       <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
-      <div class="arch-box arch-consumer" style="width: 100%;">Backstage plugin</div>
+      <div class="arch-box arch-api">Kosli API</div>
+    </div>
+    <div class="arch-row">
+      <div class="arch-box arch-consumer" style="min-width: 150px;">Backstage plugin</div>
       <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
-      <div class="arch-box arch-consumer" style="width: 100%;">MCP server</div>
+      <div class="arch-box arch-api">Kosli API</div>
+    </div>
+    <div class="arch-row">
+      <div class="arch-box arch-consumer" style="min-width: 150px;">MCP server</div>
       <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
+      <div class="arch-box arch-api">Kosli API</div>
     </div>
     <div class="arch-label">4 separate pact suites &middot; duplicated contract tests &middot; each consumer maintains its own HTTP client code</div>
   </div>
