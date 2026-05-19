@@ -322,6 +322,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   flex-direction: column;
   align-items: flex-end;
   gap: 8px;
+  min-width: 150px;
 }
 .arch-label {
   font-family: 'Roboto Mono', monospace;
@@ -1221,25 +1222,24 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   <p>With a shared SDK per language, the contract lives at the SDK boundary. Consumers trust the SDK; only the SDK tests the API contract:</p>
 
   <div class="arch">
-    <div class="arch-row">
-      <div class="arch-brace">
-        <div class="arch-box arch-consumer">Terraform Provider</div>
-        <div class="arch-box arch-consumer">CLI</div>
+    <div style="display: grid; grid-template-columns: 160px auto 130px auto 120px; align-items: center; gap: 12px 0; margin-bottom: 20px;">
+      <div class="arch-brace" style="grid-row: 1 / span 1; min-width: auto;">
+        <div class="arch-box arch-consumer" style="width: 100%; text-align: center;">Terraform Provider</div>
+        <div class="arch-box arch-consumer" style="width: 100%; text-align: center;">CLI</div>
       </div>
-      <div class="arch-arrow">&rarr;</div>
-      <div class="arch-box arch-sdk">Go SDK</div>
-      <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
-      <div class="arch-box arch-api">Kosli API</div>
-    </div>
-    <div class="arch-row">
-      <div class="arch-brace">
-        <div class="arch-box arch-consumer">Backstage plugin</div>
-        <div class="arch-box arch-consumer">MCP server</div>
+      <div class="arch-arrow" style="text-align: center;">&rarr;</div>
+      <div class="arch-box arch-sdk" style="text-align: center; justify-self: center;">Go SDK</div>
+      <div class="arch-arrow" style="text-align: center;">&mdash; pact &mdash;&rarr;</div>
+      <div class="arch-box arch-api" style="justify-self: start;">Kosli API</div>
+
+      <div class="arch-brace" style="grid-row: 2 / span 1; min-width: auto;">
+        <div class="arch-box arch-consumer" style="width: 100%; text-align: center;">Backstage plugin</div>
+        <div class="arch-box arch-consumer" style="width: 100%; text-align: center;">MCP server</div>
       </div>
-      <div class="arch-arrow">&rarr;</div>
-      <div class="arch-box arch-sdk">TypeScript SDK</div>
-      <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
-      <div class="arch-box arch-api">Kosli API</div>
+      <div class="arch-arrow" style="text-align: center;">&rarr;</div>
+      <div class="arch-box arch-sdk" style="text-align: center; justify-self: center;">TypeScript SDK</div>
+      <div class="arch-arrow" style="text-align: center;">&mdash; pact &mdash;&rarr;</div>
+      <div class="arch-box arch-api" style="justify-self: start;">Kosli API</div>
     </div>
     <div class="arch-label">2 pact suites, not 4+ &middot; end consumers don't write pact tests &middot; no duplication</div>
   </div>
