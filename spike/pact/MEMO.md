@@ -49,6 +49,8 @@ Contract tests need only the Pact FFI library -- no API credentials, no test org
 
 The provider has ~15 distinct API interactions across 7 resources. Projected full-provider authoring cost: **2-3 hours**. The consumer test code is mechanical once the pattern is established. With agent-supported development, authoring cost is largely automated -- making it negligible in the overall investment.
 
+**Not all interactions are equal.** Create interactions (POST with multipart) have no request-body or response-body contract -- only method, path regex, status code, and Content-Type are verified. Read interactions (GET with JSON response) carry full field-level contracts. Roughly 30-40% of interactions in this provider are creates/deletes with thin contracts, which tempers the per-interaction amortization story.
+
 The larger cost is **provider state handlers** when verifying against a real API. For resources with dependencies, state handlers must orchestrate multi-step setup and teardown.
 
 ### Without SDKs -- pact per consumer
@@ -137,8 +139,9 @@ Issues surfaced during the spike that would need answers before production adopt
 3. **Nullable types:** How to express "null OR number" (e.g., `last_reported_at`)? Pact V2 doesn't support union types. [V3 adds a null matcher and OR combinator](https://github.com/pact-foundation/pact-specification/tree/version-3).
 4. **Empty arrays:** `matchers.EachLike(..., 0)` not allowed -- Pact forces [min 1 element](https://github.com/pact-foundation/pact-go/blob/master/docs/consumer.md). Problem for fields like `policies` that can legitimately be empty.
 5. **Multipart/form-data:** Can't be matched on request body in Pact V2. [V3+ adds multipart support](https://github.com/pact-foundation/pact-go/blob/master/docs/consumer.md). ~50% of CRUD interactions for custom attestation type have no request body contract as a result.
-6. **Client bypass:** `CreateCustomAttestationType` bypasses `doRequest()` and calls `httpClient.Do()` directly -- skipping retry and auth logic. Should be refactored independently of Pact. Tracked in kosli-dev/terraform-provider-kosli#198.
-7. **State handler scaling:** Provider state handler count scales linearly with interactions. For full API coverage (~30+ endpoints), that's significant plumbing -- especially for resources with dependencies that need multi-step setup.
+6. **Map-typed fields with dynamic keys:** `matchers.Like(map[string]string{"env": "prod"})` constrains `tags` to always contain a literal key `env`. Pact V2 type matching on maps matches keys literally and values by type -- there is no way to express "map of unknown keys to strings." If the real API returns empty tags or different key sets, provider verification fails. Same shape of problem as empty arrays (item 4).
+7. **Client bypass:** `CreateCustomAttestationType` bypasses `doRequest()` and calls `httpClient.Do()` directly -- skipping retry and auth logic. Should be refactored independently of Pact. Tracked in kosli-dev/terraform-provider-kosli#198.
+8. **State handler scaling:** Provider state handler count scales linearly with interactions. For full API coverage (~30+ endpoints), that's significant plumbing -- especially for resources with dependencies that need multi-step setup.
 
 ## 8. Recommendation
 

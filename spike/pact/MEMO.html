@@ -1190,6 +1190,12 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     </div>
   </div>
   <p>The provider has ~15 distinct API interactions across 7 resources. Projected full-provider authoring cost: <strong>2&ndash;3 hours</strong>. The consumer test code is mechanical once the pattern is established.</p>
+
+  <div class="pullquote">
+    <span class="pullquote-title">Not all interactions are equal</span>
+    Create interactions (POST with multipart) have no request-body or response-body contract &ndash; only method, path regex, status code, and Content-Type are verified. Read interactions (GET with JSON response) carry full field-level contracts. Roughly 30&ndash;40% of interactions in this provider are creates/deletes with thin contracts, which tempers the per-interaction amortization story.
+  </div>
+
   <p>The larger cost is <strong>provider state handlers</strong> when verifying against a real API. For resources with dependencies, state handlers must orchestrate multi-step setup and teardown  &ndash; work that Terraform's dependency graph does automatically in acceptance tests.</p>
   <h4>Without SDKs  &ndash; pact per consumer</h4>
   <p>Without a shared SDK, every consumer talks to the API directly and needs its own pact tests. The same API interactions get tested repeatedly across consumers  &ndash; violating DRY and multiplying maintenance:</p>
@@ -1399,6 +1405,10 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     <li>
       <div class="what-about-tag pact">Pact limitation</div><br>
       <strong>Multipart/form-data:</strong> Can't be matched on request body in Pact V2. <a href="https://github.com/pact-foundation/pact-go/blob/master/docs/consumer.md">V3+ adds multipart support</a>. ~50% of CRUD interactions for custom attestation type have no request body contract as a result.
+    </li>
+    <li>
+      <div class="what-about-tag pact">Pact limitation</div><br>
+      <strong>Map-typed fields with dynamic keys:</strong> <code>matchers.Like(map[string]string{"env": "prod"})</code> constrains <code>tags</code> to always contain a literal key <code>env</code>. Pact V2 type matching on maps matches keys literally and values by type &ndash; there is no way to express "map of unknown keys to strings." If the real API returns empty tags or different key sets, provider verification fails. Same shape of problem as empty arrays (item 4).
     </li>
     <li>
       <div class="what-about-tag code">Code quality</div><br>
