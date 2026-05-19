@@ -129,6 +129,16 @@ What the spike showed:
 
 **Wait with Pact on the consumer side until the first SDK exists.** Contracts are consumer-driven, so the most reasonable provider-side work is to get familiar with Pact until the first contract has been created. When an SDK is built, that's the trigger to write consumer pact tests and stand up provider verification.
 
+### Suggested next steps
+
+1. **Agree on contract testing investment.** Align across teams on whether contract testing with Pact is the right approach going forward. This is a two-sided investment — both consumer and provider teams need to commit for the full value to materialize.
+
+2. **Create SDKs with consumer contract tests.** SDK development will happen regardless of this spike, but we should have at least one stable SDK (e.g., consumed by `terraform-provider-kosli`) before investing in consumer-side contract testing. When the SDK boundary is established, add pact consumer tests to the SDK's CI.
+
+3. **Investigate contract publishing.** Evaluate Pact Broker options: PactFlow (SaaS, zero infra), self-hosted (Docker + Postgres), or a simpler artifact-sharing approach. The broker enables the "can I deploy?" workflow and tracks verification results across teams.
+
+4. **Invest in provider-side verification.** Stand up `pact verify` in the API's CI pipeline: state handlers, verification against real API, and a process for handling contract failures. This is where the contract testing loop closes.
+
 ### Key risks and open questions
 
 **1. Will the API provider side actually pick up Pact?**
