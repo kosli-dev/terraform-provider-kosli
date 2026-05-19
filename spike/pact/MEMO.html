@@ -194,14 +194,14 @@ code {
 /* ─── Reusable components ─── */
 .pullquote {
   border-left: 4px solid var(--kosli-blue);
-  padding: 20px 24px;
+  padding: 24px 28px;
   margin: 28px 0;
   background: var(--kosli-blue-light);
   border-radius: 0 8px 8px 0;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--kosli-navy);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 .cards {
   display: grid;
@@ -1121,8 +1121,32 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
 <div class="tab-panel" id="tab-crosslang">
   <h2>Section 6</h2>
   <h3>Cross-language relevance</h3>
-  <p>Pact files are fully portable. Matchers (<code>"match": "type"</code>, <code>"match": "regex"</code>) are Pact specification standard &mdash; pact-js, pact-python, pact-jvm all generate and consume the same format. Field names are language-neutral snake_case from the API.</p>
+
+  <h4>Languages in scope</h4>
+  <p>Three languages are relevant for Kosli SDK consumers of the public API (<code>/api/v2/</code>):</p>
+
+  <div class="cards" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="card">
+      <div class="card-label blue">Go</div>
+      <div class="card-desc">Terraform provider, CLI. Spike tested with <a href="https://github.com/pact-foundation/pact-go">pact-go</a> v2 (Rust FFI).</div>
+    </div>
+    <div class="card">
+      <div class="card-label blue">TypeScript</div>
+      <div class="card-desc">Backstage plugin, MCP server. Would use <a href="https://github.com/pact-foundation/pact-js">pact-js</a> (native N-API binding).</div>
+    </div>
+    <div class="card">
+      <div class="card-label blue">Python</div>
+      <div class="card-desc">Future consumers, scripting, automation. Would use <a href="https://github.com/pact-foundation/pact-python">pact-python</a> (Rust FFI).</div>
+    </div>
+  </div>
+
+  <h4>What about the frontend?</h4>
+  <p>The Kosli frontend is TypeScript/React but server-rendered via HTMX + Jinja2 templates. It communicates exclusively with <strong>internal Flask UI routes</strong> (returning HTML fragments), not the public <code>/api/v2/</code> REST API. Contract testing between front- and backend would target a different API surface &mdash; the internal UI routes &mdash; and is a separate question from this spike.</p>
+
+  <h4>Portability of pact files</h4>
+  <p>Pact files are fully portable across all three languages. Matchers (<code>"match": "type"</code>, <code>"match": "regex"</code>) are Pact specification standard &mdash; pact-go, pact-js, and pact-python all generate and consume the same format. Field names are language-neutral snake_case from the API.</p>
   <p>Provider state strings are plain English, shareable across SDKs. In production, state handlers live on the <strong>provider side</strong> &mdash; the API team writes them once.</p>
+
   <div class="pullquote">
     The reusability bottleneck is not the pact files &mdash; it's the per-SDK native library dependency. pact-go wraps a 13MB Rust FFI binary. CI setup on Linux is straightforward (<code>wget</code> + copy to <code>/usr/local/lib</code>), though no official GitHub Action exists. Local development on macOS requires <code>sudo</code> to install and <code>DYLD_LIBRARY_PATH</code> at runtime.
   </div>
