@@ -1113,7 +1113,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   <p>Pact files are fully portable. Matchers (<code>"match": "type"</code>, <code>"match": "regex"</code>) are Pact specification standard &mdash; pact-js, pact-python, pact-jvm all generate and consume the same format. Field names are language-neutral snake_case from the API.</p>
   <p>Provider state strings are plain English, shareable across SDKs. In production, state handlers live on the <strong>provider side</strong> &mdash; the API team writes them once.</p>
   <div class="pullquote">
-    The reusability bottleneck is not the pact files &mdash; it's the per-SDK native library dependency. pact-go wraps a 13MB Rust FFI binary. On macOS, it requires <code>sudo</code> to install and <code>DYLD_LIBRARY_PATH</code> at runtime. Linux is simpler (<code>/usr/local/lib</code> is on the standard search path). No official GitHub Action exists for setup.
+    The reusability bottleneck is not the pact files &mdash; it's the per-SDK native library dependency. pact-go wraps a 13MB Rust FFI binary. CI setup on Linux is straightforward (<code>wget</code> + copy to <code>/usr/local/lib</code>), though no official GitHub Action exists. Local development on macOS requires <code>sudo</code> to install and <code>DYLD_LIBRARY_PATH</code> at runtime.
   </div>
 </div>
 
@@ -1122,7 +1122,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   <h2>Section 7</h2>
   <h3>The "what about" list</h3>
   <ol class="what-about">
-    <li>CI setup: every runner needs the FFI library installed (<code>wget</code> + copy to <code>/usr/local/lib</code>). No official GitHub Action exists. macOS runners additionally need <code>DYLD_LIBRARY_PATH</code>.</li>
+    <li>CI setup: every Linux runner needs the FFI library installed (<code>wget</code> + copy to <code>/usr/local/lib</code>). No official GitHub Action exists. Local dev on macOS additionally requires <code>DYLD_LIBRARY_PATH</code>.</li>
     <li>Developer onboarding: <code>sudo pact-go install</code> required. How does that sit with the current zero-native-deps Go toolchain?</li>
     <li>Nullable types: how to express "null OR number" (e.g., <code>last_reported_at</code>)? Pact V2 doesn't support union types.</li>
     <li><code>matchers.EachLike(..., 0)</code> not allowed &mdash; Pact forces min 1 element. Problem for empty arrays.</li>
@@ -1181,7 +1181,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
         <div class="score-badge red">Heavy</div>
       </div>
       <div class="score-bar-track"><div class="score-bar-fill red" style="width: 25%"></div></div>
-      <div class="score-detail">Native FFI library on every machine, <code>DYLD_LIBRARY_PATH</code> on macOS, no official GitHub Action for CI setup, multipart/form-data limitations, Pact Broker needed for cross-team workflow.</div>
+      <div class="score-detail">Native FFI library on every machine, no official GitHub Action for CI setup, <code>DYLD_LIBRARY_PATH</code> for local dev on macOS, multipart/form-data limitations, Pact Broker needed for cross-team workflow.</div>
     </div>
 
     <div class="score-card score-yellow">

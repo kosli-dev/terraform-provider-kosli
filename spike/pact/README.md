@@ -33,7 +33,7 @@
 - The generated pact file is readable JSON: consumer/provider names, interactions with request/response, matchingRules, metadata
 
 **Open "what about" questions:**
-- CI setup: every runner needs the FFI library installed (simple `wget` + copy to `/usr/local/lib` on Linux). No official GitHub Action exists for pact-go setup. macOS runners additionally need `DYLD_LIBRARY_PATH`.
+- CI setup: every Linux runner needs the FFI library installed (simple `wget` + copy to `/usr/local/lib`). No official GitHub Action exists for pact-go setup. Local dev on macOS additionally requires `DYLD_LIBRARY_PATH`.
 - Developer onboarding: new contributors need `sudo pact-go install` before tests work. How does that sit with the project's current zero-native-deps Go toolchain?
 
 ## Step 2: Plugin framework integration check

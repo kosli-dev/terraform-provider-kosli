@@ -86,13 +86,13 @@ The pact files are fully portable across languages. Matchers (`"match": "type"`,
 
 Provider state strings are plain English, shareable across SDKs. In a real Pact setup, state handlers live on the **provider side** (the API team writes them once), and all SDK consumers reference the same state names.
 
-The reusability bottleneck is not the pact files — it's the **per-SDK native library dependency**. pact-go wraps a 13MB Rust FFI binary (`libpact_ffi.dylib`). On macOS it requires `sudo` to install and `DYLD_LIBRARY_PATH` at runtime; Linux is simpler (`/usr/local/lib` is on the standard search path). No official GitHub Action exists for pact-go CI setup. pact-js has its own native dependency story. Every developer and CI runner needs this installed.
+The reusability bottleneck is not the pact files — it's the **per-SDK native library dependency**. pact-go wraps a 13MB Rust FFI binary (`libpact_ffi`). CI setup on Linux is straightforward (`wget` + copy to `/usr/local/lib`), though no official GitHub Action exists. Local development on macOS requires `sudo` to install and `DYLD_LIBRARY_PATH` at runtime. pact-js has its own native dependency story. Every developer and CI runner needs this installed.
 
 ## 7. The "what about" list
 
 Collected verbatim from spike notes:
 
-- CI setup: every runner needs the FFI library installed (`wget` + copy to `/usr/local/lib`). No official GitHub Action exists. macOS runners additionally need `DYLD_LIBRARY_PATH`.
+- CI setup: every Linux runner needs the FFI library installed (`wget` + copy to `/usr/local/lib`). No official GitHub Action exists. Local dev on macOS additionally requires `DYLD_LIBRARY_PATH`.
 - Developer onboarding: new contributors need `sudo pact-go install` before pact tests work. How does that sit with the project's current zero-native-deps Go toolchain?
 - How to express "this field can be null OR a number" (e.g., `last_reported_at`)? Pact V2 doesn't support union types; V3+ might.
 - `matchers.EachLike(..., 0)` is not allowed — Pact forces min 1 element. Problem for fields like `policies` that can be empty arrays.
@@ -113,7 +113,7 @@ What the spike showed:
 - **Pact works mechanically.** Consumer tests generate contracts, verification checks them, failure messages are clear.
 - **The authoring cost is moderate.** ~5-10 min per interaction once the pattern is established. The consumer test code is mechanical.
 - **The value is narrow.** Pact catches integration drift — when the API changes response shapes without the SDK knowing. It doesn't test business logic, data persistence, or Terraform lifecycle behavior. The existing unit tests (httptest) and acceptance tests already cover those.
-- **The infrastructure cost is real.** Native FFI dependency on every machine, `DYLD_LIBRARY_PATH` on macOS, no official GitHub Action for CI setup, multipart/form-data limitations, provider state handlers for real API verification.
+- **The infrastructure cost is real.** Native FFI dependency on every machine, no official GitHub Action for CI setup, `DYLD_LIBRARY_PATH` needed for local dev on macOS, multipart/form-data limitations, provider state handlers for real API verification.
 - **The acceptance tests already handle dependency orchestration for free** via Terraform's dependency graph. Pact state handlers must manually replicate that work. (Note: this advantage is Terraform-specific — SDK consumers don't have a dependency graph, so this argument disappears at the SDK level.)
 
 ### Question B: Does the infrastructure investment plausibly amortize across other consumers?
