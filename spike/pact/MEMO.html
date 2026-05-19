@@ -1167,7 +1167,36 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   </div>
   <p>The provider has ~15 distinct API interactions across 7 resources. Projected full-provider authoring cost: <strong>2&ndash;3 hours</strong>. The consumer test code is mechanical once the pattern is established.</p>
   <p>The larger cost is <strong>provider state handlers</strong> when verifying against a real API. For resources with dependencies, state handlers must orchestrate multi-step setup and teardown &mdash; work that Terraform's dependency graph does automatically in acceptance tests.</p>
-  <h4>The SDK model changes the math</h4>
+  <h4>Without SDKs &mdash; pact per consumer</h4>
+  <p>Without a shared SDK, every consumer talks to the API directly and needs its own pact tests. The same API interactions get tested repeatedly across consumers &mdash; violating DRY and multiplying maintenance:</p>
+
+  <div class="arch">
+    <div class="arch-row">
+      <div class="arch-box arch-consumer">Terraform Provider</div>
+      <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
+      <div class="arch-box arch-api" style="grid-row: span 4;">Kosli API</div>
+    </div>
+    <div class="arch-row">
+      <div class="arch-box arch-consumer">CLI</div>
+      <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
+      <div class="arch-box arch-api">Kosli API</div>
+    </div>
+    <div class="arch-row">
+      <div class="arch-box arch-consumer">Backstage plugin</div>
+      <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
+      <div class="arch-box arch-api">Kosli API</div>
+    </div>
+    <div class="arch-row">
+      <div class="arch-box arch-consumer">MCP server</div>
+      <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
+      <div class="arch-box arch-api">Kosli API</div>
+    </div>
+    <div class="arch-label">4 separate pact suites &middot; duplicated contract tests &middot; each consumer maintains its own HTTP client code</div>
+  </div>
+
+  <h4>With SDKs &mdash; pact per SDK</h4>
+  <p>With a shared SDK per language, the contract lives at the SDK boundary. Consumers trust the SDK; only the SDK tests the API contract:</p>
+
   <div class="arch">
     <div class="arch-row">
       <div class="arch-brace">
@@ -1189,7 +1218,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
       <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
       <div class="arch-box arch-api">Kosli API</div>
     </div>
-    <div class="arch-label">Each SDK writes one pact suite &middot; end consumers don't write pact tests &middot; 2 suites, not 4+</div>
+    <div class="arch-label">2 pact suites, not 4+ &middot; end consumers don't write pact tests &middot; no duplication</div>
   </div>
 </div>
 
