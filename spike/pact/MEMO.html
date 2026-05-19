@@ -998,7 +998,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
 
   <h4>Why we spiked it</h4>
 
-  <p>Kosli has a growing multi-consumer landscape: the Terraform provider, CLI, Backstage plugin, MCP server, and a future operator all consume the same API. We spiked Pact to answer two questions:</p>
+  <p>Kosli already has multiple consumers of its API (Terraform provider, CLI, MCP server), with more expected as the platform grows. Official SDKs would reduce the need for customers to write their own API clients, and contract testing would give those SDKs a built-in quality guarantee. We spiked Pact to answer two questions:</p>
 
   <ul>
     <li><strong>Question A:</strong> Did Pact feel like a fit for the Terraform provider specifically?</li>
