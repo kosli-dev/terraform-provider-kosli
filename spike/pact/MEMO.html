@@ -1157,7 +1157,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
 
   <div class="pullquote">
     <span class="pullquote-title">Bottleneck: per-SDK native dependency</span>
-    The reusability bottleneck is not the pact files &mdash; it's the native library. pact-go wraps a 13MB Rust FFI binary. CI setup on Linux is straightforward (<code>wget</code> + copy to <code>/usr/local/lib</code>), though no official GitHub Action exists. Local development on macOS requires <code>sudo</code> to install and <code>DYLD_LIBRARY_PATH</code> at runtime.
+    The reusability bottleneck is not the pact files &mdash; it's that each Pact library requires a native binary installed on every machine. CI setup on Linux is straightforward (<code>wget</code> + copy to <code>/usr/local/lib</code>), though no official GitHub Action exists. Local development on macOS requires <code>sudo</code> to install and <code>DYLD_LIBRARY_PATH</code> at runtime.
   </div>
 </div>
 
