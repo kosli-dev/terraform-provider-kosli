@@ -1104,6 +1104,11 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     </div>
   </div>
   <p>JSONPath notation pinpoints the location. No stack traces or framework noise. If a contract breaks, the message tells us exactly what changed and where.</p>
+
+  <div class="card" style="margin-top: 20px; background: var(--kosli-surface);">
+    <div class="card-label blue">What is JSONPath?</div>
+    <p style="font-size: 14px; margin-bottom: 8px;">JSONPath is a query language for addressing fields inside JSON &mdash; like XPath for XML. Pact generates it automatically from the matchers we define; we never write it ourselves. In error messages, <code>$.body.name</code> means: root (<code>$</code>) &rarr; response body (<code>.body</code>) &rarr; the <code>name</code> field.</p>
+  </div>
 </div>
 
 <!-- Tab: Cross-language -->
