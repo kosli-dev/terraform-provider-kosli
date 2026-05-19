@@ -30,10 +30,10 @@ func stubKosliAPI() *httptest.Server {
 			"include_scaling":  true,
 			"tags":             map[string]string{"env": "prod"},
 			// Extra fields the real API returns (should be ignored by Pact):
-			"org":               "test-org",
-			"state":             nil,
+			"org":                "test-org",
+			"state":              nil,
 			"require_provenance": false,
-			"policies":          []any{},
+			"policies":           []any{},
 		})
 	})
 

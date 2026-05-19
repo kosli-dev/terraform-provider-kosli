@@ -94,8 +94,8 @@ func TestCustomAttestationType_Read_Pact(t *testing.T) {
 				"description": matchers.Like("Code coverage attestation"),
 				"archived":    matchers.Like(false),
 				"versions": matchers.EachLike(map[string]any{
-					"version":    matchers.Like(1),
-					"timestamp":  matchers.Like(1700000000.123456),
+					"version":   matchers.Like(1),
+					"timestamp": matchers.Like(1700000000.123456),
 					"type_schema": matchers.Like(map[string]any{
 						"type": "object",
 						"properties": map[string]any{
