@@ -60,6 +60,8 @@ With a stub server, state handlers are no-ops — the stub always returns the ri
 
 With a real API, state handlers become real code: creating resources, managing dependencies, cleaning up in reverse order. This is the same work the acceptance tests get for free via Terraform's dependency graph. The more resource dependencies we have, the wider this cost gap becomes.
 
+**Note:** This "free orchestration" advantage is specific to the Terraform provider. An SDK consumer doesn't have Terraform's dependency graph — the state handler cost for dependent resources would be comparable whether using Pact or writing integration tests manually. This is one reason the spike's findings point toward Pact at the SDK level rather than the Terraform provider level.
+
 **The full Pact value — catching real API drift — only materializes when verifying against the real API.** That's the most expensive verification mode.
 
 | Verification target | Contract safety | State handler cost |
@@ -112,7 +114,7 @@ What the spike showed:
 - **The authoring cost is moderate.** ~5-10 min per interaction once the pattern is established. The consumer test code is mechanical.
 - **The value is narrow.** Pact catches integration drift — when the API changes response shapes without the SDK knowing. It doesn't test business logic, data persistence, or Terraform lifecycle behavior. The existing unit tests (httptest) and acceptance tests already cover those.
 - **The infrastructure cost is real.** Native FFI dependency on every machine, `DYLD_LIBRARY_PATH` on macOS, no official GitHub Action for CI setup, multipart/form-data limitations, provider state handlers for real API verification.
-- **The acceptance tests already handle dependency orchestration for free** via Terraform's dependency graph. Pact state handlers must manually replicate that work.
+- **The acceptance tests already handle dependency orchestration for free** via Terraform's dependency graph. Pact state handlers must manually replicate that work. (Note: this advantage is Terraform-specific — SDK consumers don't have a dependency graph, so this argument disappears at the SDK level.)
 
 ### Question B: Does the infrastructure investment plausibly amortize across other consumers?
 

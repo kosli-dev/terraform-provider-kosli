@@ -211,6 +211,8 @@ Each SDK is a Pact consumer. Provider state handlers also live at the SDK level 
 
 With Pact, we're testing at the HTTP client level, so there's no dependency graph. Provider state handlers must manually orchestrate the same ordering: create physical envs first, then create the logical env, then clean up in reverse order. This is work the acceptance test framework already does for us. The more resource dependencies we have, the wider this cost gap becomes.
 
+**Note:** This "free orchestration" advantage is Terraform-specific. SDK consumers don't have Terraform's dependency graph, so the state handler cost would be comparable whether using Pact or writing integration tests manually. This is one reason the spike's findings point toward Pact at the SDK level rather than the Terraform provider level.
+
 ## Step 6: Cross-language relevance check
 
 **Are any matchers Go-specific?**

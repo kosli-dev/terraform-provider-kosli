@@ -1080,7 +1080,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     </tbody>
   </table>
   <div class="pullquote">
-    The full Pact value &mdash; catching real API drift &mdash; only materializes when verifying against the real API. That's the most expensive mode. The acceptance tests get dependency orchestration for free via Terraform's dependency graph.
+    The full Pact value &mdash; catching real API drift &mdash; only materializes when verifying against the real API. That's the most expensive mode. The acceptance tests get dependency orchestration for free via Terraform's dependency graph &mdash; but that advantage is Terraform-specific. SDK consumers don't have a dependency graph, so this cost gap disappears at the SDK level.
   </div>
 </div>
 
@@ -1205,7 +1205,11 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
 
   <div class="bottom-line" style="margin: 0 0 32px; background: linear-gradient(135deg, var(--kosli-navy) 0%, #1a2d45 100%);">
     <div class="bottom-line-label">Decision</div>
-    <p><strong>Wait with Pact on the consumer side until the first SDK exists.</strong> Contracts are consumer-driven, so the most reasonable provider-side work is to get familiar with Pact until the first contract has been created. When an SDK is built, that's the trigger to write consumer pact tests and stand up provider verification.</p>
+    <p><strong>Wait with Pact on the consumer side until the first SDK exists.</strong> Contracts are consumer-driven, so the most reasonable provider-side work is to get familiar with Pact until the first contract has been created. When an SDK is built, that&rsquo;s the trigger to write consumer pact tests and stand up provider verification.</p>
+  </div>
+
+  <div class="pullquote" style="font-size: 15px;">
+    <strong>A note on the spike context:</strong> This spike used the Terraform provider as the test vehicle, but the learning points toward Pact at the SDK level. Some findings are Terraform-specific &mdash; for example, the acceptance tests get dependency orchestration for free via Terraform&rsquo;s dependency graph, making Pact&rsquo;s state handlers feel like extra cost. That advantage disappears for SDK consumers, which don&rsquo;t have a dependency graph. The scores below reflect what we observed in the spike; at the SDK level, authoring cost and infrastructure overhead would look more favorable.
   </div>
 
   <h4>Key risks</h4>
