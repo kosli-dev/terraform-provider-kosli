@@ -84,13 +84,13 @@ The pact files are fully portable across languages. Matchers (`"match": "type"`,
 
 Provider state strings are plain English, shareable across SDKs. In a real Pact setup, state handlers live on the **provider side** (the API team writes them once), and all SDK consumers reference the same state names.
 
-The reusability bottleneck is not the pact files — it's the **per-SDK native library dependency**. pact-go wraps a 13MB Rust FFI binary (`libpact_ffi.dylib`) that requires `sudo` to install and `DYLD_LIBRARY_PATH` at runtime on macOS. pact-js has its own native dependency story. Every developer and CI runner needs this installed.
+The reusability bottleneck is not the pact files — it's the **per-SDK native library dependency**. pact-go wraps a 13MB Rust FFI binary (`libpact_ffi.dylib`). On macOS it requires `sudo` to install and `DYLD_LIBRARY_PATH` at runtime; Linux is simpler (`/usr/local/lib` is on the standard search path). No official GitHub Action exists for pact-go CI setup. pact-js has its own native dependency story. Every developer and CI runner needs this installed.
 
 ## 7. The "what about" list
 
 Collected verbatim from spike notes:
 
-- CI setup: every runner needs the FFI library installed + `DYLD_LIBRARY_PATH` (or `LD_LIBRARY_PATH`). What does this cost in CI config maintenance?
+- CI setup: every runner needs the FFI library installed (`wget` + copy to `/usr/local/lib`). No official GitHub Action exists. macOS runners additionally need `DYLD_LIBRARY_PATH`.
 - Developer onboarding: new contributors need `sudo pact-go install` before pact tests work. How does that sit with the project's current zero-native-deps Go toolchain?
 - How to express "this field can be null OR a number" (e.g., `last_reported_at`)? Pact V2 doesn't support union types; V3+ might.
 - `matchers.EachLike(..., 0)` is not allowed — Pact forces min 1 element. Problem for fields like `policies` that can be empty arrays.
@@ -104,19 +104,19 @@ Collected verbatim from spike notes:
 
 ### Question A: Did Pact feel like a fit for the Terraform provider specifically?
 
-*Dan's call, based on the evidence above.*
+**Verdict: Wait.** Pact works mechanically, but the Terraform provider is not the right place to start. The provider doesn't have its own SDK yet — it uses `pkg/client` directly. Contracts are consumer-driven, and the consumer should be an SDK, not an end application. Investing in Pact consumer tests before the first SDK exists would mean rework when the SDK boundary is established.
 
 What the spike showed:
 
 - **Pact works mechanically.** Consumer tests generate contracts, verification checks them, failure messages are clear.
 - **The authoring cost is moderate.** ~5-10 min per interaction once the pattern is established. The consumer test code is mechanical.
 - **The value is narrow.** Pact catches integration drift — when the API changes response shapes without the SDK knowing. It doesn't test business logic, data persistence, or Terraform lifecycle behavior. The existing unit tests (httptest) and acceptance tests already cover those.
-- **The infrastructure cost is real.** Native FFI dependency on every machine, `DYLD_LIBRARY_PATH` at runtime, multipart/form-data limitations, provider state handlers for real API verification.
+- **The infrastructure cost is real.** Native FFI dependency on every machine, `DYLD_LIBRARY_PATH` on macOS, no official GitHub Action for CI setup, multipart/form-data limitations, provider state handlers for real API verification.
 - **The acceptance tests already handle dependency orchestration for free** via Terraform's dependency graph. Pact state handlers must manually replicate that work.
 
 ### Question B: Does the infrastructure investment plausibly amortize across other consumers?
 
-*Dan's call, based on the evidence above.*
+**Verdict: Yes, but timing matters.** The SDK model makes amortization viable — 2 pact suites cover all consumers. But the trigger should be the first SDK, not the first consumer. Until then, the provider side should get familiar with Pact so verification can be stood up quickly when the first contract arrives.
 
 What the spike showed:
 
@@ -124,6 +124,10 @@ What the spike showed:
 - **The provider verification side is shared.** The API team writes state handlers once, all SDKs reference the same state strings.
 - **The per-SDK cost is not shared.** Each SDK needs its own native Pact library, its own consumer tests, its own CI setup with FFI library installation.
 - **Full contract safety requires real API verification**, which is the most expensive mode (state handler plumbing). Stub-only verification documents shapes but doesn't prove the real API matches.
+
+### Decision
+
+**Wait with Pact on the consumer side until the first SDK exists.** Contracts are consumer-driven, so the most reasonable provider-side work is to get familiar with Pact until the first contract has been created. When an SDK is built, that's the trigger to write consumer pact tests and stand up provider verification.
 
 ### Key risks and open questions
 

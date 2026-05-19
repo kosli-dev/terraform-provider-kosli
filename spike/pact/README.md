@@ -27,13 +27,13 @@
 **What was observed:**
 - pact-go v2 is a Go wrapper around a Rust FFI library (`libpact_ffi.dylib`, 13MB native binary). Not pure Go.
 - `pact-go install` requires write access to `/usr/local/lib` (needed `sudo` on macOS)
-- Even after install, `DYLD_LIBRARY_PATH=/usr/local/lib` is required at runtime — macOS `dyld` doesn't search `/usr/local/lib` by default (post-Big Sur security change). Linux would need equivalent `LD_LIBRARY_PATH`.
+- Even after install, `DYLD_LIBRARY_PATH=/usr/local/lib` is required at runtime on macOS — `dyld` doesn't search `/usr/local/lib` by default (post-Big Sur security change). Linux doesn't have this problem (`/usr/local/lib` is on the standard search path).
 - The pact-go v2 API is fluent/builder-style (not error-returning) — minor surprise if we're used to Go conventions
 - Cosmetic logger warning on every run (`can't set logger`) — harmless but noisy
 - The generated pact file is readable JSON: consumer/provider names, interactions with request/response, matchingRules, metadata
 
 **Open "what about" questions:**
-- CI setup: every runner needs the FFI library installed + `DYLD_LIBRARY_PATH` (or `LD_LIBRARY_PATH`). What does this cost in CI config maintenance?
+- CI setup: every runner needs the FFI library installed (simple `wget` + copy to `/usr/local/lib` on Linux). No official GitHub Action exists for pact-go setup. macOS runners additionally need `DYLD_LIBRARY_PATH`.
 - Developer onboarding: new contributors need `sudo pact-go install` before tests work. How does that sit with the project's current zero-native-deps Go toolchain?
 
 ## Step 2: Plugin framework integration check
