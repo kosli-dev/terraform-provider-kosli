@@ -199,9 +199,15 @@ code {
   background: var(--kosli-blue-light);
   border-radius: 0 8px 8px 0;
   font-size: 15px;
-  font-weight: 500;
-  color: var(--kosli-navy);
+  font-weight: 400;
+  color: var(--kosli-text-secondary);
   line-height: 1.6;
+}
+.pullquote-title {
+  font-weight: 700;
+  color: var(--kosli-navy);
+  display: block;
+  margin-bottom: 4px;
 }
 .cards {
   display: grid;
@@ -1004,7 +1010,8 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   <h3>Integration shape</h3>
   <p>Pact tests run as a <strong>parallel suite</strong> alongside existing tests. They import <code>pkg/client</code>, point it at Pact's mock server, and exercise client methods directly. Existing unit tests and acceptance tests are untouched.</p>
   <div class="pullquote">
-    Embedding Pact in the Terraform <code>resource.Test</code> framework is not viable &mdash; the framework controls the provider lifecycle and HTTP client internally, with no hook to inject a mock server.
+    <span class="pullquote-title">Terraform plugin framework is not viable</span>
+    The framework controls the provider lifecycle and HTTP client internally, with no hook to inject a Pact mock server. Pact tests must run as a parallel suite.
   </div>
 </div>
 
@@ -1080,7 +1087,8 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     </tbody>
   </table>
   <div class="pullquote">
-    The full Pact value &mdash; catching real API drift &mdash; only materializes when verifying against the real API. That's the most expensive mode. The acceptance tests get dependency orchestration for free via Terraform's dependency graph &mdash; but that advantage is Terraform-specific. SDK consumers don't have a dependency graph, so this cost gap disappears at the SDK level.
+    <span class="pullquote-title">Full value requires real API verification</span>
+    Catching real API drift only materializes when verifying against the real API &mdash; the most expensive mode. The acceptance tests get dependency orchestration for free via Terraform's dependency graph, but that advantage is Terraform-specific. SDK consumers don't have a dependency graph, so this cost gap disappears at the SDK level.
   </div>
 </div>
 
@@ -1148,7 +1156,8 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   <p>Provider state strings are plain English, shareable across SDKs. In production, state handlers live on the <strong>provider side</strong> &mdash; the API team writes them once.</p>
 
   <div class="pullquote">
-    The reusability bottleneck is not the pact files &mdash; it's the per-SDK native library dependency. pact-go wraps a 13MB Rust FFI binary. CI setup on Linux is straightforward (<code>wget</code> + copy to <code>/usr/local/lib</code>), though no official GitHub Action exists. Local development on macOS requires <code>sudo</code> to install and <code>DYLD_LIBRARY_PATH</code> at runtime.
+    <span class="pullquote-title">Bottleneck: per-SDK native dependency</span>
+    The reusability bottleneck is not the pact files &mdash; it's the native library. pact-go wraps a 13MB Rust FFI binary. CI setup on Linux is straightforward (<code>wget</code> + copy to <code>/usr/local/lib</code>), though no official GitHub Action exists. Local development on macOS requires <code>sudo</code> to install and <code>DYLD_LIBRARY_PATH</code> at runtime.
   </div>
 </div>
 
@@ -1242,8 +1251,9 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     <p><strong>Wait with Pact on the consumer side until the first SDK exists.</strong> Contracts are consumer-driven, so the most reasonable provider-side work is to get familiar with Pact until the first contract has been created. When an SDK is built, that&rsquo;s the trigger to write consumer pact tests and stand up provider verification.</p>
   </div>
 
-  <div class="pullquote" style="font-size: 15px;">
-    <strong>A note on the spike context:</strong> This spike used the Terraform provider as the test vehicle, but the learning points toward Pact at the SDK level. Some findings are Terraform-specific &mdash; for example, the acceptance tests get dependency orchestration for free via Terraform&rsquo;s dependency graph, making Pact&rsquo;s state handlers feel like extra cost. That advantage disappears for SDK consumers, which don&rsquo;t have a dependency graph. The scores below reflect what we observed in the spike; at the SDK level, authoring cost and infrastructure overhead would look more favorable.
+  <div class="pullquote">
+    <span class="pullquote-title">Spike context</span>
+    This spike used the Terraform provider as the test vehicle, but the learning points toward Pact at the SDK level. Some findings are Terraform-specific &mdash; for example, the acceptance tests get dependency orchestration for free via Terraform&rsquo;s dependency graph, making Pact&rsquo;s state handlers feel like extra cost. That advantage disappears for SDK consumers, which don&rsquo;t have a dependency graph. The scores below reflect what we observed in the spike; at the SDK level, authoring cost and infrastructure overhead would look more favorable.
   </div>
 
   <h4>Key risks</h4>
@@ -1275,7 +1285,8 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   </div>
 
   <div class="pullquote" style="border-left-color: var(--kosli-green); background: var(--kosli-green-light);">
-    <strong>Shifting integration feedback left:</strong> Today we rely on long-running e2e tests to catch conflicts between the API and clients. Contract testing would give us that signal earlier &mdash; in CI, on every SDK commit &mdash; with confidence that a given SDK version satisfies the API contract. This frees e2e tests to focus on what they&rsquo;re actually good at: testing functional behavior end-to-end, rather than also serving as integration compatibility checks.
+    <span class="pullquote-title">Shifting integration feedback left</span>
+    Today we rely on long-running e2e tests to catch conflicts between the API and clients. Contract testing would give us that signal earlier &mdash; in CI, on every SDK commit &mdash; with confidence that a given SDK version satisfies the API contract. This frees e2e tests to focus on what they&rsquo;re actually good at: testing functional behavior end-to-end, rather than also serving as integration compatibility checks.
   </div>
 
   <div class="bottom-line">
