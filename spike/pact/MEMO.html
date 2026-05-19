@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pact Contract Testing Spike — Memo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --kosli-navy: #111A26;
+  --kosli-blue: #1C4BC6;
+  --kosli-blue-hover: #0039A6;
+  --kosli-blue-light: #EBEEFF;
+  --kosli-blue-200: #CFD8FF;
+  --kosli-blue-300: #ABBDFF;
+  --kosli-surface: #F6F8FC;
+  --kosli-surface-200: #F0F1F5;
+  --kosli-border: #E3E5E8;
+  --kosli-text: #1A1A1A;
+  --kosli-text-secondary: #3C3E41;
+  --kosli-text-tertiary: #646A71;
+  --kosli-green: #45A26D;
+  --kosli-green-dark: #00623B;
+  --kosli-green-light: #E5F9F0;
+  --kosli-red: #C13D33;
+  --kosli-red-dark: #9C2921;
+  --kosli-red-light: #FFF7F6;
+  --kosli-red-mid: #FFEAE7;
+  --kosli-yellow: #EFB83F;
+  --kosli-yellow-dark: #6C5008;
+  --kosli-yellow-light: #FFF7F0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'IBM Plex Sans', Helvetica, sans-serif;
+  color: var(--kosli-text);
+  background: #fff;
+  line-height: 1.6;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Hero ─── */
+.hero {
+  background: linear-gradient(135deg, var(--kosli-navy) 0%, #1a2d45 50%, var(--kosli-blue) 100%);
+  color: #fff;
+  padding: 72px 32px 48px;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(28,75,198,0.15) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.hero-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+.hero-label {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--kosli-blue-300);
+  margin-bottom: 16px;
+}
+.hero h1 {
+  font-family: 'Montserrat', Arial, sans-serif;
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: 14px;
+  letter-spacing: -0.02em;
+}
+.hero-sub {
+  font-size: 17px;
+  color: rgba(255,255,255,0.65);
+  max-width: 520px;
+  line-height: 1.5;
+}
+.hero-meta {
+  margin-top: 28px;
+  display: flex;
+  gap: 24px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.4);
+  font-family: 'Roboto Mono', monospace;
+}
+
+/* ─── Tab nav ─── */
+.tab-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #fff;
+  border-bottom: 1px solid var(--kosli-border);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.tab-nav-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tab-nav-inner::-webkit-scrollbar { display: none; }
+.tab-btn {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 14px 16px;
+  border: none;
+  background: none;
+  color: var(--kosli-text-tertiary);
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.tab-btn:hover { color: var(--kosli-text); }
+.tab-btn.active {
+  color: var(--kosli-blue);
+  border-bottom-color: var(--kosli-blue);
+}
+
+/* ─── Tab panels ─── */
+.tab-panel {
+  display: none;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 48px 32px 64px;
+  animation: fadeIn 0.25s ease;
+}
+.tab-panel.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ─── Typography ─── */
+h2 {
+  font-family: 'Montserrat', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--kosli-blue);
+  margin-bottom: 8px;
+}
+h3 {
+  font-family: 'Montserrat', Arial, sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--kosli-navy);
+  line-height: 1.2;
+  margin-bottom: 20px;
+  letter-spacing: -0.01em;
+}
+h4 {
+  font-family: 'Montserrat', Arial, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--kosli-navy);
+  margin-top: 32px;
+  margin-bottom: 12px;
+}
+p { margin-bottom: 16px; }
+strong { font-weight: 600; }
+a { color: var(--kosli-blue); text-decoration: none; }
+a:hover { color: var(--kosli-blue-hover); text-decoration: underline; }
+ul, ol { margin-bottom: 16px; padding-left: 24px; }
+li { margin-bottom: 8px; }
+code {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 13px;
+  background: var(--kosli-surface-200);
+  border: 1px solid var(--kosli-border);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+/* ─── Reusable components ─── */
+.pullquote {
+  border-left: 4px solid var(--kosli-blue);
+  padding: 24px 28px;
+  margin: 28px 0;
+  background: var(--kosli-blue-light);
+  border-radius: 0 8px 8px 0;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--kosli-text-secondary);
+  line-height: 1.6;
+}
+.pullquote-title {
+  font-weight: 700;
+  color: var(--kosli-navy);
+  display: block;
+  margin-bottom: 4px;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin: 24px 0;
+}
+.card {
+  background: var(--kosli-surface);
+  border: 1px solid var(--kosli-border);
+  border-radius: 12px;
+  padding: 20px 24px;
+}
+.card-label {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.card-label.blue { color: var(--kosli-blue); }
+.card-label.green { color: var(--kosli-green-dark); }
+.card-label.red { color: var(--kosli-red-dark); }
+.card-value {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--kosli-navy);
+  margin-bottom: 4px;
+}
+.card-desc {
+  font-size: 14px;
+  color: var(--kosli-text-secondary);
+  line-height: 1.4;
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 20px 0 24px;
+  font-size: 14px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--kosli-border);
+}
+thead th {
+  background: var(--kosli-navy);
+  color: #fff;
+  font-weight: 600;
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 13px;
+}
+tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--kosli-border);
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:nth-child(even) { background: var(--kosli-surface); }
+
+/* Architecture diagram */
+.arch {
+  background: var(--kosli-navy);
+  border-radius: 12px;
+  padding: 32px;
+  margin: 28px 0;
+}
+.arch-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 20px;
+}
+.arch-row:last-child { margin-bottom: 0; }
+.arch-box {
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+}
+.arch-consumer {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.5);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.arch-sdk {
+  background: rgba(28,75,198,0.2);
+  color: var(--kosli-blue-300);
+  border: 1px solid rgba(28,75,198,0.3);
+}
+.arch-api {
+  background: rgba(69,162,109,0.15);
+  color: #A0D8B8;
+  border: 1px solid rgba(69,162,109,0.25);
+}
+.arch-arrow {
+  color: #EFB83F;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 13px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+.arch-brace {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 150px;
+}
+.arch-label {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11px;
+  color: #EFB83F;
+  text-align: center;
+  margin-top: 16px;
+  letter-spacing: 0.05em;
+  opacity: 0.8;
+}
+
+/* Failure messages */
+.failures {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 24px 0;
+}
+.failure-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--kosli-surface);
+  border: 1px solid var(--kosli-border);
+  border-radius: 8px;
+  padding: 14px 18px;
+}
+.failure-badge {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  background: var(--kosli-red-mid);
+  color: var(--kosli-red-dark);
+}
+.failure-msg {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 13px;
+  color: var(--kosli-text-secondary);
+}
+
+/* What about list */
+.what-about {
+  list-style: none;
+  padding: 0;
+  counter-reset: wa;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.what-about li {
+  counter-increment: wa;
+  padding: 18px 20px 18px 56px;
+  border: 1px solid var(--kosli-border);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 14px;
+  color: var(--kosli-text-secondary);
+  position: relative;
+  line-height: 1.5;
+  transition: box-shadow 0.15s;
+}
+.what-about li:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.what-about li::before {
+  content: counter(wa);
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--kosli-blue);
+  background: var(--kosli-blue-light);
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.what-about-tag {
+  display: inline-block;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+.what-about-tag.ci { background: var(--kosli-blue-light); color: var(--kosli-blue); }
+.what-about-tag.dx { background: var(--kosli-green-light); color: var(--kosli-green-dark); }
+.what-about-tag.pact { background: var(--kosli-yellow-light); color: var(--kosli-yellow-dark); }
+.what-about-tag.code { background: var(--kosli-red-light); color: var(--kosli-red-dark); }
+
+/* ─── Dashboard (Section 8) ─── */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.score-card {
+  background: #fff;
+  border: 1px solid var(--kosli-border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  position: relative;
+  overflow: hidden;
+}
+.score-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.score-card.score-green::after { background: var(--kosli-green); }
+.score-card.score-yellow::after { background: var(--kosli-yellow); }
+.score-card.score-red::after { background: var(--kosli-red); }
+.score-card.score-blue::after { background: var(--kosli-blue); }
+
+.score-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+.score-title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--kosli-navy);
+}
+.score-badge {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.score-badge.green { background: var(--kosli-green-light); color: var(--kosli-green-dark); }
+.score-badge.yellow { background: var(--kosli-yellow-light); color: var(--kosli-yellow-dark); }
+.score-badge.red { background: var(--kosli-red-light); color: var(--kosli-red-dark); }
+.score-badge.blue { background: var(--kosli-blue-light); color: var(--kosli-blue); }
+
+.score-bar-track {
+  height: 6px;
+  background: var(--kosli-surface-200);
+  border-radius: 3px;
+  margin: 12px 0 8px;
+  overflow: hidden;
+}
+.score-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+.score-bar-fill.green { background: var(--kosli-green); }
+.score-bar-fill.yellow { background: var(--kosli-yellow); }
+.score-bar-fill.red { background: var(--kosli-red); }
+.score-bar-fill.blue { background: var(--kosli-blue); }
+
+.score-detail {
+  font-size: 13px;
+  color: var(--kosli-text-tertiary);
+  line-height: 1.4;
+}
+
+/* Wide score card */
+.score-card.wide {
+  grid-column: 1 / -1;
+}
+
+/* Risk cards */
+.risk-card {
+  border-radius: 12px;
+  padding: 24px 28px;
+  margin: 16px 0;
+  position: relative;
+  overflow: hidden;
+}
+.risk-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 4px;
+  height: 100%;
+}
+.risk-high {
+  background: linear-gradient(135deg, var(--kosli-red-light) 0%, #fff 100%);
+  border: 1px solid var(--kosli-red-mid);
+}
+.risk-high::before { background: var(--kosli-red); }
+.risk-medium {
+  background: linear-gradient(135deg, var(--kosli-yellow-light) 0%, #fff 100%);
+  border: 1px solid #FFEDCD;
+}
+.risk-medium::before { background: var(--kosli-yellow); }
+.risk-label {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.risk-high .risk-label { color: var(--kosli-red-dark); }
+.risk-medium .risk-label { color: var(--kosli-yellow-dark); }
+.risk-title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--kosli-navy);
+  margin-bottom: 8px;
+}
+.risk-card p {
+  font-size: 14px;
+  color: var(--kosli-text-secondary);
+  margin-bottom: 0;
+}
+
+/* ROI spectrum */
+.roi-spectrum {
+  background: var(--kosli-surface);
+  border: 1px solid var(--kosli-border);
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin: 24px 0;
+}
+.roi-spectrum h4 {
+  margin-top: 0;
+  font-size: 15px;
+  margin-bottom: 20px;
+}
+.spectrum-track {
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--kosli-red) 0%, var(--kosli-yellow) 50%, var(--kosli-green) 100%);
+  position: relative;
+  margin-bottom: 12px;
+}
+.spectrum-marker {
+  position: absolute;
+  top: -6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--kosli-navy);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transform: translateX(-50%);
+}
+.spectrum-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--kosli-text-tertiary);
+  font-family: 'Roboto Mono', monospace;
+}
+.spectrum-caption {
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--kosli-text-secondary);
+  text-align: center;
+}
+
+/* Bottom line */
+.bottom-line {
+  background: var(--kosli-navy);
+  color: #fff;
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin: 32px 0 0;
+}
+.bottom-line-label {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--kosli-blue-300);
+  margin-bottom: 10px;
+}
+.bottom-line p {
+  font-size: 16px;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.6;
+  margin-bottom: 0;
+}
+.bottom-line strong { color: #fff; }
+
+/* ─── Pact flow diagram ─── */
+.pact-flow {
+  margin: 32px 0;
+}
+.flow-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.flow-step {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 0;
+  position: relative;
+}
+.flow-step-num {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.flow-step-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+.flow-step-circle.blue { background: var(--kosli-blue); }
+.flow-step-circle.green { background: var(--kosli-green); }
+.flow-step-circle.navy { background: var(--kosli-navy); }
+.flow-step-line {
+  width: 2px;
+  flex: 1;
+  background: var(--kosli-border);
+  margin: 4px auto;
+}
+.flow-step:last-child .flow-step-line { display: none; }
+.flow-step-content {
+  padding: 4px 0 28px 16px;
+}
+.flow-step-title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--kosli-navy);
+  margin-bottom: 6px;
+}
+.flow-step-desc {
+  font-size: 14px;
+  color: var(--kosli-text-secondary);
+  line-height: 1.5;
+}
+
+/* Flow visual */
+.flow-visual {
+  background: var(--kosli-navy);
+  border-radius: 12px;
+  padding: 36px 32px;
+  margin: 32px 0;
+}
+.flow-visual-title {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--kosli-blue-300);
+  text-align: center;
+  margin-bottom: 28px;
+}
+.flow-lanes {
+  display: grid;
+  grid-template-columns: 1fr 80px 1fr;
+  gap: 0;
+  align-items: start;
+}
+.flow-lane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.flow-lane-label {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  text-align: center;
+  margin-bottom: 8px;
+}
+.flow-node {
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+}
+.flow-node-sdk {
+  background: rgba(28,75,198,0.15);
+  color: var(--kosli-blue-300);
+  border: 1px solid rgba(28,75,198,0.25);
+}
+.flow-node-mock {
+  background: rgba(69,162,109,0.12);
+  color: #A0D8B8;
+  border: 1px dashed rgba(69,162,109,0.3);
+}
+.flow-node-pact {
+  background: rgba(239,184,63,0.12);
+  color: #EFB83F;
+  border: 1px solid rgba(239,184,63,0.25);
+}
+.flow-node-api {
+  background: rgba(69,162,109,0.15);
+  color: #A0D8B8;
+  border: 1px solid rgba(69,162,109,0.25);
+}
+.flow-node-sim {
+  background: rgba(28,75,198,0.12);
+  color: var(--kosli-blue-300);
+  border: 1px dashed rgba(28,75,198,0.25);
+}
+.flow-arrows {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding-top: 28px;
+}
+.flow-arrow {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 11px;
+  color: rgba(255,255,255,0.55);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.flow-arrow-line {
+  width: 48px;
+  height: 1px;
+  background: rgba(255,255,255,0.2);
+  position: relative;
+}
+.flow-arrow-line::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: -3px;
+  border: 4px solid transparent;
+  border-left-color: rgba(255,255,255,0.5);
+}
+.flow-arrow-line.left::after {
+  right: auto;
+  left: 0;
+  border-left-color: transparent;
+  border-right-color: rgba(255,255,255,0.5);
+}
+.flow-section-divider {
+  grid-column: 1 / -1;
+  border-top: 1px dashed rgba(255,255,255,0.2);
+  margin: 16px 0;
+}
+.flow-section-label {
+  grid-column: 1 / -1;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 48px 32px;
+  font-size: 13px;
+  color: var(--kosli-text-tertiary);
+  border-top: 1px solid var(--kosli-border);
+}
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-label">Spike memo</div>
+    <h1>Should we use Pact for<br>contract testing?</h1>
+    <p class="hero-sub">We spiked consumer-driven contract testing with pact-go against the Terraform provider. Here's what we found.</p>
+    <div class="hero-meta">
+      <span>May 2026</span>
+      <span>spike/pact/</span>
+      <span>pact-go v2.4.3</span>
+    </div>
+  </div>
+</div>
+
+<!-- Tab navigation -->
+<nav class="tab-nav">
+  <div class="tab-nav-inner">
+    <button class="tab-btn active" data-tab="intro">Intro</button>
+    <button class="tab-btn" data-tab="built">Built</button>
+    <button class="tab-btn" data-tab="integration">Integration</button>
+    <button class="tab-btn" data-tab="cost">Cost</button>
+    <button class="tab-btn" data-tab="state">State</button>
+    <button class="tab-btn" data-tab="failures">Failures</button>
+    <button class="tab-btn" data-tab="crosslang">Languages</button>
+    <button class="tab-btn" data-tab="whatabout">Open Qs</button>
+    <button class="tab-btn" data-tab="recommendation">Verdict</button>
+  </div>
+</nav>
+
+<!-- Tab: Introduction -->
+<div class="tab-panel active" id="tab-intro">
+  <h2>Background</h2>
+  <h3>What is contract testing?</h3>
+
+  <p>In a microservices or multi-consumer architecture, different applications depend on each other's APIs. When one side changes, the other can break without warning. Traditional integration tests catch this by deploying both sides and testing them together  &ndash; but that's slow, flaky, and expensive.</p>
+
+  <p><strong>Contract testing</strong> takes a different approach: each side tests independently against a shared contract that describes the expected API behavior. If both sides satisfy the contract, they'll work together in production  &ndash; without ever needing to deploy together in a test environment.</p>
+
+  <h4>How Pact works</h4>
+
+  <p>Pact is the most widely adopted contract testing framework. It works in two phases:</p>
+
+  <div class="flow-visual">
+    <div class="flow-visual-title">Pact contract testing flow</div>
+
+    <div class="flow-lanes">
+      <div class="flow-lane-label">Consumer side (SDK)</div>
+      <div></div>
+      <div class="flow-lane-label">Provider side (API)</div>
+    </div>
+
+    <div class="flow-lanes" style="margin-bottom: 0;">
+      <div class="flow-lane-label" style="color: rgba(255,255,255,0.5); font-size: 9px; margin-bottom: 4px;">PHASE 1: GENERATE CONTRACT</div>
+      <div></div>
+      <div></div>
+    </div>
+
+    <div class="flow-lanes">
+      <div class="flow-lane">
+        <div class="flow-node flow-node-sdk">Kosli Go SDK<br><span style="font-size:11px; opacity:0.6">consumer test</span></div>
+      </div>
+      <div class="flow-arrows">
+        <div class="flow-arrow">
+          <span>request</span>
+          <div class="flow-arrow-line"></div>
+        </div>
+        <div class="flow-arrow">
+          <div class="flow-arrow-line left"></div>
+          <span>response</span>
+        </div>
+      </div>
+      <div class="flow-lane">
+        <div class="flow-node flow-node-mock">Pact mock server<br><span style="font-size:11px; opacity:0.6">simulates provider</span></div>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin: 12px 0 4px;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 18px;">&#8595;</div>
+    </div>
+
+    <div style="display: flex; justify-content: center; margin-bottom: 4px;">
+      <div class="flow-node flow-node-pact" style="font-weight: 600; min-width: 200px;">Pact file (JSON)<br><span style="font-size:11px; opacity:0.7; font-weight:400">contract artifact</span></div>
+    </div>
+
+    <div style="text-align: center; margin: 4px 0;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 18px;">&#8595;</div>
+    </div>
+
+    <div style="display: flex; justify-content: center; margin-bottom: 4px;">
+      <div class="flow-node" style="min-width: 200px; background: rgba(171,189,255,0.1); color: var(--kosli-blue-200); border: 1px solid rgba(171,189,255,0.2); border-radius: 8px; padding: 12px 16px; font-size: 13px; font-weight: 500; text-align: center;">Pact Broker<br><span style="font-size:11px; opacity:0.6">stores &amp; shares contracts</span></div>
+    </div>
+
+    <div style="text-align: center; margin: 4px 0;">
+      <div style="color: rgba(255,255,255,0.5); font-size: 18px;">&#8595;</div>
+    </div>
+
+    <div class="flow-section-divider"></div>
+
+    <div class="flow-lanes" style="margin-bottom: 0;">
+      <div></div>
+      <div></div>
+      <div class="flow-lane-label" style="color: rgba(255,255,255,0.5); font-size: 9px; margin-bottom: 4px;">PHASE 2: VERIFY CONTRACT</div>
+    </div>
+
+    <div class="flow-lanes">
+      <div class="flow-lane">
+        <div class="flow-node flow-node-sim">Pact simulated consumer<br><span style="font-size:11px; opacity:0.6">replays requests from contract</span></div>
+      </div>
+      <div class="flow-arrows">
+        <div class="flow-arrow">
+          <span>replay</span>
+          <div class="flow-arrow-line"></div>
+        </div>
+        <div class="flow-arrow">
+          <div class="flow-arrow-line left"></div>
+          <span>compare</span>
+        </div>
+      </div>
+      <div class="flow-lane">
+        <div class="flow-node flow-node-api">Kosli API<br><span style="font-size:11px; opacity:0.6">real provider</span></div>
+      </div>
+    </div>
+
+    <div class="flow-lanes" style="margin-top: 12px;">
+      <div></div>
+      <div style="text-align: center;">
+        <div style="color: rgba(255,255,255,0.5); font-size: 18px;">&#8595;</div>
+      </div>
+      <div></div>
+    </div>
+
+    <div style="text-align: center; margin-top: 4px;">
+      <div class="flow-node" style="display: inline-block; background: rgba(69,162,109,0.15); color: #A0D8B8; border: 1px solid rgba(69,162,109,0.25); border-radius: 8px; padding: 10px 24px; font-size: 13px; font-weight: 600;">
+        Responses match contract? &rarr; Safe to deploy
+      </div>
+    </div>
+  </div>
+
+  <h4>The key idea</h4>
+
+  <p>The consumer writes tests against a Pact mock server. Those tests generate a <strong>pact file</strong>  &ndash; a JSON contract describing every HTTP interaction the consumer expects. The provider then verifies that it can satisfy every interaction in the contract by replaying the requests against the real API.</p>
+
+  <p>If both sides pass, they're compatible  &ndash; without ever needing to be deployed together.</p>
+
+  <h4>What a contract looks like</h4>
+
+  <p>This is a real pact file generated during the spike  &ndash; one interaction from the environment data source:</p>
+
+  <pre style="background: var(--kosli-navy); color: #dce0e5; border-radius: 12px; padding: 24px 28px; font-size: 13px; line-height: 1.6; overflow-x: auto;"><code style="background:none; border:none; padding:0; color:inherit; font-size:inherit;">{
+  <span style="color:#ABBDFF">"consumer"</span>: { <span style="color:#ABBDFF">"name"</span>: <span style="color:#A0D8B8">"KosliGoSDK"</span> },
+  <span style="color:#ABBDFF">"provider"</span>: { <span style="color:#ABBDFF">"name"</span>: <span style="color:#A0D8B8">"KosliAPI"</span> },
+  <span style="color:#ABBDFF">"interactions"</span>: [
+    {
+      <span style="color:#ABBDFF">"description"</span>: <span style="color:#A0D8B8">"a request to get environment production-k8s"</span>,
+      <span style="color:#ABBDFF">"providerState"</span>: <span style="color:#A0D8B8">"environment production-k8s exists"</span>,
+      <span style="color:#ABBDFF">"request"</span>: {
+        <span style="color:#ABBDFF">"method"</span>: <span style="color:#A0D8B8">"GET"</span>,
+        <span style="color:#ABBDFF">"path"</span>: <span style="color:#A0D8B8">"/api/v2/environments/test-org/production-k8s"</span>
+      },
+      <span style="color:#ABBDFF">"response"</span>: {
+        <span style="color:#ABBDFF">"status"</span>: <span style="color:#EFB83F">200</span>,
+        <span style="color:#ABBDFF">"body"</span>: {
+          <span style="color:#ABBDFF">"name"</span>: <span style="color:#A0D8B8">"production-k8s"</span>,
+          <span style="color:#ABBDFF">"type"</span>: <span style="color:#A0D8B8">"K8S"</span>,
+          <span style="color:#ABBDFF">"description"</span>: <span style="color:#A0D8B8">"Production Kubernetes cluster"</span>,
+          <span style="color:#ABBDFF">"include_scaling"</span>: <span style="color:#EFB83F">true</span>,
+          <span style="color:#ABBDFF">"last_modified_at"</span>: <span style="color:#EFB83F">1234567890.123</span>
+        },
+        <span style="color:rgba(255,255,255,0.3)">// Matching rules: type-based, not exact values</span>
+        <span style="color:#ABBDFF">"matchingRules"</span>: {
+          <span style="color:#ABBDFF">"$.body.name"</span>:        { <span style="color:#ABBDFF">"match"</span>: <span style="color:#A0D8B8">"type"</span> },
+          <span style="color:#ABBDFF">"$.body.type"</span>:        { <span style="color:#ABBDFF">"match"</span>: <span style="color:#A0D8B8">"type"</span> },
+          <span style="color:#ABBDFF">"$.body.description"</span>: { <span style="color:#ABBDFF">"match"</span>: <span style="color:#A0D8B8">"type"</span> }
+          <span style="color:rgba(255,255,255,0.3)">// ...</span>
+        }
+      }
+    }
+  ]
+}</code></pre>
+
+  <p style="font-size:14px; color: var(--kosli-text-tertiary); margin-top: 12px;">The <code>matchingRules</code> section is what makes this a contract rather than a fixture  &ndash; <code>"match": "type"</code> means the provider must return a string, but the exact value doesn't matter. The API can change <code>"production-k8s"</code> to any string without breaking the contract.</p>
+
+  <h4>Why we spiked it</h4>
+
+  <p>Kosli already has multiple consumers of its API (Terraform provider, CLI, MCP server), with more expected as the platform grows. Official SDKs would reduce the need for customers to write their own API clients, and contract testing would give those SDKs a built-in quality guarantee. We spiked Pact to answer two questions:</p>
+
+  <ul>
+    <li><strong>Question A:</strong> Did Pact feel like a fit for the Terraform provider specifically?</li>
+    <li><strong>Question B:</strong> Does the infrastructure investment plausibly amortize across the other consumers?</li>
+  </ul>
+
+  <p>The Terraform provider was the spike vehicle because it's the structurally most favorable consumer: bounded surface, CRUD lifecycle, existing acceptance tests as reference. If Pact struggles here, it'll struggle elsewhere.</p>
+</div>
+
+<!-- Tab: What was built -->
+<div class="tab-panel" id="tab-built">
+  <h2>Section 1</h2>
+  <h3>What was built</h3>
+  <p>Consumer-driven contract tests for two Kosli API resources using pact-go v2, targeting the <code>pkg/client</code> HTTP client layer:</p>
+  <div class="cards">
+    <div class="card">
+      <div class="card-label blue">Environment</div>
+      <div class="card-value">1 interaction</div>
+      <div class="card-desc">GET  &ndash; consumer test + provider verification</div>
+    </div>
+    <div class="card">
+      <div class="card-label blue">Custom attestation type</div>
+      <div class="card-value">3 interactions</div>
+      <div class="card-desc">POST, GET, PUT  &ndash; full create/read/delete lifecycle</div>
+    </div>
+  </div>
+  <p>Provider verification ran against a local stub server with state handlers. All code lives in <code>spike/pact/</code>.</p>
+</div>
+
+<!-- Tab: Integration -->
+<div class="tab-panel" id="tab-integration">
+  <h2>Section 2</h2>
+  <h3>Integration shape</h3>
+  <p>Pact tests run as a <strong>parallel suite</strong> alongside existing tests. They import <code>pkg/client</code>, point it at Pact's mock server, and exercise client methods directly. Existing unit tests and acceptance tests are untouched.</p>
+
+  <h4>Three test layers</h4>
+  <p>Pact doesn't replace any existing tests  &ndash; it fills a gap between them:</p>
+
+  <div class="arch" style="padding: 28px 24px;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+      <div style="text-align: center;">
+        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 10px;">Unit tests</div>
+        <div class="flow-node flow-node-sdk" style="margin-bottom: 12px;">pkg/client<br><span style="font-size: 11px; opacity: 0.6;">httptest mocks</span></div>
+        <div style="font-size: 12px; color: rgba(255,255,255,0.45); line-height: 1.4;">Does the client<br>parse responses<br>correctly?</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--kosli-yellow); margin-bottom: 10px;">Contract tests</div>
+        <div class="flow-node flow-node-pact" style="margin-bottom: 12px;">Pact<br><span style="font-size: 11px; opacity: 0.7;">mock &harr; real API</span></div>
+        <div style="font-size: 12px; color: rgba(255,255,255,0.45); line-height: 1.4;">Do the client and<br>API agree on<br>response shapes?</div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 10px;">Acceptance tests</div>
+        <div class="flow-node flow-node-api" style="margin-bottom: 12px;">resource.Test<br><span style="font-size: 11px; opacity: 0.6;">real Terraform + API</span></div>
+        <div style="font-size: 12px; color: rgba(255,255,255,0.45); line-height: 1.4;">Does the full<br>Terraform lifecycle<br>work end-to-end?</div>
+      </div>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Layer</th><th>Tests what</th><th>Catches</th><th>Speed</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Unit tests</strong></td>
+        <td>Client code against httptest mocks</td>
+        <td>Parsing bugs, error handling, edge cases</td>
+        <td>Milliseconds</td>
+      </tr>
+      <tr>
+        <td><strong>Contract tests</strong></td>
+        <td>HTTP interface between client and API</td>
+        <td>Field renames, type changes, missing fields, status code changes</td>
+        <td>Seconds</td>
+      </tr>
+      <tr>
+        <td><strong>Acceptance tests</strong></td>
+        <td>Full Terraform plan/apply/destroy against real API</td>
+        <td>Business logic, state management, dependency orchestration</td>
+        <td>Minutes</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>How they run</h4>
+
+  <pre style="background: var(--kosli-navy); color: #dce0e5; border-radius: 8px; padding: 16px 20px; font-size: 13px; line-height: 1.6;"><code style="background:none; border:none; padding:0; color:inherit; font-size:inherit;"><span style="color:rgba(255,255,255,0.3)"># Unit tests — no external deps</span>
+<span style="color:#A0D8B8">go test</span> ./pkg/client/...
+
+<span style="color:rgba(255,255,255,0.3)"># Contract tests — needs Pact FFI library</span>
+<span style="color:#A0D8B8">go test</span> ./spike/pact/...
+
+<span style="color:rgba(255,255,255,0.3)"># Acceptance tests — needs KOSLI_API_TOKEN, KOSLI_ORG</span>
+<span style="color:#EFB83F">TF_ACC=1</span> <span style="color:#A0D8B8">go test</span> ./internal/provider/... -run=TestAcc</code></pre>
+
+  <h4>CI pipeline  &ndash; earliest feedback first</h4>
+  <p>Contract tests slot in right after unit tests, catching integration drift before the slow e2e stage:</p>
+
+  <div class="arch" style="padding: 28px 20px;">
+    <div style="display: flex; align-items: center; gap: 0; flex-wrap: nowrap; overflow-x: auto;">
+
+      <!-- Trigger -->
+      <div style="text-align: center; flex-shrink: 0;">
+        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 6px;">Trigger</div>
+        <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: rgba(255,255,255,0.5); font-weight: 500;">Push / PR</div>
+      </div>
+
+      <div style="color: rgba(255,255,255,0.5); padding: 0 8px; font-size: 16px; margin-top: 16px;">&rarr;</div>
+
+      <!-- Stage 1 -->
+      <div style="text-align: center; flex-shrink: 0;">
+        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 6px;">~5s</div>
+        <div style="background: rgba(69,162,109,0.15); border: 1px solid rgba(69,162,109,0.25); border-radius: 8px; padding: 10px 14px;">
+          <div style="font-size: 12px; color: #A0D8B8; font-weight: 600;">Unit tests</div>
+          <div style="font-size: 10px; color: rgba(255,255,255,0.55); margin-top: 2px;">go test ./pkg/client/...</div>
+        </div>
+      </div>
+
+      <div style="color: rgba(255,255,255,0.5); padding: 0 8px; font-size: 16px; margin-top: 16px;">&rarr;</div>
+
+      <!-- Stage 2 -->
+      <div style="text-align: center; flex-shrink: 0;">
+        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--kosli-yellow); margin-bottom: 6px;">~10s</div>
+        <div style="background: rgba(239,184,63,0.12); border: 1px solid rgba(239,184,63,0.25); border-radius: 8px; padding: 10px 14px;">
+          <div style="font-size: 12px; color: #EFB83F; font-weight: 600;">Contract tests</div>
+          <div style="font-size: 10px; color: rgba(255,255,255,0.55); margin-top: 2px;">go test ./pact/...</div>
+        </div>
+      </div>
+
+      <div style="color: rgba(255,255,255,0.5); padding: 0 8px; font-size: 16px; margin-top: 16px;">&rarr;</div>
+
+      <!-- Stage 3 -->
+      <div style="text-align: center; flex-shrink: 0;">
+        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 6px;">~15 min</div>
+        <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px;">
+          <div style="font-size: 12px; color: rgba(255,255,255,0.5); font-weight: 600;">E2E / acceptance</div>
+          <div style="font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px;">TF_ACC=1 go test ...</div>
+        </div>
+      </div>
+
+      <div style="color: rgba(255,255,255,0.5); padding: 0 8px; font-size: 16px; margin-top: 16px;">&rarr;</div>
+
+      <!-- Deploy -->
+      <div style="text-align: center; flex-shrink: 0;">
+        <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 6px;">&nbsp;</div>
+        <div style="background: rgba(28,75,198,0.2); border: 1px solid rgba(28,75,198,0.3); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--kosli-blue-300); font-weight: 600;">Deploy</div>
+      </div>
+
+    </div>
+
+    <div style="display: flex; align-items: flex-start; margin-top: 16px; padding-top: 14px; border-top: 1px dashed rgba(255,255,255,0.2);">
+      <div style="flex: 1;">
+        <div style="font-size: 11px; color: rgba(255,255,255,0.5); font-family: 'Roboto Mono', monospace;">Integration drift caught here &uarr;</div>
+        <div style="font-size: 11px; color: rgba(255,255,255,0.5); font-family: 'Roboto Mono', monospace; margin-top: 2px;">Not 15 min later in e2e &rarr;</div>
+      </div>
+    </div>
+  </div>
+
+  <p>Contract tests need only the Pact FFI library  &ndash; no API credentials, no test org, no network. They fail fast on shape drift, before the expensive e2e stage runs.</p>
+
+  <div class="pullquote">
+    <span class="pullquote-title">Terraform plugin framework is not viable</span>
+    The framework controls the provider lifecycle and HTTP client internally, with no hook to inject a Pact mock server. Pact tests must run as a parallel suite targeting <code>pkg/client</code> directly.
+  </div>
+</div>
+
+<!-- Tab: Authoring cost -->
+<div class="tab-panel" id="tab-cost">
+  <h2>Section 3</h2>
+  <h3>Authoring cost</h3>
+  <div class="cards">
+    <div class="card">
+      <div class="card-label green">Read (GET)</div>
+      <div class="card-value">~5 min</div>
+      <div class="card-desc">JSON response, straightforward matching</div>
+    </div>
+    <div class="card">
+      <div class="card-label red">Create (POST)</div>
+      <div class="card-value">~10 min</div>
+      <div class="card-desc">Multipart form-data  &ndash; request body not matchable</div>
+    </div>
+    <div class="card">
+      <div class="card-label green">Delete (PUT)</div>
+      <div class="card-value">~3 min</div>
+      <div class="card-desc">No body, simplest interaction</div>
+    </div>
+    <div class="card">
+      <div class="card-label blue">Verification stub</div>
+      <div class="card-value">~2 min</div>
+      <div class="card-desc">Per interaction added to stub server</div>
+    </div>
+  </div>
+  <p>The provider has ~15 distinct API interactions across 7 resources. Projected full-provider authoring cost: <strong>2&ndash;3 hours</strong>. The consumer test code is mechanical once the pattern is established.</p>
+
+  <div class="pullquote">
+    <span class="pullquote-title">Not all interactions are equal</span>
+    Create interactions (POST with multipart) have no request-body or response-body contract &ndash; only method, path regex, status code, and Content-Type are verified. Read interactions (GET with JSON response) carry full field-level contracts. Roughly 30&ndash;40% of interactions in this provider are creates/deletes with thin contracts, which tempers the per-interaction amortization story.
+  </div>
+
+  <p>The larger cost is <strong>provider state handlers</strong> when verifying against a real API. For resources with dependencies, state handlers must orchestrate multi-step setup and teardown  &ndash; work that Terraform's dependency graph does automatically in acceptance tests.</p>
+  <h4>Without SDKs  &ndash; pact per consumer</h4>
+  <p>Without a shared SDK, every consumer talks to the API directly and needs its own pact tests. The same API interactions get tested repeatedly across consumers  &ndash; violating DRY and multiplying maintenance:</p>
+
+  <div class="arch">
+    <div class="arch-row">
+      <div class="arch-box arch-consumer" style="min-width: 150px;">Terraform Provider</div>
+      <div class="arch-arrow"> &ndash; pact  &ndash;&rarr;</div>
+      <div class="arch-box arch-api">Kosli API</div>
+    </div>
+    <div class="arch-row">
+      <div class="arch-box arch-consumer" style="min-width: 150px;">CLI</div>
+      <div class="arch-arrow"> &ndash; pact  &ndash;&rarr;</div>
+      <div class="arch-box arch-api">Kosli API</div>
+    </div>
+    <div class="arch-row">
+      <div class="arch-box arch-consumer" style="min-width: 150px;">Backstage plugin</div>
+      <div class="arch-arrow"> &ndash; pact  &ndash;&rarr;</div>
+      <div class="arch-box arch-api">Kosli API</div>
+    </div>
+    <div class="arch-row">
+      <div class="arch-box arch-consumer" style="min-width: 150px;">MCP server</div>
+      <div class="arch-arrow"> &ndash; pact  &ndash;&rarr;</div>
+      <div class="arch-box arch-api">Kosli API</div>
+    </div>
+    <div class="arch-label">4 separate pact suites &middot; duplicated contract tests &middot; each consumer maintains its own HTTP client code</div>
+  </div>
+
+  <h4>With SDKs  &ndash; pact per SDK</h4>
+  <p>With a shared SDK per language, the contract lives at the SDK boundary. Consumers trust the SDK; only the SDK tests the API contract:</p>
+
+  <div class="arch">
+    <div style="display: grid; grid-template-columns: 160px auto 130px auto 120px; align-items: center; gap: 12px 0; margin-bottom: 20px;">
+      <div class="arch-brace" style="grid-row: 1 / span 1; min-width: auto;">
+        <div class="arch-box arch-consumer" style="width: 100%; text-align: center;">Terraform Provider</div>
+        <div class="arch-box arch-consumer" style="width: 100%; text-align: center;">CLI</div>
+      </div>
+      <div class="arch-arrow" style="text-align: center;">&rarr;</div>
+      <div class="arch-box arch-sdk" style="text-align: center; justify-self: center;">Go SDK</div>
+      <div class="arch-arrow" style="text-align: center;"> &ndash; pact  &ndash;&rarr;</div>
+      <div class="arch-box arch-api" style="justify-self: start;">Kosli API</div>
+
+      <div class="arch-brace" style="grid-row: 2 / span 1; min-width: auto;">
+        <div class="arch-box arch-consumer" style="width: 100%; text-align: center;">Backstage plugin</div>
+        <div class="arch-box arch-consumer" style="width: 100%; text-align: center;">MCP server</div>
+      </div>
+      <div class="arch-arrow" style="text-align: center;">&rarr;</div>
+      <div class="arch-box arch-sdk" style="text-align: center; justify-self: center;">TypeScript SDK</div>
+      <div class="arch-arrow" style="text-align: center;"> &ndash; pact  &ndash;&rarr;</div>
+      <div class="arch-box arch-api" style="justify-self: start;">Kosli API</div>
+    </div>
+    <div class="arch-label">2 pact suites, not 4+ &middot; end consumers don't write pact tests &middot; no duplication</div>
+  </div>
+</div>
+
+<!-- Tab: Provider state -->
+<div class="tab-panel" id="tab-state">
+  <h2>Section 4</h2>
+  <h3>Provider state experience</h3>
+
+  <h4>What is provider state?</h4>
+
+  <p>A contract says: <em>"when I GET <code>/environments/org/production-k8s</code>, the API returns a JSON object with these fields."</em> But that only works if the environment actually exists. <strong>Provider state</strong> is Pact's mechanism for expressing that precondition.</p>
+
+  <p>On the <strong>consumer side</strong>, the test declares a state as a plain-English string  &ndash; purely a label:</p>
+
+  <pre style="background: var(--kosli-navy); color: #dce0e5; border-radius: 8px; padding: 14px 18px; font-size: 13px; line-height: 1.5; margin-bottom: 16px;"><code style="background:none; border:none; padding:0; color:inherit; font-size:inherit;">mockProvider.
+    AddInteraction().
+    <span style="color:#EFB83F">Given</span>(<span style="color:#A0D8B8">"environment production-k8s exists"</span>).  <span style="color:rgba(255,255,255,0.3)">// just a label</span>
+    UponReceiving(<span style="color:#A0D8B8">"a request to get environment"</span>).
+    WithRequest(<span style="color:#A0D8B8">"GET"</span>, <span style="color:#A0D8B8">"/api/v2/environments/..."</span>).
+    WillRespondWith(<span style="color:#EFB83F">200</span>, ...)</code></pre>
+
+  <p>The mock server doesn't enforce this state  &ndash; it always returns the canned response. The string just gets written into the pact file as metadata.</p>
+
+  <p>On the <strong>provider side</strong>, during verification, Pact looks up that string in a map of <em>state handlers</em>  &ndash; functions that run before each interaction to make the precondition true:</p>
+
+  <pre style="background: var(--kosli-navy); color: #dce0e5; border-radius: 8px; padding: 14px 18px; font-size: 13px; line-height: 1.5; margin-bottom: 16px;"><code style="background:none; border:none; padding:0; color:inherit; font-size:inherit;">StateHandlers: {
+    <span style="color:#A0D8B8">"environment production-k8s exists"</span>: <span style="color:#ABBDFF">func</span>(setup <span style="color:#ABBDFF">bool</span>, s ProviderState) {
+        <span style="color:rgba(255,255,255,0.3)">// Called with setup=true BEFORE the interaction</span>
+        <span style="color:rgba(255,255,255,0.3)">// Called with setup=false AFTER (teardown)</span>
+        <span style="color:#ABBDFF">if</span> setup {
+            apiClient.CreateEnvironment(ctx, &amp;CreateEnvironmentRequest{
+                Name: <span style="color:#A0D8B8">"production-k8s"</span>, Type: <span style="color:#A0D8B8">"K8S"</span>,
+            })
+        } <span style="color:#ABBDFF">else</span> {
+            apiClient.ArchiveEnvironment(ctx, <span style="color:#A0D8B8">"production-k8s"</span>)
+        }
+    },
+}</code></pre>
+
+  <p>With a stub server (what we used in the spike), these handlers are no-ops  &ndash; the stub always returns the right shape regardless. With a real API, they become real code that creates and tears down test data.</p>
+
+  <h4>Why this matters</h4>
+
+  <p>Provider state conflates two concerns:</p>
+  <ul>
+    <li><strong>The contract itself</strong>  &ndash; "given state X, the response has shape Y." This is the value add.</li>
+    <li><strong>The state setup code</strong>  &ndash; creating resources, managing dependencies, cleaning up. This is functional test infrastructure, not contract testing. It's also where the cost scales: each interaction needs its own handler, and dependent resources need multi-step setup.</li>
+  </ul>
+
+  <table>
+    <thead><tr><th>Verification target</th><th>Contract safety</th><th>State handler cost</th></tr></thead>
+    <tbody>
+      <tr><td>Consumer tests only</td><td>Shapes documented, not verified</td><td>None</td></tr>
+      <tr><td>Stub server</td><td>Same  &ndash; we trust the stub</td><td>Minimal (no-ops)</td></tr>
+      <tr><td>Real API</td><td>Full  &ndash; proves the contract</td><td>High (setup/teardown per interaction)</td></tr>
+    </tbody>
+  </table>
+  <div class="pullquote">
+    <span class="pullquote-title">Full value requires real API verification</span>
+    Catching real API drift only materializes when verifying against the real API  &ndash; the most expensive mode. The acceptance tests get dependency orchestration for free via Terraform's dependency graph, but that advantage is Terraform-specific. SDK consumers don't have a dependency graph, so this cost gap disappears at the SDK level.
+  </div>
+</div>
+
+<!-- Tab: Failure messages -->
+<div class="tab-panel" id="tab-failures">
+  <h2>Section 5</h2>
+  <h3>Failure message quality</h3>
+  <p>Three failure scenarios tested. All produced clear, actionable messages:</p>
+  <div class="failures">
+    <div class="failure-row">
+      <span class="failure-badge">Wrong type</span>
+      <span class="failure-msg">$.type &rarr; Expected 42 (Integer) to be the same type as 'K8S' (String)</span>
+    </div>
+    <div class="failure-row">
+      <span class="failure-badge">Missing field</span>
+      <span class="failure-msg">$ &rarr; Actual map is missing the following keys: description</span>
+    </div>
+    <div class="failure-row">
+      <span class="failure-badge">Wrong status</span>
+      <span class="failure-msg">expected 200 but was 404</span>
+    </div>
+  </div>
+  <p>JSONPath notation pinpoints the location. No stack traces or framework noise. If a contract breaks, the message tells us exactly what changed and where.</p>
+
+  <div class="card" style="margin-top: 20px; background: var(--kosli-surface);">
+    <div class="card-label blue">What is JSONPath?</div>
+    <p style="font-size: 14px; margin-bottom: 12px;">JSONPath is a query language for addressing fields inside JSON  &ndash; like XPath for XML. Pact generates it automatically from the matchers we define; we never write it ourselves.</p>
+    <pre style="background: var(--kosli-navy); color: #dce0e5; border-radius: 8px; padding: 14px 18px; font-size: 12px; line-height: 1.5; margin-bottom: 10px;"><code style="background:none; border:none; padding:0; color:inherit; font-size:inherit;"><span style="color:#ABBDFF">"matchingRules"</span>: {
+  <span style="color:#ABBDFF">"$.body.name"</span>:   { <span style="color:#ABBDFF">"match"</span>: <span style="color:#A0D8B8">"type"</span> },  <span style="color:rgba(255,255,255,0.3)">// must be a string</span>
+  <span style="color:#ABBDFF">"$.body.type"</span>:   { <span style="color:#ABBDFF">"match"</span>: <span style="color:#A0D8B8">"type"</span> },  <span style="color:rgba(255,255,255,0.3)">// must be a string</span>
+  <span style="color:#ABBDFF">"$.body.version"</span>: { <span style="color:#ABBDFF">"match"</span>: <span style="color:#A0D8B8">"type"</span> }  <span style="color:rgba(255,255,255,0.3)">// must be a number</span>
+}</code></pre>
+    <p style="font-size: 13px; color: var(--kosli-text-tertiary); margin-bottom: 0;"><code>$.body.name</code> reads as: root (<code>$</code>) &rarr; response body (<code>.body</code>) &rarr; the <code>name</code> field.</p>
+  </div>
+</div>
+
+<!-- Tab: Cross-language -->
+<div class="tab-panel" id="tab-crosslang">
+  <h2>Section 6</h2>
+  <h3>Cross-language relevance</h3>
+
+  <h4>Languages in scope</h4>
+  <p>Three languages are relevant for Kosli SDK consumers of the public API (<code>/api/v2/</code>):</p>
+
+  <div class="cards" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="card">
+      <div class="card-label blue">Go</div>
+      <div class="card-desc">Terraform provider, CLI. Spike tested with <a href="https://github.com/pact-foundation/pact-go">pact-go</a> v2 (Rust FFI).</div>
+    </div>
+    <div class="card">
+      <div class="card-label blue">TypeScript</div>
+      <div class="card-desc">Backstage plugin, MCP server. Would use <a href="https://github.com/pact-foundation/pact-js">pact-js</a> (native N-API binding).</div>
+    </div>
+    <div class="card">
+      <div class="card-label blue">Python</div>
+      <div class="card-desc">Future consumers, scripting, automation. Would use <a href="https://github.com/pact-foundation/pact-python">pact-python</a> (Rust FFI).</div>
+    </div>
+  </div>
+
+  <h4>What about the frontend?</h4>
+  <p>The Kosli frontend is TypeScript/React but server-rendered via HTMX + Jinja2 templates. It communicates exclusively with <strong>internal Flask UI routes</strong> (returning HTML fragments), not the public <code>/api/v2/</code> REST API. Contract testing between front- and backend would target a different API surface  &ndash; the internal UI routes  &ndash; and is a separate question from this spike.</p>
+
+  <h4>Portability of pact files</h4>
+  <p>Pact files are fully portable across all three languages. Matchers (<code>"match": "type"</code>, <code>"match": "regex"</code>) are Pact specification standard  &ndash; pact-go, pact-js, and pact-python all generate and consume the same format. Field names are language-neutral snake_case from the API.</p>
+  <p>Provider state strings are plain English, shareable across SDKs. In production, state handlers live on the <strong>provider side</strong>  &ndash; the API team writes them once.</p>
+
+  <div class="pullquote">
+    <span class="pullquote-title">Bottleneck: per-SDK native dependency</span>
+    The reusability bottleneck is not the pact files  &ndash; it's that each Pact library requires a native binary installed on every machine. CI setup on Linux is straightforward (<code>wget</code> + copy to <code>/usr/local/lib</code>), though no official GitHub Action exists. Local development on macOS requires <code>sudo</code> to install and <code>DYLD_LIBRARY_PATH</code> at runtime.
+  </div>
+</div>
+
+<!-- Tab: What about -->
+<div class="tab-panel" id="tab-whatabout">
+  <h2>Section 7</h2>
+  <h3>Open questions</h3>
+  <p>Issues surfaced during the spike that would need answers before production adoption:</p>
+  <ol class="what-about">
+    <li>
+      <div class="what-about-tag ci">CI / Infrastructure</div><br>
+      <strong>CI runner setup:</strong> Every Linux runner needs the FFI library installed (<code>wget</code> + copy to <code>/usr/local/lib</code>). No official GitHub Action exists. Local dev on macOS additionally requires <code>DYLD_LIBRARY_PATH</code>.
+    </li>
+    <li>
+      <div class="what-about-tag dx">Developer experience</div><br>
+      <strong>Onboarding friction:</strong> <code>sudo pact-go install</code> required for local development. This adds a native dependency to what is currently a zero-native-deps Go toolchain.
+    </li>
+    <li>
+      <div class="what-about-tag pact">Pact limitation</div><br>
+      <strong>Nullable types:</strong> How to express "null OR number" (e.g., <code>last_reported_at</code>)? Pact V2 doesn't support union types. <a href="https://github.com/pact-foundation/pact-specification/tree/version-3">V3 adds a null matcher and OR combinator</a>.
+    </li>
+    <li>
+      <div class="what-about-tag pact">Pact limitation</div><br>
+      <strong>Empty arrays:</strong> <code>matchers.EachLike(..., 0)</code> not allowed  &ndash; Pact forces <a href="https://github.com/pact-foundation/pact-go/blob/master/docs/consumer.md">min 1 element</a>. Problem for fields like <code>policies</code> that can legitimately be empty.
+    </li>
+    <li>
+      <div class="what-about-tag pact">Pact limitation</div><br>
+      <strong>Multipart/form-data:</strong> Can't be matched on request body in Pact V2. <a href="https://github.com/pact-foundation/pact-go/blob/master/docs/consumer.md">V3+ adds multipart support</a>. ~50% of CRUD interactions for custom attestation type have no request body contract as a result.
+    </li>
+    <li>
+      <div class="what-about-tag pact">Pact limitation</div><br>
+      <strong>Map-typed fields with dynamic keys:</strong> <code>matchers.Like(map[string]string{"env": "prod"})</code> constrains <code>tags</code> to always contain a literal key <code>env</code>. Pact V2 type matching on maps matches keys literally and values by type &ndash; there is no way to express "map of unknown keys to strings." If the real API returns empty tags or different key sets, provider verification fails. Same shape of problem as empty arrays (item 4).
+    </li>
+    <li>
+      <div class="what-about-tag code">Code quality</div><br>
+      <strong>Client bypass:</strong> <code>CreateCustomAttestationType</code> bypasses <code>doRequest()</code> and calls <code>httpClient.Do()</code> directly  &ndash; skipping retry and auth logic. Should be refactored independently of Pact. Tracked in <a href="https://github.com/kosli-dev/terraform-provider-kosli/issues/198">#198</a>.
+    </li>
+    <li>
+      <div class="what-about-tag ci">CI / Infrastructure</div><br>
+      <strong>State handler scaling:</strong> Provider state handler count scales linearly with interactions. For full API coverage (~30+ endpoints), that's significant plumbing  &ndash; especially for resources with dependencies that need multi-step setup.
+    </li>
+  </ol>
+</div>
+
+<!-- Tab: Recommendation (Dashboard) -->
+<div class="tab-panel" id="tab-recommendation">
+  <h2>Section 8</h2>
+  <h3>Recommendation dashboard</h3>
+
+  <div class="dash-grid">
+    <div class="score-card score-yellow" data-score="65" data-weight="25">
+      <div class="score-header">
+        <div class="score-title">Value scope <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">25%</span></div>
+        <div class="score-badge yellow">Narrow + shift-left</div>
+      </div>
+      <div class="score-bar-track"><div class="score-bar-fill yellow" style="width: 65%"></div></div>
+      <div class="score-detail">Catches shape drift only  &ndash; but shifts integration signals out of long-running e2e tests into fast CI checks. The narrowness matters less when it replaces slow feedback loops.</div>
+    </div>
+
+    <div class="score-card score-yellow" data-score="50" data-weight="15">
+      <div class="score-header">
+        <div class="score-title">Amortization <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">15%</span></div>
+        <div class="score-badge yellow">Conditional</div>
+      </div>
+      <div class="score-bar-track"><div class="score-bar-fill yellow" style="width: 50%"></div></div>
+      <div class="score-detail">SDK model helps: 2 pact suites cover all consumers. Provider verification is shared. But full safety requires real API verification, and both sides must invest.</div>
+    </div>
+
+    <div class="score-card score-red" data-score="30" data-weight="15">
+      <div class="score-header">
+        <div class="score-title">Broker management <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">15%</span></div>
+        <div class="score-badge red">Uncertain</div>
+      </div>
+      <div class="score-bar-track"><div class="score-bar-fill red" style="width: 30%"></div></div>
+      <div class="score-detail">Required for the full workflow. <a href="https://pactflow.io/pricing/">PactFlow</a> free tier limited to 2 integrations; Team plan ~$1,385/yr. Self-hosted needs Postgres + Docker. Operational cost and "can I deploy?" integration not yet evaluated.</div>
+    </div>
+
+    <div class="score-card score-green" data-score="85" data-weight="10">
+      <div class="score-header">
+        <div class="score-title">Mechanical fit <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">10%</span></div>
+        <div class="score-badge green">Strong</div>
+      </div>
+      <div class="score-bar-track"><div class="score-bar-fill green" style="width: 85%"></div></div>
+      <div class="score-detail">Pact works. Consumer tests generate contracts, verification checks them, failure messages are clear and actionable.</div>
+    </div>
+
+    <div class="score-card score-green" data-score="95" data-weight="10">
+      <div class="score-header">
+        <div class="score-title">Failure diagnostics <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">10%</span></div>
+        <div class="score-badge green">Excellent</div>
+      </div>
+      <div class="score-bar-track"><div class="score-bar-fill green" style="width: 95%"></div></div>
+      <div class="score-detail">JSONPath pinpoints the exact field. Wrong type, missing field, wrong status  &ndash; all immediately understandable. No noise.</div>
+    </div>
+
+    <div class="score-card score-yellow" data-score="60" data-weight="10">
+      <div class="score-header">
+        <div class="score-title">Infrastructure overhead <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">10%</span></div>
+        <div class="score-badge yellow">Manageable</div>
+      </div>
+      <div class="score-bar-track"><div class="score-bar-fill yellow" style="width: 60%"></div></div>
+      <div class="score-detail">Native library per SDK, but CI setup is a one-liner on Linux. <a href="https://docs.pact.io/pact_nirvana">Pact Nirvana</a> shows infrastructure is incremental  &ndash; start simple, add complexity as needed. macOS <code>DYLD_LIBRARY_PATH</code> issue has a <a href="https://github.com/pact-foundation/pact-go/issues/345">known fix</a>.</div>
+    </div>
+
+    <div class="score-card score-yellow" data-score="40" data-weight="10">
+      <div class="score-header">
+        <div class="score-title">Cross-language portability <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">10%</span></div>
+        <div class="score-badge yellow">Mixed</div>
+      </div>
+      <div class="score-bar-track"><div class="score-bar-fill yellow" style="width: 40%"></div></div>
+      <div class="score-detail">Pact files are fully portable (JSON). But each SDK needs its own native Pact library with its own install/CI story. Per-SDK cost is not shared.</div>
+    </div>
+
+    <div class="score-card score-green" data-score="80" data-weight="5">
+      <div class="score-header">
+        <div class="score-title">Authoring cost <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">5%</span></div>
+        <div class="score-badge green">Low</div>
+      </div>
+      <div class="score-bar-track"><div class="score-bar-fill green" style="width: 80%"></div></div>
+      <div class="score-detail">~5&ndash;10 min per interaction manually. With agent-supported development, authoring is largely automated  &ndash; making this negligible in the overall investment.</div>
+    </div>
+  </div>
+
+  <div class="roi-spectrum">
+    <h4>Weighted ROI position</h4>
+    <div class="spectrum-track">
+      <div class="spectrum-marker" id="roi-marker" style="left: 50%"></div>
+    </div>
+    <div class="spectrum-labels">
+      <span>Low ROI</span>
+      <span>High ROI</span>
+    </div>
+    <p class="spectrum-caption" id="roi-caption">Weighted score: calculating...</p>
+  </div>
+
+  <p style="font-size: 13px; color: var(--kosli-text-tertiary); margin-bottom: 32px;"><strong style="color: var(--kosli-text-secondary);">Note:</strong> Scores reflect what we observed in the spike (Terraform provider as test vehicle). Some findings are Terraform-specific  &ndash; e.g., acceptance tests get free dependency orchestration via Terraform's dependency graph. At the SDK level, authoring cost and infrastructure overhead would look more favorable.</p>
+
+  <div class="bottom-line" style="margin: 0 0 24px; background: linear-gradient(135deg, var(--kosli-navy) 0%, #1a2d45 100%);">
+    <div class="bottom-line-label">Decision</div>
+    <p style="margin-bottom: 16px;"><strong>Wait with Pact on the consumer side until the first SDK exists.</strong> Contracts are consumer-driven, so the most reasonable provider-side work is to get familiar with Pact until the first contract has been created. When an SDK is built, that's the trigger to write consumer pact tests and stand up provider verification.</p>
+    <p style="color: rgba(255,255,255,0.6); margin-bottom: 0;">Pact works mechanically and its failure messages are excellent. The value is narrow (shape drift only) and the infrastructure cost is real  &ndash; but the <strong style="color: rgba(255,255,255,0.85);">SDK model makes amortization viable</strong>, and shifting integration checks out of e2e into contract tests would give us faster, more focused feedback.</p>
+  </div>
+
+  <div class="pullquote" style="border-left-color: var(--kosli-green); background: var(--kosli-green-light);">
+    <span class="pullquote-title">Shifting integration feedback left</span>
+    Today we rely on long-running e2e tests to catch conflicts between the API and clients. Contract testing would give us that signal earlier  &ndash; in CI, on every SDK commit  &ndash; with confidence that a given SDK version satisfies the API contract. This frees e2e tests to focus on what they're actually good at: testing functional behavior end-to-end, rather than also serving as integration compatibility checks.
+  </div>
+
+  <h4>Key risks</h4>
+
+  <div class="risk-card risk-high">
+    <div class="risk-label">High risk</div>
+    <div class="risk-title">Will the API team pick up Pact?</div>
+    <p>Contract testing is two-sided. Pact files are inert unless the provider runs verification in CI. Without provider-side buy-in, Pact reduces to documentation with extra steps. Requires the API team to run <code>pact verify</code>, write state handlers, and agree on a failure process.</p>
+  </div>
+
+  <div class="risk-card risk-medium">
+    <div class="risk-label">Medium risk</div>
+    <div class="risk-title">Pact Broker infrastructure</div>
+    <p>Pact files must flow from consumer CI to provider CI. Options: <strong>PactFlow</strong> (SaaS, paid, zero infra), <strong>self-hosted broker</strong> (Docker + Postgres), or <strong>no broker</strong> (loses "can I deploy?" workflow). The broker is not optional for the full cross-team workflow.</p>
+  </div>
+
+  <h4>Suggested next steps</h4>
+
+  <div class="flow-steps" style="margin-top: 20px;">
+    <div class="flow-step">
+      <div class="flow-step-num">
+        <div class="flow-step-circle blue">1</div>
+        <div class="flow-step-line"></div>
+      </div>
+      <div class="flow-step-content">
+        <div class="flow-step-title">Agree on contract testing investment</div>
+        <div class="flow-step-desc">Align across teams on whether contract testing with Pact is the right approach going forward. This is a two-sided investment  &ndash; both consumer and provider teams need to commit for the full value to materialize.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-step-num">
+        <div class="flow-step-circle blue">2</div>
+        <div class="flow-step-line"></div>
+      </div>
+      <div class="flow-step-content">
+        <div class="flow-step-title">Create SDKs with consumer contract tests</div>
+        <div class="flow-step-desc">SDK development will happen regardless of this spike, but we should have at least one stable SDK (e.g., consumed by <code>terraform-provider-kosli</code>) before investing in consumer-side contract testing. When the SDK boundary is established, add pact consumer tests to the SDK's CI.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-step-num">
+        <div class="flow-step-circle blue">3</div>
+        <div class="flow-step-line"></div>
+      </div>
+      <div class="flow-step-content">
+        <div class="flow-step-title">Investigate contract publishing</div>
+        <div class="flow-step-desc">Evaluate Pact Broker options: PactFlow (SaaS, zero infra), self-hosted (Docker + Postgres), or a simpler artifact-sharing approach. The broker enables the "can I deploy?" workflow and tracks verification results across teams.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-step-num">
+        <div class="flow-step-circle green">4</div>
+      </div>
+      <div class="flow-step-content">
+        <div class="flow-step-title">Invest in provider-side verification</div>
+        <div class="flow-step-desc">Stand up <code>pact verify</code> in the API's CI pipeline: state handlers, verification against real API, and a process for handling contract failures. This is where the contract testing loop closes.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Spike conducted May 2026 &middot; Code in <code>spike/pact/</code> &middot; Notes in <code>spike/pact/README.md</code>
+</div>
+
+<script>
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// Compute weighted ROI from score cards
+const cards = document.querySelectorAll('.score-card[data-score][data-weight]');
+let totalWeight = 0;
+let weightedSum = 0;
+cards.forEach(card => {
+  const score = parseFloat(card.dataset.score);
+  const weight = parseFloat(card.dataset.weight);
+  totalWeight += weight;
+  weightedSum += score * weight;
+});
+const weightedScore = Math.round(weightedSum / totalWeight);
+document.getElementById('roi-marker').style.left = weightedScore + '%';
+document.getElementById('roi-caption').textContent =
+  'Weighted score: ' + weightedScore + '/100 (based on ' + cards.length + ' categories, ' + totalWeight + '% total weight)';
+</script>
+
+</body>
+</html>

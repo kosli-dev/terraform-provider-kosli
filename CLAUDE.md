@@ -280,3 +280,7 @@ terraform-provider-kosli/
 ├── Makefile               # Build automation
 └── .github/workflows/     # CI/CD pipelines
 ```
+
+## Active workstreams
+
+- Pact contract testing spike: see `.claude/tasks/pact-spike.md`
