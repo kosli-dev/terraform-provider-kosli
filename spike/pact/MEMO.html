@@ -848,9 +848,9 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   <h2>Background</h2>
   <h3>What is contract testing?</h3>
 
-  <p>In a microservices or multi-consumer architecture, different applications depend on each other's APIs. When one side changes, the other can break without warning. Traditional integration tests catch this by deploying both sides and testing them together &mdash; but that's slow, flaky, and expensive.</p>
+  <p>In a microservices or multi-consumer architecture, different applications depend on each other's APIs. When one side changes, the other can break without warning. Traditional integration tests catch this by deploying both sides and testing them together  &ndash; but that's slow, flaky, and expensive.</p>
 
-  <p><strong>Contract testing</strong> takes a different approach: each side tests independently against a shared contract that describes the expected API behavior. If both sides satisfy the contract, they'll work together in production &mdash; without ever needing to deploy together in a test environment.</p>
+  <p><strong>Contract testing</strong> takes a different approach: each side tests independently against a shared contract that describes the expected API behavior. If both sides satisfy the contract, they'll work together in production  &ndash; without ever needing to deploy together in a test environment.</p>
 
   <h4>How Pact works</h4>
 
@@ -954,13 +954,13 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
 
   <h4>The key idea</h4>
 
-  <p>The consumer writes tests against a Pact mock server. Those tests generate a <strong>pact file</strong> &mdash; a JSON contract describing every HTTP interaction the consumer expects. The provider then verifies that it can satisfy every interaction in the contract by replaying the requests against the real API.</p>
+  <p>The consumer writes tests against a Pact mock server. Those tests generate a <strong>pact file</strong>  &ndash; a JSON contract describing every HTTP interaction the consumer expects. The provider then verifies that it can satisfy every interaction in the contract by replaying the requests against the real API.</p>
 
-  <p>If both sides pass, they're compatible &mdash; without ever needing to be deployed together.</p>
+  <p>If both sides pass, they're compatible  &ndash; without ever needing to be deployed together.</p>
 
   <h4>What a contract looks like</h4>
 
-  <p>This is a real pact file generated during the spike &mdash; one interaction from the environment data source:</p>
+  <p>This is a real pact file generated during the spike  &ndash; one interaction from the environment data source:</p>
 
   <pre style="background: var(--kosli-navy); color: #dce0e5; border-radius: 12px; padding: 24px 28px; font-size: 13px; line-height: 1.6; overflow-x: auto;"><code style="background:none; border:none; padding:0; color:inherit; font-size:inherit;">{
   <span style="color:#ABBDFF">"consumer"</span>: { <span style="color:#ABBDFF">"name"</span>: <span style="color:#A0D8B8">"KosliGoSDK"</span> },
@@ -994,7 +994,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   ]
 }</code></pre>
 
-  <p style="font-size:14px; color: var(--kosli-text-tertiary); margin-top: 12px;">The <code>matchingRules</code> section is what makes this a contract rather than a fixture &mdash; <code>"match": "type"</code> means the provider must return a string, but the exact value doesn't matter. The API can change <code>"production-k8s"</code> to any string without breaking the contract.</p>
+  <p style="font-size:14px; color: var(--kosli-text-tertiary); margin-top: 12px;">The <code>matchingRules</code> section is what makes this a contract rather than a fixture  &ndash; <code>"match": "type"</code> means the provider must return a string, but the exact value doesn't matter. The API can change <code>"production-k8s"</code> to any string without breaking the contract.</p>
 
   <h4>Why we spiked it</h4>
 
@@ -1017,12 +1017,12 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     <div class="card">
       <div class="card-label blue">Environment</div>
       <div class="card-value">1 interaction</div>
-      <div class="card-desc">GET &mdash; consumer test + provider verification</div>
+      <div class="card-desc">GET  &ndash; consumer test + provider verification</div>
     </div>
     <div class="card">
       <div class="card-label blue">Custom attestation type</div>
       <div class="card-value">3 interactions</div>
-      <div class="card-desc">POST, GET, PUT &mdash; full create/read/delete lifecycle</div>
+      <div class="card-desc">POST, GET, PUT  &ndash; full create/read/delete lifecycle</div>
     </div>
   </div>
   <p>Provider verification ran against a local stub server with state handlers. All code lives in <code>spike/pact/</code>.</p>
@@ -1035,7 +1035,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   <p>Pact tests run as a <strong>parallel suite</strong> alongside existing tests. They import <code>pkg/client</code>, point it at Pact's mock server, and exercise client methods directly. Existing unit tests and acceptance tests are untouched.</p>
 
   <h4>Three test layers</h4>
-  <p>Pact doesn't replace any existing tests &mdash; it fills a gap between them:</p>
+  <p>Pact doesn't replace any existing tests  &ndash; it fills a gap between them:</p>
 
   <div class="arch" style="padding: 28px 24px;">
     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
@@ -1092,7 +1092,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
 <span style="color:rgba(255,255,255,0.3)"># Acceptance tests — needs KOSLI_API_TOKEN, KOSLI_ORG</span>
 <span style="color:#EFB83F">TF_ACC=1</span> <span style="color:#A0D8B8">go test</span> ./internal/provider/... -run=TestAcc</code></pre>
 
-  <h4>CI pipeline &mdash; earliest feedback first</h4>
+  <h4>CI pipeline  &ndash; earliest feedback first</h4>
   <p>Contract tests slot in right after unit tests, catching integration drift before the slow e2e stage:</p>
 
   <div class="arch" style="padding: 28px 20px;">
@@ -1155,7 +1155,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     </div>
   </div>
 
-  <p>Contract tests need only the Pact FFI library &mdash; no API credentials, no test org, no network. They fail fast on shape drift, before the expensive e2e stage runs.</p>
+  <p>Contract tests need only the Pact FFI library  &ndash; no API credentials, no test org, no network. They fail fast on shape drift, before the expensive e2e stage runs.</p>
 
   <div class="pullquote">
     <span class="pullquote-title">Terraform plugin framework is not viable</span>
@@ -1176,7 +1176,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     <div class="card">
       <div class="card-label red">Create (POST)</div>
       <div class="card-value">~10 min</div>
-      <div class="card-desc">Multipart form-data &mdash; request body not matchable</div>
+      <div class="card-desc">Multipart form-data  &ndash; request body not matchable</div>
     </div>
     <div class="card">
       <div class="card-label green">Delete (PUT)</div>
@@ -1190,35 +1190,35 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     </div>
   </div>
   <p>The provider has ~15 distinct API interactions across 7 resources. Projected full-provider authoring cost: <strong>2&ndash;3 hours</strong>. The consumer test code is mechanical once the pattern is established.</p>
-  <p>The larger cost is <strong>provider state handlers</strong> when verifying against a real API. For resources with dependencies, state handlers must orchestrate multi-step setup and teardown &mdash; work that Terraform's dependency graph does automatically in acceptance tests.</p>
-  <h4>Without SDKs &mdash; pact per consumer</h4>
-  <p>Without a shared SDK, every consumer talks to the API directly and needs its own pact tests. The same API interactions get tested repeatedly across consumers &mdash; violating DRY and multiplying maintenance:</p>
+  <p>The larger cost is <strong>provider state handlers</strong> when verifying against a real API. For resources with dependencies, state handlers must orchestrate multi-step setup and teardown  &ndash; work that Terraform's dependency graph does automatically in acceptance tests.</p>
+  <h4>Without SDKs  &ndash; pact per consumer</h4>
+  <p>Without a shared SDK, every consumer talks to the API directly and needs its own pact tests. The same API interactions get tested repeatedly across consumers  &ndash; violating DRY and multiplying maintenance:</p>
 
   <div class="arch">
     <div class="arch-row">
       <div class="arch-box arch-consumer" style="min-width: 150px;">Terraform Provider</div>
-      <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
+      <div class="arch-arrow"> &ndash; pact  &ndash;&rarr;</div>
       <div class="arch-box arch-api">Kosli API</div>
     </div>
     <div class="arch-row">
       <div class="arch-box arch-consumer" style="min-width: 150px;">CLI</div>
-      <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
+      <div class="arch-arrow"> &ndash; pact  &ndash;&rarr;</div>
       <div class="arch-box arch-api">Kosli API</div>
     </div>
     <div class="arch-row">
       <div class="arch-box arch-consumer" style="min-width: 150px;">Backstage plugin</div>
-      <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
+      <div class="arch-arrow"> &ndash; pact  &ndash;&rarr;</div>
       <div class="arch-box arch-api">Kosli API</div>
     </div>
     <div class="arch-row">
       <div class="arch-box arch-consumer" style="min-width: 150px;">MCP server</div>
-      <div class="arch-arrow">&mdash; pact &mdash;&rarr;</div>
+      <div class="arch-arrow"> &ndash; pact  &ndash;&rarr;</div>
       <div class="arch-box arch-api">Kosli API</div>
     </div>
     <div class="arch-label">4 separate pact suites &middot; duplicated contract tests &middot; each consumer maintains its own HTTP client code</div>
   </div>
 
-  <h4>With SDKs &mdash; pact per SDK</h4>
+  <h4>With SDKs  &ndash; pact per SDK</h4>
   <p>With a shared SDK per language, the contract lives at the SDK boundary. Consumers trust the SDK; only the SDK tests the API contract:</p>
 
   <div class="arch">
@@ -1229,7 +1229,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
       </div>
       <div class="arch-arrow" style="text-align: center;">&rarr;</div>
       <div class="arch-box arch-sdk" style="text-align: center; justify-self: center;">Go SDK</div>
-      <div class="arch-arrow" style="text-align: center;">&mdash; pact &mdash;&rarr;</div>
+      <div class="arch-arrow" style="text-align: center;"> &ndash; pact  &ndash;&rarr;</div>
       <div class="arch-box arch-api" style="justify-self: start;">Kosli API</div>
 
       <div class="arch-brace" style="grid-row: 2 / span 1; min-width: auto;">
@@ -1238,7 +1238,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
       </div>
       <div class="arch-arrow" style="text-align: center;">&rarr;</div>
       <div class="arch-box arch-sdk" style="text-align: center; justify-self: center;">TypeScript SDK</div>
-      <div class="arch-arrow" style="text-align: center;">&mdash; pact &mdash;&rarr;</div>
+      <div class="arch-arrow" style="text-align: center;"> &ndash; pact  &ndash;&rarr;</div>
       <div class="arch-box arch-api" style="justify-self: start;">Kosli API</div>
     </div>
     <div class="arch-label">2 pact suites, not 4+ &middot; end consumers don't write pact tests &middot; no duplication</div>
@@ -1254,7 +1254,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
 
   <p>A contract says: <em>"when I GET <code>/environments/org/production-k8s</code>, the API returns a JSON object with these fields."</em> But that only works if the environment actually exists. <strong>Provider state</strong> is Pact's mechanism for expressing that precondition.</p>
 
-  <p>On the <strong>consumer side</strong>, the test declares a state as a plain-English string &mdash; purely a label:</p>
+  <p>On the <strong>consumer side</strong>, the test declares a state as a plain-English string  &ndash; purely a label:</p>
 
   <pre style="background: var(--kosli-navy); color: #dce0e5; border-radius: 8px; padding: 14px 18px; font-size: 13px; line-height: 1.5; margin-bottom: 16px;"><code style="background:none; border:none; padding:0; color:inherit; font-size:inherit;">mockProvider.
     AddInteraction().
@@ -1263,9 +1263,9 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     WithRequest(<span style="color:#A0D8B8">"GET"</span>, <span style="color:#A0D8B8">"/api/v2/environments/..."</span>).
     WillRespondWith(<span style="color:#EFB83F">200</span>, ...)</code></pre>
 
-  <p>The mock server doesn't enforce this state &mdash; it always returns the canned response. The string just gets written into the pact file as metadata.</p>
+  <p>The mock server doesn't enforce this state  &ndash; it always returns the canned response. The string just gets written into the pact file as metadata.</p>
 
-  <p>On the <strong>provider side</strong>, during verification, Pact looks up that string in a map of <em>state handlers</em> &mdash; functions that run before each interaction to make the precondition true:</p>
+  <p>On the <strong>provider side</strong>, during verification, Pact looks up that string in a map of <em>state handlers</em>  &ndash; functions that run before each interaction to make the precondition true:</p>
 
   <pre style="background: var(--kosli-navy); color: #dce0e5; border-radius: 8px; padding: 14px 18px; font-size: 13px; line-height: 1.5; margin-bottom: 16px;"><code style="background:none; border:none; padding:0; color:inherit; font-size:inherit;">StateHandlers: {
     <span style="color:#A0D8B8">"environment production-k8s exists"</span>: <span style="color:#ABBDFF">func</span>(setup <span style="color:#ABBDFF">bool</span>, s ProviderState) {
@@ -1281,27 +1281,27 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     },
 }</code></pre>
 
-  <p>With a stub server (what we used in the spike), these handlers are no-ops &mdash; the stub always returns the right shape regardless. With a real API, they become real code that creates and tears down test data.</p>
+  <p>With a stub server (what we used in the spike), these handlers are no-ops  &ndash; the stub always returns the right shape regardless. With a real API, they become real code that creates and tears down test data.</p>
 
   <h4>Why this matters</h4>
 
   <p>Provider state conflates two concerns:</p>
   <ul>
-    <li><strong>The contract itself</strong> &mdash; "given state X, the response has shape Y." This is the value add.</li>
-    <li><strong>The state setup code</strong> &mdash; creating resources, managing dependencies, cleaning up. This is functional test infrastructure, not contract testing. It's also where the cost scales: each interaction needs its own handler, and dependent resources need multi-step setup.</li>
+    <li><strong>The contract itself</strong>  &ndash; "given state X, the response has shape Y." This is the value add.</li>
+    <li><strong>The state setup code</strong>  &ndash; creating resources, managing dependencies, cleaning up. This is functional test infrastructure, not contract testing. It's also where the cost scales: each interaction needs its own handler, and dependent resources need multi-step setup.</li>
   </ul>
 
   <table>
     <thead><tr><th>Verification target</th><th>Contract safety</th><th>State handler cost</th></tr></thead>
     <tbody>
       <tr><td>Consumer tests only</td><td>Shapes documented, not verified</td><td>None</td></tr>
-      <tr><td>Stub server</td><td>Same &mdash; we trust the stub</td><td>Minimal (no-ops)</td></tr>
-      <tr><td>Real API</td><td>Full &mdash; proves the contract</td><td>High (setup/teardown per interaction)</td></tr>
+      <tr><td>Stub server</td><td>Same  &ndash; we trust the stub</td><td>Minimal (no-ops)</td></tr>
+      <tr><td>Real API</td><td>Full  &ndash; proves the contract</td><td>High (setup/teardown per interaction)</td></tr>
     </tbody>
   </table>
   <div class="pullquote">
     <span class="pullquote-title">Full value requires real API verification</span>
-    Catching real API drift only materializes when verifying against the real API &mdash; the most expensive mode. The acceptance tests get dependency orchestration for free via Terraform's dependency graph, but that advantage is Terraform-specific. SDK consumers don't have a dependency graph, so this cost gap disappears at the SDK level.
+    Catching real API drift only materializes when verifying against the real API  &ndash; the most expensive mode. The acceptance tests get dependency orchestration for free via Terraform's dependency graph, but that advantage is Terraform-specific. SDK consumers don't have a dependency graph, so this cost gap disappears at the SDK level.
   </div>
 </div>
 
@@ -1328,7 +1328,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
 
   <div class="card" style="margin-top: 20px; background: var(--kosli-surface);">
     <div class="card-label blue">What is JSONPath?</div>
-    <p style="font-size: 14px; margin-bottom: 12px;">JSONPath is a query language for addressing fields inside JSON &mdash; like XPath for XML. Pact generates it automatically from the matchers we define; we never write it ourselves.</p>
+    <p style="font-size: 14px; margin-bottom: 12px;">JSONPath is a query language for addressing fields inside JSON  &ndash; like XPath for XML. Pact generates it automatically from the matchers we define; we never write it ourselves.</p>
     <pre style="background: var(--kosli-navy); color: #dce0e5; border-radius: 8px; padding: 14px 18px; font-size: 12px; line-height: 1.5; margin-bottom: 10px;"><code style="background:none; border:none; padding:0; color:inherit; font-size:inherit;"><span style="color:#ABBDFF">"matchingRules"</span>: {
   <span style="color:#ABBDFF">"$.body.name"</span>:   { <span style="color:#ABBDFF">"match"</span>: <span style="color:#A0D8B8">"type"</span> },  <span style="color:rgba(255,255,255,0.3)">// must be a string</span>
   <span style="color:#ABBDFF">"$.body.type"</span>:   { <span style="color:#ABBDFF">"match"</span>: <span style="color:#A0D8B8">"type"</span> },  <span style="color:rgba(255,255,255,0.3)">// must be a string</span>
@@ -1362,15 +1362,15 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   </div>
 
   <h4>What about the frontend?</h4>
-  <p>The Kosli frontend is TypeScript/React but server-rendered via HTMX + Jinja2 templates. It communicates exclusively with <strong>internal Flask UI routes</strong> (returning HTML fragments), not the public <code>/api/v2/</code> REST API. Contract testing between front- and backend would target a different API surface &mdash; the internal UI routes &mdash; and is a separate question from this spike.</p>
+  <p>The Kosli frontend is TypeScript/React but server-rendered via HTMX + Jinja2 templates. It communicates exclusively with <strong>internal Flask UI routes</strong> (returning HTML fragments), not the public <code>/api/v2/</code> REST API. Contract testing between front- and backend would target a different API surface  &ndash; the internal UI routes  &ndash; and is a separate question from this spike.</p>
 
   <h4>Portability of pact files</h4>
-  <p>Pact files are fully portable across all three languages. Matchers (<code>"match": "type"</code>, <code>"match": "regex"</code>) are Pact specification standard &mdash; pact-go, pact-js, and pact-python all generate and consume the same format. Field names are language-neutral snake_case from the API.</p>
-  <p>Provider state strings are plain English, shareable across SDKs. In production, state handlers live on the <strong>provider side</strong> &mdash; the API team writes them once.</p>
+  <p>Pact files are fully portable across all three languages. Matchers (<code>"match": "type"</code>, <code>"match": "regex"</code>) are Pact specification standard  &ndash; pact-go, pact-js, and pact-python all generate and consume the same format. Field names are language-neutral snake_case from the API.</p>
+  <p>Provider state strings are plain English, shareable across SDKs. In production, state handlers live on the <strong>provider side</strong>  &ndash; the API team writes them once.</p>
 
   <div class="pullquote">
     <span class="pullquote-title">Bottleneck: per-SDK native dependency</span>
-    The reusability bottleneck is not the pact files &mdash; it's that each Pact library requires a native binary installed on every machine. CI setup on Linux is straightforward (<code>wget</code> + copy to <code>/usr/local/lib</code>), though no official GitHub Action exists. Local development on macOS requires <code>sudo</code> to install and <code>DYLD_LIBRARY_PATH</code> at runtime.
+    The reusability bottleneck is not the pact files  &ndash; it's that each Pact library requires a native binary installed on every machine. CI setup on Linux is straightforward (<code>wget</code> + copy to <code>/usr/local/lib</code>), though no official GitHub Action exists. Local development on macOS requires <code>sudo</code> to install and <code>DYLD_LIBRARY_PATH</code> at runtime.
   </div>
 </div>
 
@@ -1394,7 +1394,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     </li>
     <li>
       <div class="what-about-tag pact">Pact limitation</div><br>
-      <strong>Empty arrays:</strong> <code>matchers.EachLike(..., 0)</code> not allowed &mdash; Pact forces <a href="https://github.com/pact-foundation/pact-go/blob/master/docs/consumer.md">min 1 element</a>. Problem for fields like <code>policies</code> that can legitimately be empty.
+      <strong>Empty arrays:</strong> <code>matchers.EachLike(..., 0)</code> not allowed  &ndash; Pact forces <a href="https://github.com/pact-foundation/pact-go/blob/master/docs/consumer.md">min 1 element</a>. Problem for fields like <code>policies</code> that can legitimately be empty.
     </li>
     <li>
       <div class="what-about-tag pact">Pact limitation</div><br>
@@ -1402,11 +1402,11 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     </li>
     <li>
       <div class="what-about-tag code">Code quality</div><br>
-      <strong>Client bypass:</strong> <code>CreateCustomAttestationType</code> bypasses <code>doRequest()</code> and calls <code>httpClient.Do()</code> directly &mdash; skipping retry and auth logic. Should be refactored independently of Pact. Tracked in <a href="https://github.com/kosli-dev/terraform-provider-kosli/issues/198">#198</a>.
+      <strong>Client bypass:</strong> <code>CreateCustomAttestationType</code> bypasses <code>doRequest()</code> and calls <code>httpClient.Do()</code> directly  &ndash; skipping retry and auth logic. Should be refactored independently of Pact. Tracked in <a href="https://github.com/kosli-dev/terraform-provider-kosli/issues/198">#198</a>.
     </li>
     <li>
       <div class="what-about-tag ci">CI / Infrastructure</div><br>
-      <strong>State handler scaling:</strong> Provider state handler count scales linearly with interactions. For full API coverage (~30+ endpoints), that's significant plumbing &mdash; especially for resources with dependencies that need multi-step setup.
+      <strong>State handler scaling:</strong> Provider state handler count scales linearly with interactions. For full API coverage (~30+ endpoints), that's significant plumbing  &ndash; especially for resources with dependencies that need multi-step setup.
     </li>
   </ol>
 </div>
@@ -1423,7 +1423,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
         <div class="score-badge yellow">Narrow + shift-left</div>
       </div>
       <div class="score-bar-track"><div class="score-bar-fill yellow" style="width: 65%"></div></div>
-      <div class="score-detail">Catches shape drift only &mdash; but shifts integration signals out of long-running e2e tests into fast CI checks. The narrowness matters less when it replaces slow feedback loops.</div>
+      <div class="score-detail">Catches shape drift only  &ndash; but shifts integration signals out of long-running e2e tests into fast CI checks. The narrowness matters less when it replaces slow feedback loops.</div>
     </div>
 
     <div class="score-card score-yellow" data-score="50" data-weight="15">
@@ -1459,7 +1459,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
         <div class="score-badge green">Excellent</div>
       </div>
       <div class="score-bar-track"><div class="score-bar-fill green" style="width: 95%"></div></div>
-      <div class="score-detail">JSONPath pinpoints the exact field. Wrong type, missing field, wrong status &mdash; all immediately understandable. No noise.</div>
+      <div class="score-detail">JSONPath pinpoints the exact field. Wrong type, missing field, wrong status  &ndash; all immediately understandable. No noise.</div>
     </div>
 
     <div class="score-card score-yellow" data-score="60" data-weight="10">
@@ -1468,7 +1468,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
         <div class="score-badge yellow">Manageable</div>
       </div>
       <div class="score-bar-track"><div class="score-bar-fill yellow" style="width: 60%"></div></div>
-      <div class="score-detail">Native library per SDK, but CI setup is a one-liner on Linux. <a href="https://docs.pact.io/pact_nirvana">Pact Nirvana</a> shows infrastructure is incremental &mdash; start simple, add complexity as needed. macOS <code>DYLD_LIBRARY_PATH</code> issue has a <a href="https://github.com/pact-foundation/pact-go/issues/345">known fix</a>.</div>
+      <div class="score-detail">Native library per SDK, but CI setup is a one-liner on Linux. <a href="https://docs.pact.io/pact_nirvana">Pact Nirvana</a> shows infrastructure is incremental  &ndash; start simple, add complexity as needed. macOS <code>DYLD_LIBRARY_PATH</code> issue has a <a href="https://github.com/pact-foundation/pact-go/issues/345">known fix</a>.</div>
     </div>
 
     <div class="score-card score-yellow" data-score="40" data-weight="10">
@@ -1486,7 +1486,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
         <div class="score-badge green">Low</div>
       </div>
       <div class="score-bar-track"><div class="score-bar-fill green" style="width: 80%"></div></div>
-      <div class="score-detail">~5&ndash;10 min per interaction manually. With agent-supported development, authoring is largely automated &mdash; making this negligible in the overall investment.</div>
+      <div class="score-detail">~5&ndash;10 min per interaction manually. With agent-supported development, authoring is largely automated  &ndash; making this negligible in the overall investment.</div>
     </div>
   </div>
 
@@ -1502,17 +1502,17 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
     <p class="spectrum-caption" id="roi-caption">Weighted score: calculating...</p>
   </div>
 
-  <p style="font-size: 13px; color: var(--kosli-text-tertiary); margin-bottom: 32px;"><strong style="color: var(--kosli-text-secondary);">Note:</strong> Scores reflect what we observed in the spike (Terraform provider as test vehicle). Some findings are Terraform-specific &mdash; e.g., acceptance tests get free dependency orchestration via Terraform&rsquo;s dependency graph. At the SDK level, authoring cost and infrastructure overhead would look more favorable.</p>
+  <p style="font-size: 13px; color: var(--kosli-text-tertiary); margin-bottom: 32px;"><strong style="color: var(--kosli-text-secondary);">Note:</strong> Scores reflect what we observed in the spike (Terraform provider as test vehicle). Some findings are Terraform-specific  &ndash; e.g., acceptance tests get free dependency orchestration via Terraform's dependency graph. At the SDK level, authoring cost and infrastructure overhead would look more favorable.</p>
 
   <div class="bottom-line" style="margin: 0 0 24px; background: linear-gradient(135deg, var(--kosli-navy) 0%, #1a2d45 100%);">
     <div class="bottom-line-label">Decision</div>
-    <p style="margin-bottom: 16px;"><strong>Wait with Pact on the consumer side until the first SDK exists.</strong> Contracts are consumer-driven, so the most reasonable provider-side work is to get familiar with Pact until the first contract has been created. When an SDK is built, that&rsquo;s the trigger to write consumer pact tests and stand up provider verification.</p>
-    <p style="color: rgba(255,255,255,0.6); margin-bottom: 0;">Pact works mechanically and its failure messages are excellent. The value is narrow (shape drift only) and the infrastructure cost is real &mdash; but the <strong style="color: rgba(255,255,255,0.85);">SDK model makes amortization viable</strong>, and shifting integration checks out of e2e into contract tests would give us faster, more focused feedback.</p>
+    <p style="margin-bottom: 16px;"><strong>Wait with Pact on the consumer side until the first SDK exists.</strong> Contracts are consumer-driven, so the most reasonable provider-side work is to get familiar with Pact until the first contract has been created. When an SDK is built, that's the trigger to write consumer pact tests and stand up provider verification.</p>
+    <p style="color: rgba(255,255,255,0.6); margin-bottom: 0;">Pact works mechanically and its failure messages are excellent. The value is narrow (shape drift only) and the infrastructure cost is real  &ndash; but the <strong style="color: rgba(255,255,255,0.85);">SDK model makes amortization viable</strong>, and shifting integration checks out of e2e into contract tests would give us faster, more focused feedback.</p>
   </div>
 
   <div class="pullquote" style="border-left-color: var(--kosli-green); background: var(--kosli-green-light);">
     <span class="pullquote-title">Shifting integration feedback left</span>
-    Today we rely on long-running e2e tests to catch conflicts between the API and clients. Contract testing would give us that signal earlier &mdash; in CI, on every SDK commit &mdash; with confidence that a given SDK version satisfies the API contract. This frees e2e tests to focus on what they&rsquo;re actually good at: testing functional behavior end-to-end, rather than also serving as integration compatibility checks.
+    Today we rely on long-running e2e tests to catch conflicts between the API and clients. Contract testing would give us that signal earlier  &ndash; in CI, on every SDK commit  &ndash; with confidence that a given SDK version satisfies the API contract. This frees e2e tests to focus on what they're actually good at: testing functional behavior end-to-end, rather than also serving as integration compatibility checks.
   </div>
 
   <h4>Key risks</h4>
@@ -1539,7 +1539,7 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
       </div>
       <div class="flow-step-content">
         <div class="flow-step-title">Agree on contract testing investment</div>
-        <div class="flow-step-desc">Align across teams on whether contract testing with Pact is the right approach going forward. This is a two-sided investment &mdash; both consumer and provider teams need to commit for the full value to materialize.</div>
+        <div class="flow-step-desc">Align across teams on whether contract testing with Pact is the right approach going forward. This is a two-sided investment  &ndash; both consumer and provider teams need to commit for the full value to materialize.</div>
       </div>
     </div>
     <div class="flow-step">
