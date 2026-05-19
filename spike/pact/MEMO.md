@@ -94,11 +94,10 @@ Collected verbatim from spike notes:
 
 - CI setup: every Linux runner needs the FFI library installed (`wget` + copy to `/usr/local/lib`). No official GitHub Action exists. Local dev on macOS additionally requires `DYLD_LIBRARY_PATH`.
 - Developer onboarding: new contributors need `sudo pact-go install` before pact tests work. How does that sit with the project's current zero-native-deps Go toolchain?
-- How to express "this field can be null OR a number" (e.g., `last_reported_at`)? Pact V2 doesn't support union types; V3+ might.
-- `matchers.EachLike(..., 0)` is not allowed — Pact forces min 1 element. Problem for fields like `policies` that can be empty arrays.
-- Multipart/form-data (used by `CreateCustomAttestationType`) can't be matched on the request body in Pact V2. ~50% of CRUD interactions for that resource have no request body contract.
+- How to express "this field can be null OR a number" (e.g., `last_reported_at`)? Pact V2 doesn't support union types. [V3 adds a null matcher and OR combinator](https://github.com/pact-foundation/pact-specification/tree/version-3).
+- `matchers.EachLike(..., 0)` is not allowed — Pact forces [min 1 element](https://github.com/pact-foundation/pact-go/blob/master/docs/consumer.md). Problem for fields like `policies` that can be empty arrays.
+- Multipart/form-data (used by `CreateCustomAttestationType`) can't be matched on the request body in Pact V2. [V3+ adds multipart support](https://github.com/pact-foundation/pact-go/blob/master/docs/consumer.md) via the Rust FFI. ~50% of CRUD interactions for that resource have no request body contract.
 - `CreateCustomAttestationType` bypasses `doRequest()` and calls `c.httpClient.Do()` directly — should be refactored independently of Pact. Tracked in kosli-dev/terraform-provider-kosli#198.
-- `JSONBody` with bare string literals causes base64 encoding issues during verification.
 - Provider state handler count scales linearly with interactions. For full provider coverage (~30+ endpoints), that's significant plumbing.
 - The hello-world interaction from Step 1 accumulates in the same pact file as real interactions. Need separate pact files or cleanup strategy.
 

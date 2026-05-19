@@ -1124,11 +1124,10 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   <ol class="what-about">
     <li>CI setup: every Linux runner needs the FFI library installed (<code>wget</code> + copy to <code>/usr/local/lib</code>). No official GitHub Action exists. Local dev on macOS additionally requires <code>DYLD_LIBRARY_PATH</code>.</li>
     <li>Developer onboarding: <code>sudo pact-go install</code> required. How does that sit with the current zero-native-deps Go toolchain?</li>
-    <li>Nullable types: how to express "null OR number" (e.g., <code>last_reported_at</code>)? Pact V2 doesn't support union types.</li>
-    <li><code>matchers.EachLike(..., 0)</code> not allowed &mdash; Pact forces min 1 element. Problem for empty arrays.</li>
-    <li>Multipart/form-data can't be matched on request body in Pact V2. ~50% of CRUD interactions for custom attestation type have no request body contract.</li>
+    <li>Nullable types: how to express "null OR number" (e.g., <code>last_reported_at</code>)? Pact V2 doesn't support union types. <a href="https://github.com/pact-foundation/pact-specification/tree/version-3">V3 adds a null matcher and OR combinator</a>.</li>
+    <li><code>matchers.EachLike(..., 0)</code> not allowed &mdash; Pact forces <a href="https://github.com/pact-foundation/pact-go/blob/master/docs/consumer.md">min 1 element</a>. Problem for fields like <code>policies</code> that can be empty arrays.</li>
+    <li>Multipart/form-data can't be matched on request body in Pact V2. <a href="https://github.com/pact-foundation/pact-go/blob/master/docs/consumer.md">V3+ adds multipart support</a> via the Rust FFI. ~50% of CRUD interactions for custom attestation type have no request body contract.</li>
     <li><code>CreateCustomAttestationType</code> bypasses <code>doRequest()</code> &mdash; should be refactored. Tracked in <a href="https://github.com/kosli-dev/terraform-provider-kosli/issues/198">#198</a>.</li>
-    <li><code>JSONBody</code> with bare string literals causes base64 encoding issues during verification.</li>
     <li>Provider state handler count scales linearly. For ~30+ endpoints, that's significant plumbing.</li>
   </ol>
 </div>
