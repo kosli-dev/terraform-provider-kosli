@@ -30,7 +30,7 @@ func TestHelloPact(t *testing.T) {
 		WithRequest("GET", "/hello").
 		WillRespondWith(200, func(b *consumer.V2ResponseBuilder) {
 			b.Header("Content-Type", matchers.String("application/json"))
-			b.JSONBody(map[string]interface{}{
+			b.JSONBody(map[string]any{
 				"greeting": matchers.Like("hello world"),
 			})
 		})
