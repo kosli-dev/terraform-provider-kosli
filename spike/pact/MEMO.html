@@ -1219,48 +1219,67 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
   <h3>Recommendation dashboard</h3>
 
   <div class="dash-grid">
-    <div class="score-card score-yellow" data-score="45" data-weight="25">
+  <div class="dash-grid">
+    <div class="score-card score-yellow" data-score="65" data-weight="25">
       <div class="score-header">
         <div class="score-title">Value scope <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">25%</span></div>
         <div class="score-badge yellow">Narrow + shift-left</div>
       </div>
-      <div class="score-bar-track"><div class="score-bar-fill yellow" style="width: 45%"></div></div>
+      <div class="score-bar-track"><div class="score-bar-fill yellow" style="width: 65%"></div></div>
       <div class="score-detail">Catches shape drift only &mdash; but shifts integration signals out of long-running e2e tests into fast CI checks. The narrowness matters less when it replaces slow feedback loops.</div>
     </div>
 
-    <div class="score-card score-yellow" data-score="50" data-weight="25">
+    <div class="score-card score-yellow" data-score="50" data-weight="15">
       <div class="score-header">
-        <div class="score-title">Amortization <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">25%</span></div>
+        <div class="score-title">Amortization <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">15%</span></div>
         <div class="score-badge yellow">Conditional</div>
       </div>
       <div class="score-bar-track"><div class="score-bar-fill yellow" style="width: 50%"></div></div>
       <div class="score-detail">SDK model helps: 2 pact suites cover all consumers. Provider verification is shared. But full safety requires real API verification, and both sides must invest.</div>
     </div>
 
-    <div class="score-card score-yellow" data-score="55" data-weight="15">
-      <div class="score-header">
-        <div class="score-title">Infrastructure overhead <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">15%</span></div>
-        <div class="score-badge yellow">Manageable</div>
-      </div>
-      <div class="score-bar-track"><div class="score-bar-fill yellow" style="width: 55%"></div></div>
-      <div class="score-detail">Native library per SDK, but CI setup is a one-liner on Linux. <a href="https://docs.pact.io/pact_nirvana">Pact Nirvana</a> shows infrastructure is incremental &mdash; start simple, add complexity as needed. macOS <code>DYLD_LIBRARY_PATH</code> issue has a <a href="https://github.com/pact-foundation/pact-go/issues/345">known fix</a>.</div>
-    </div>
-
-    <div class="score-card score-yellow" data-score="40" data-weight="15">
+    <div class="score-card score-red" data-score="30" data-weight="15">
       <div class="score-header">
         <div class="score-title">Broker management <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">15%</span></div>
-        <div class="score-badge yellow">Not evaluated</div>
+        <div class="score-badge red">Uncertain</div>
       </div>
-      <div class="score-bar-track"><div class="score-bar-fill yellow" style="width: 40%"></div></div>
-      <div class="score-detail">PactFlow (SaaS) or self-hosted broker needed for the full workflow. Pricing, operational cost, and "can I deploy?" integration not yet evaluated. Required for cross-team contract sharing.</div>
+      <div class="score-bar-track"><div class="score-bar-fill red" style="width: 30%"></div></div>
+      <div class="score-detail">Required for the full workflow. <a href="https://pactflow.io/pricing/">PactFlow</a> free tier limited to 2 integrations; Team plan ~$1,385/yr. Self-hosted needs Postgres + Docker. Operational cost and "can I deploy?" integration not yet evaluated.</div>
+    </div>
+
+    <div class="score-card score-green" data-score="85" data-weight="10">
+      <div class="score-header">
+        <div class="score-title">Mechanical fit <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">10%</span></div>
+        <div class="score-badge green">Strong</div>
+      </div>
+      <div class="score-bar-track"><div class="score-bar-fill green" style="width: 85%"></div></div>
+      <div class="score-detail">Pact works. Consumer tests generate contracts, verification checks them, failure messages are clear and actionable.</div>
+    </div>
+
+    <div class="score-card score-green" data-score="95" data-weight="10">
+      <div class="score-header">
+        <div class="score-title">Failure diagnostics <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">10%</span></div>
+        <div class="score-badge green">Excellent</div>
+      </div>
+      <div class="score-bar-track"><div class="score-bar-fill green" style="width: 95%"></div></div>
+      <div class="score-detail">JSONPath pinpoints the exact field. Wrong type, missing field, wrong status &mdash; all immediately understandable. No noise.</div>
     </div>
 
     <div class="score-card score-yellow" data-score="60" data-weight="10">
       <div class="score-header">
+        <div class="score-title">Infrastructure overhead <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">10%</span></div>
+        <div class="score-badge yellow">Manageable</div>
+      </div>
+      <div class="score-bar-track"><div class="score-bar-fill yellow" style="width: 60%"></div></div>
+      <div class="score-detail">Native library per SDK, but CI setup is a one-liner on Linux. <a href="https://docs.pact.io/pact_nirvana">Pact Nirvana</a> shows infrastructure is incremental &mdash; start simple, add complexity as needed. macOS <code>DYLD_LIBRARY_PATH</code> issue has a <a href="https://github.com/pact-foundation/pact-go/issues/345">known fix</a>.</div>
+    </div>
+
+    <div class="score-card score-yellow" data-score="40" data-weight="10">
+      <div class="score-header">
         <div class="score-title">Cross-language portability <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">10%</span></div>
         <div class="score-badge yellow">Mixed</div>
       </div>
-      <div class="score-bar-track"><div class="score-bar-fill yellow" style="width: 60%"></div></div>
+      <div class="score-bar-track"><div class="score-bar-fill yellow" style="width: 40%"></div></div>
       <div class="score-detail">Pact files are fully portable (JSON). But each SDK needs its own native Pact library with its own install/CI story. Per-SDK cost is not shared.</div>
     </div>
 
@@ -1271,24 +1290,6 @@ tbody tr:nth-child(even) { background: var(--kosli-surface); }
       </div>
       <div class="score-bar-track"><div class="score-bar-fill green" style="width: 80%"></div></div>
       <div class="score-detail">~5&ndash;10 min per interaction manually. With agent-supported development, authoring is largely automated &mdash; making this negligible in the overall investment.</div>
-    </div>
-
-    <div class="score-card score-green" data-score="85" data-weight="3">
-      <div class="score-header">
-        <div class="score-title">Mechanical fit <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">3%</span></div>
-        <div class="score-badge green">Strong</div>
-      </div>
-      <div class="score-bar-track"><div class="score-bar-fill green" style="width: 85%"></div></div>
-      <div class="score-detail">Table stakes: Pact works. Consumer tests generate contracts, verification checks them.</div>
-    </div>
-
-    <div class="score-card score-green" data-score="95" data-weight="2">
-      <div class="score-header">
-        <div class="score-title">Failure diagnostics <span style="font-size: 11px; font-weight: 400; color: var(--kosli-text-tertiary); margin-left: 4px;">2%</span></div>
-        <div class="score-badge green">Excellent</div>
-      </div>
-      <div class="score-bar-track"><div class="score-bar-fill green" style="width: 95%"></div></div>
-      <div class="score-detail">JSONPath pinpoints the exact field. Clear, actionable messages with no noise.</div>
     </div>
   </div>
 
