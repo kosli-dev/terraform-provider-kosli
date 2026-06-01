@@ -60,7 +60,9 @@ jobs:
         with:
           fetch-depth: 1
 
-      - uses: anthropics/claude-code-action@787c5a0ce96a9a6cfb050ea0c8f4c05f2447c251 # v1.0.133
+      # TODO: re-pin to a commit SHA once WIF auth is confirmed working on the
+      # federation-auth PR (#200). Tracked for a follow-up PR.
+      - uses: anthropics/claude-code-action@v1
         with:
           anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
           anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
