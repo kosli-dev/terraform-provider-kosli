@@ -52,6 +52,9 @@ func retryReadAfterCreate[T any](
 	}
 
 	for _, wait := range retryAfterCreateBackoffs {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, ctxErr
+		}
 		if !client.IsNotFound(err) {
 			return nil, err
 		}
