@@ -246,3 +246,4 @@ This provider is released under the [MIT License](LICENSE).
 ## About Kosli
 
 [Kosli](https://kosli.com) is a software intelligence platform that helps teams maintain visibility and governance over their Software Delivery Lifecycle (SDLC).
+
