@@ -210,14 +210,32 @@ git push origin v0.1.0
 - Multi-platform builds (macOS, Linux, Windows for amd64/arm64)
 - GPG signing of artifacts
 - SBOM generation
-- GitHub Release with changelog
+- GitHub Release with auto-generated release notes
+- AI-generated `CHANGELOG.md` entry (see below)
 - Binary naming: `terraform-provider-kosli_v{version}`
 
-**Conventional Commits:**
+### GitHub Release notes (GoReleaser)
+
+GoReleaser groups commits into the GitHub Release body using conventional-commit prefixes:
 - `feat:` → Features section
 - `fix:` → Bug Fixes section
 - `docs:` → Documentation section
 - Merge commits and `chore:` excluded from release notes
+
+This mapping applies **only** to the GitHub Release body, not to `CHANGELOG.md`.
+
+### `CHANGELOG.md` (Claude Code action)
+
+After GoReleaser publishes the release, `.github/workflows/release.yaml` runs `anthropics/claude-code-action` (authenticated via the same OIDC/WIF federation used by the PR review job) to generate the new `CHANGELOG.md` entry and open a PR against `main`.
+
+Scope filter (enforced in the prompt, not in conventional-commit mapping):
+- **Included:** changes a `terraform plan`/`apply` user can observe - resources, data sources, provider config, runtime behavior, user-facing docs/examples, dependency bumps that change minimum versions or visible behavior.
+- **Excluded:** CI workflows, repo tooling (`scripts/`, `CLAUDE.md`, contributor README sections, `adrs/`), internal-only tests, formatting/lint, no-behavior dependency bumps.
+- If every commit since the previous tag is internal, the entry is a single `NOTES` line stating no user-facing changes.
+
+Entry formatting follows HashiCorp's Terraform changelog conventions: `* <subsystem>: <message> [GH-####]` with subsystems like `resource/<name>:`, `data_source/<name>:` (underscore, matching this repo's history), `provider:`, `client:`, `docs:`. Categories: BREAKING CHANGES, NOTES, FEATURES, IMPROVEMENTS, BUG FIXES.
+
+`scripts/changelog-ai.sh` is the local-developer counterpart - it produces the same output by calling the Anthropic Messages API directly with a developer's `ANTHROPIC_API_KEY` (there is no GitHub OIDC token locally). **The prompt, scope rules, and formatting rules in `release.yaml` and `scripts/changelog-ai.sh` must be kept in sync.** Both files carry an inline `NOTE:` comment reminding editors of this.
 
 ## Important Context
 
