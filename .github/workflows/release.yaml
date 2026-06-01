@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  id-token: write  # required for the Anthropic OIDC/WIF token exchange
 
 jobs:
   notify-start:
@@ -50,15 +51,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
 
-      - name: Generate changelog entry
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      - name: Prepare changelog inputs
         run: |
-          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-            echo "ERROR: Set ANTHROPIC_API_KEY " >&2
-            exit 1
-          fi
-
+          mkdir -p /tmp/changelog-inputs
           VERSION="${GITHUB_REF_NAME}"
           echo "Generating for: ${VERSION}"
           DATE=$(date +%Y-%m-%d)
@@ -69,33 +64,44 @@ jobs:
             | head -n 1)
           PREV="${PREV:-$(git rev-list --max-parents=0 HEAD)}"
 
-          COMMITS=$(git log "${PREV}..${VERSION}" --no-merges --pretty=format:"%s|%b")
-          EXISTING=$(tail -n 100 CHANGELOG.md 2>/dev/null || echo "")
-          SKILL=$(cat .github/changelog-skill.md)
+          git log "${PREV}..${VERSION}" --no-merges --pretty=format:"%s|%b" > /tmp/changelog-inputs/commits.txt
+          tail -n 100 CHANGELOG.md 2>/dev/null > /tmp/changelog-inputs/existing.txt || : > /tmp/changelog-inputs/existing.txt
+          cp .github/changelog-skill.md /tmp/changelog-inputs/skill.md
+          printf 'VERSION=%s\nDATE=%s\n' "$VERSION" "$DATE" > /tmp/changelog-inputs/meta.txt
 
-          ENTRY=$(curl -s -f --max-time 60 \
-            -X POST https://api.anthropic.com/v1/messages \
-            -H "x-api-key: ${ANTHROPIC_API_KEY}" \
-            -H "anthropic-version: 2023-06-01" \
-            -H "content-type: application/json" \
-            -d "$(jq -n \
-              --arg system "$SKILL" \
-              --arg commits "$COMMITS" \
-              --arg existing "$EXISTING" \
-              --arg version "$VERSION" \
-              --arg date "$DATE" \
-              '{
-                model: "claude-sonnet-4-6",
-                max_tokens: 2048,
-                system: $system,
-                messages: [{
-                  role: "user",
-                  content: ("Existing CHANGELOG.md:\n" + $existing + "\n\nNew commits:\n" + $commits + "\n\nGenerate the changelog section for " + $version + " released on " + $date + " and just output the new changelog entry without any comments. Do NOT ask questions and assume this is always the latest entry!")
-                }]
-              }'
-            )" | jq -r '.content[0].text')
+      - name: Generate changelog entry
+        uses: anthropics/claude-code-action@787c5a0ce96a9a6cfb050ea0c8f4c05f2447c251 # v1.0.133
+        with:
+          anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          prompt: |
+            You are generating one new entry for this project's CHANGELOG.md.
 
-          # Update local file
+            Treat the contents of /tmp/changelog-inputs/skill.md as your governing
+            instructions for style, structure, and tone — follow them strictly.
+
+            Inputs (read these from disk):
+            - /tmp/changelog-inputs/existing.txt — tail of the current CHANGELOG.md
+            - /tmp/changelog-inputs/commits.txt — new commits since the previous tag (format: "subject|body" per line)
+            - /tmp/changelog-inputs/meta.txt — defines VERSION and DATE for the new entry
+
+            Generate the changelog section for VERSION released on DATE.
+            Output ONLY the new changelog entry — no preamble, no commentary, no questions.
+            Assume this is always the latest entry.
+
+            Write the result to /tmp/entry.md and do not modify any other files.
+          claude_args: |
+            --model claude-sonnet-4-6
+            --allowedTools "Read,Write"
+
+      - name: Insert changelog entry
+        run: |
+          if [ ! -s /tmp/entry.md ]; then
+            echo "ERROR: changelog entry was not generated" >&2
+            exit 1
+          fi
+          ENTRY=$(cat /tmp/entry.md)
           HEADER_LINE=$(grep -n '^# ' CHANGELOG.md 2>/dev/null | head -1 | cut -d: -f1)
           if [ -n "$HEADER_LINE" ]; then
             head -n "$HEADER_LINE" CHANGELOG.md > /tmp/cl.md

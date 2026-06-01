@@ -188,14 +188,14 @@ The PR quality workflow (`.github/workflows/pr-quality.yml`) runs automated chec
 
 2. **Claude Code Review** - Automated AI code review
    - Runs on: opened, synchronize (new PRs and commits only)
-   - Requires: `ANTHROPIC_API_KEY` secret configured in repository settings
+   - Authenticates to Anthropic via GitHub OIDC / Workload Identity Federation - no long-lived API key
    - Provides inline comments on code quality, bugs, security, performance
    - Posts feedback directly to PR with progress tracking
    - Permissions required: `contents: read`, `pull-requests: write`, `id-token: write` (for OIDC auth)
 
-**Required Secret:**
-- `ANTHROPIC_API_KEY` - Add in repository Settings → Secrets and variables → Actions
-- Used for Claude Code automated review functionality
+The workflow reads `ANTHROPIC_FEDERATION_RULE_ID`, `ANTHROPIC_ORGANIZATION_ID`, and `ANTHROPIC_SERVICE_ACCOUNT_ID` from organization-level Actions variables - no per-repo setup needed.
+
+The token exchange enforces a workflow-content guard: any PR that modifies `.github/workflows/pr-quality.yaml` will fail the federated auth until the change lands on `main`.
 
 ## Release Process
 
