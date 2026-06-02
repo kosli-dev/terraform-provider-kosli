@@ -69,12 +69,8 @@ jobs:
 
           git log "${PREV}..${VERSION}" --no-merges --pretty=format:"%s|%b" > /tmp/changelog-inputs/commits.txt
           tail -n 100 CHANGELOG.md 2>/dev/null > /tmp/changelog-inputs/existing.txt || : > /tmp/changelog-inputs/existing.txt
-          cp .github/changelog-skill.md /tmp/changelog-inputs/skill.md
           printf 'VERSION=%s\nDATE=%s\n' "$VERSION" "$DATE" > /tmp/changelog-inputs/meta.txt
 
-      # NOTE: Keep the prompt and input shape below aligned with
-      # scripts/changelog-ai.sh so the local dry-run produces comparable
-      # entries to what CI generates on a real release tag.
       - name: Generate changelog entry
         uses: anthropics/claude-code-action@787c5a0ce96a9a6cfb050ea0c8f4c05f2447c251 # v1.0.133
         with:
@@ -82,48 +78,15 @@ jobs:
           anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
           anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
           prompt: |
-            You are generating one new entry for this project's CHANGELOG.md.
+            Generate one CHANGELOG.md entry for this Terraform provider.
 
-            This is a Terraform provider. The CHANGELOG is read by end users
-            running `terraform plan`/`apply`, NOT by contributors to this repo.
-            Only include commits that change what those users observe.
-
-            INCLUDE commits that affect:
-            - Resources or data sources (new, removed, renamed, schema changes, attribute changes)
-            - Provider configuration (auth, endpoints, environment variables, defaults)
-            - Runtime behavior at plan/apply time (drift, retries, error messages, validation)
-            - User-facing docs or examples under docs/ or examples/
-            - Dependency bumps that change minimum Terraform/Go versions or visible behavior
-
-            EXCLUDE commits that only touch:
-            - GitHub Actions workflows or CI configuration (.github/, ci.yaml, release.yaml, pr-quality.yaml)
-            - Repo tooling, scripts, or contributor docs (scripts/, CLAUDE.md, README dev sections, adrs/)
-            - Internal-only tests or test infrastructure (anything *_test.go that doesn't reflect a user-observable fix)
-            - Dependency bumps with no behavior change, formatting, lint config
-
-            If after filtering NO commits remain, output a minimal entry of the form:
-              ## VERSION (DATE)
-              NOTES:
-              * No user-facing changes in this release.
-
-            Formatting rules (HashiCorp Terraform changelog conventions):
-            - Each entry is "* <subsystem>: <message> [GH-####]" where GH-#### is the PR or issue number (omit if not known).
-            - Subsystem prefixes to use: "resource/<name>:", "data_source/<name>:" (underscore, matching this repo's history), "provider:", "client:", "docs:". Do NOT use generic prefixes like "ci:", "chore:", or "internal/...:".
-            - Within each category, list "provider:" (cross-cutting) entries first, then order the rest lexicographically by subsystem.
-            - Categories, in this order when present: BREAKING CHANGES, NOTES, FEATURES, IMPROVEMENTS, BUG FIXES.
-
-            Treat the contents of /tmp/changelog-inputs/skill.md as your governing
-            instructions for style, structure, and tone, and follow them strictly,
-            BUT the scope rules above take precedence over anything in skill.md.
+            Follow the instructions in .claude/skills/changelog-creator/SKILL.md strictly.
+            It is the authoritative spec for scope, format, ordering, and style.
 
             Inputs (read these from disk):
-            - /tmp/changelog-inputs/existing.txt: tail of the current CHANGELOG.md (use as a style reference, not as content)
+            - /tmp/changelog-inputs/existing.txt: tail of the current CHANGELOG.md (style reference only, not content)
             - /tmp/changelog-inputs/commits.txt: new commits since the previous tag (format: "subject|body" per line)
             - /tmp/changelog-inputs/meta.txt: defines VERSION and DATE for the new entry
-
-            Generate the changelog section for VERSION released on DATE.
-            Output ONLY the new changelog entry, with no preamble, no commentary, and no questions.
-            Assume this is always the latest entry.
 
             Write the result to /tmp/entry.md and do not modify any other files.
           claude_args: |

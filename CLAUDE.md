@@ -228,14 +228,14 @@ This mapping applies **only** to the GitHub Release body, not to `CHANGELOG.md`.
 
 After GoReleaser publishes the release, `.github/workflows/release.yaml` runs `anthropics/claude-code-action` (authenticated via the same OIDC/WIF federation used by the PR review job) to generate the new `CHANGELOG.md` entry and open a PR against `main`.
 
-Scope filter (enforced in the prompt, not in conventional-commit mapping):
-- **Included:** changes a `terraform plan`/`apply` user can observe - resources, data sources, provider config, runtime behavior, user-facing docs/examples, dependency bumps that change minimum versions or visible behavior.
-- **Excluded:** CI workflows, repo tooling (`scripts/`, `CLAUDE.md`, contributor README sections, `adrs/`), internal-only tests, formatting/lint, no-behavior dependency bumps.
-- If every commit since the previous tag is internal, the entry is a single `NOTES` line stating no user-facing changes.
+The single source of truth for scope, format, ordering, and style is the skill at `.claude/skills/changelog-creator/SKILL.md`. Both the workflow and the local helper script load that file as the governing prompt; the wrappers themselves only supply runtime data (commits, previous tag, version, date). To change the changelog rules, edit the skill - do not edit the wrappers.
 
-Entry formatting follows HashiCorp's Terraform changelog conventions: `* <subsystem>: <message> [GH-####]` with subsystems like `resource/<name>:`, `data_source/<name>:` (underscore, matching this repo's history), `provider:`, `client:`, `docs:`. Categories: BREAKING CHANGES, NOTES, FEATURES, IMPROVEMENTS, BUG FIXES.
+Key points enforced by the skill (full detail in `SKILL.md`):
+- Scope is filtered to user-observable provider changes only. CI, internal tests, repo tooling, formatting, and no-behavior dependency bumps are excluded.
+- Format follows HashiCorp's Terraform plugin changelog spec: subsystem prefixes (`resource/<name>:`, `data_source/<name>:`, `provider:`, `client:`, `docs:`), `[GH-####]` references, category order BREAKING CHANGES → NOTES → FEATURES → IMPROVEMENTS → BUG FIXES, `provider:` first within a category then lexicographic by subsystem.
+- If no commits in the range are user-facing, the entry collapses to a single `NOTES` line stating no user-facing changes.
 
-`scripts/changelog-ai.sh` is the local-developer counterpart - it produces the same output by calling the Anthropic Messages API directly with a developer's `ANTHROPIC_API_KEY` (there is no GitHub OIDC token locally). **The prompt, scope rules, and formatting rules in `release.yaml` and `scripts/changelog-ai.sh` must be kept in sync.** Both files carry an inline `NOTE:` comment reminding editors of this.
+`scripts/changelog-ai.sh` is the local-developer counterpart. It calls the Anthropic Messages API directly with a developer's `ANTHROPIC_API_KEY` (no GitHub OIDC token locally) but loads the same skill file as the workflow, so output should match what CI produces.
 
 ## Important Context
 
