@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Local dry-run of the CI changelog generator. NOT used by any workflow.
+# Uses the same skill spec at .claude/skills/changelog-creator/SKILL.md
+# that release.yaml loads, so the local output mirrors what CI produces
+# on a real release tag.
+#
 # Set your env vars
 #export ANTHROPIC_API_KEY=sk-...
 #export GITHUB_REF_NAME=v0.0.0
@@ -10,7 +15,7 @@ if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
 fi
 
 VERSION="${GITHUB_REF_NAME}"
-DATE=$(date +%Y-%m-%d)
+DATE=$(date +"%B %d, %Y" | sed 's/ 0/ /')  # "Month D, YYYY" to match prior entries
 
 PREV=$(git tag --sort=-version:refname \
   | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
@@ -20,7 +25,7 @@ PREV="${PREV:-$(git rev-list --max-parents=0 HEAD)}"
 
 COMMITS=$(git log "${PREV}..HEAD" --no-merges --pretty=format:"%s|%b")
 EXISTING=$(tail -n 100 CHANGELOG.md 2>/dev/null || echo "")
-SKILL=$(cat .github/changelog-skill.md)
+SKILL=$(cat .claude/skills/changelog-creator/SKILL.md)
 
 ENTRY=$(curl -s -f --max-time 60 \
   -X POST https://api.anthropic.com/v1/messages \
@@ -39,7 +44,14 @@ ENTRY=$(curl -s -f --max-time 60 \
       system: $system,
       messages: [{
         role: "user",
-        content: ("Existing CHANGELOG.md:\n" + $existing + "\n\nNew commits:\n" + $commits + "\n\nGenerate the changelog section for " + $version + " released on " + $date + " and just output the new changelog entry without any comments. Do NOT ask questions and assume this is always the latest entry!")
+        content: (
+          "Generate one CHANGELOG.md entry for this Terraform provider.\n\n" +
+          "Follow the system prompt strictly; it is the authoritative spec for " +
+          "scope, format, ordering, and style.\n\n" +
+          "Existing CHANGELOG.md (tail, style reference only, not content):\n" + $existing + "\n\n" +
+          "New commits since the previous tag (format: \"subject|body\" per line):\n" + $commits + "\n\n" +
+          "Generate the changelog section for " + $version + " released on " + $date + "."
+        )
       }]
     }'
   )" | jq -r '.content[0].text')

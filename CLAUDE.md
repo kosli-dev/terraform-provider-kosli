@@ -188,14 +188,14 @@ The PR quality workflow (`.github/workflows/pr-quality.yml`) runs automated chec
 
 2. **Claude Code Review** - Automated AI code review
    - Runs on: opened, synchronize (new PRs and commits only)
-   - Requires: `ANTHROPIC_API_KEY` secret configured in repository settings
+   - Authenticates to Anthropic via GitHub OIDC / Workload Identity Federation - no long-lived API key
    - Provides inline comments on code quality, bugs, security, performance
    - Posts feedback directly to PR with progress tracking
    - Permissions required: `contents: read`, `pull-requests: write`, `id-token: write` (for OIDC auth)
 
-**Required Secret:**
-- `ANTHROPIC_API_KEY` - Add in repository Settings → Secrets and variables → Actions
-- Used for Claude Code automated review functionality
+The workflow reads `ANTHROPIC_FEDERATION_RULE_ID`, `ANTHROPIC_ORGANIZATION_ID`, and `ANTHROPIC_SERVICE_ACCOUNT_ID` from organization-level Actions variables - no per-repo setup needed.
+
+The token exchange enforces a workflow-content guard: any PR that modifies `.github/workflows/pr-quality.yaml` will fail the federated auth until the change lands on `main`.
 
 ## Release Process
 
@@ -210,14 +210,32 @@ git push origin v0.1.0
 - Multi-platform builds (macOS, Linux, Windows for amd64/arm64)
 - GPG signing of artifacts
 - SBOM generation
-- GitHub Release with changelog
+- GitHub Release with auto-generated release notes
+- AI-generated `CHANGELOG.md` entry (see below)
 - Binary naming: `terraform-provider-kosli_v{version}`
 
-**Conventional Commits:**
+### GitHub Release notes (GoReleaser)
+
+GoReleaser groups commits into the GitHub Release body using conventional-commit prefixes:
 - `feat:` → Features section
 - `fix:` → Bug Fixes section
 - `docs:` → Documentation section
 - Merge commits and `chore:` excluded from release notes
+
+This mapping applies **only** to the GitHub Release body, not to `CHANGELOG.md`.
+
+### `CHANGELOG.md` (Claude Code action)
+
+After GoReleaser publishes the release, `.github/workflows/release.yaml` runs `anthropics/claude-code-action` (authenticated via the same OIDC/WIF federation used by the PR review job) to generate the new `CHANGELOG.md` entry and open a PR against `main`.
+
+The single source of truth for scope, format, ordering, and style is the skill at `.claude/skills/changelog-creator/SKILL.md`. Both the workflow and the local helper script load that file as the governing prompt; the wrappers themselves only supply runtime data (commits, previous tag, version, date). To change the changelog rules, edit the skill - do not edit the wrappers.
+
+Key points enforced by the skill (full detail in `SKILL.md`):
+- Scope is filtered to user-observable provider changes only. CI, internal tests, repo tooling, formatting, and no-behavior dependency bumps are excluded.
+- Format follows HashiCorp's Terraform plugin changelog spec: subsystem prefixes (`resource/<name>:`, `data_source/<name>:`, `provider:`, `client:`, `docs:`), `[GH-####]` references, category order BREAKING CHANGES → NOTES → FEATURES → IMPROVEMENTS → BUG FIXES, `provider:` first within a category then lexicographic by subsystem.
+- If no commits in the range are user-facing, the entry collapses to a single `NOTES` line stating no user-facing changes.
+
+`scripts/changelog-ai.sh` is the local-developer counterpart. It calls the Anthropic Messages API directly with a developer's `ANTHROPIC_API_KEY` (no GitHub OIDC token locally) but loads the same skill file as the workflow, so output should match what CI produces.
 
 ## Important Context
 
