@@ -5,6 +5,12 @@ description: Generate one CHANGELOG.md entry for this Terraform provider, follow
 
 # Terraform Provider Changelog Entry
 
+> **Consumed by CI.** This file is loaded as the governing prompt by
+> `.github/workflows/release.yaml` (during a release tag push) and by
+> `scripts/changelog-ai.sh` (the local dry-run helper). Edits here change
+> what those tools produce. Keep that in mind before broadening scope or
+> changing format rules.
+
 Generate a single CHANGELOG.md entry for this Terraform provider. The output is a Markdown fragment intended to be inserted at the top of `CHANGELOG.md`, immediately under the `# Changelog` title.
 
 The canonical reference is HashiCorp's spec:

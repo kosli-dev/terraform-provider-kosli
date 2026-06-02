@@ -99,6 +99,9 @@ jobs:
             echo "ERROR: changelog entry was not generated" >&2
             exit 1
           fi
+          # Defensive: strip any stray triple-backtick lines in case the
+          # model wrapped its output in a code fence despite the prompt.
+          sed -i '/^```/d' /tmp/entry.md
           ENTRY=$(cat /tmp/entry.md)
           HEADER_LINE=$(grep -n '^# ' CHANGELOG.md 2>/dev/null | head -1 | cut -d: -f1)
           if [ -n "$HEADER_LINE" ]; then
