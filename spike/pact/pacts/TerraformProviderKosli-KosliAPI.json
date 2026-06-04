@@ -1,0 +1,215 @@
+{
+  "consumer": {
+    "name": "TerraformProviderKosli"
+  },
+  "interactions": [
+    {
+      "description": "a request for a greeting",
+      "providerState": "a greeting exists",
+      "request": {
+        "method": "GET",
+        "path": "/hello"
+      },
+      "response": {
+        "body": {
+          "greeting": "hello world"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "$.body.greeting": {
+            "match": "type"
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a request to archive custom attestation type test-coverage",
+      "providerState": "attestation type test-coverage exists",
+      "request": {
+        "matchingRules": {
+          "$.path": {
+            "match": "regex",
+            "regex": "/api/v2/custom-attestation-types/[^/]+/[^/]+/archive"
+          }
+        },
+        "method": "PUT",
+        "path": "/api/v2/custom-attestation-types/test-org/test-coverage/archive"
+      },
+      "response": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a request to create custom attestation type test-coverage",
+      "providerState": "no attestation type named test-coverage exists",
+      "request": {
+        "matchingRules": {
+          "$.path": {
+            "match": "regex",
+            "regex": "/api/v2/custom-attestation-types/[^/]+"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v2/custom-attestation-types/test-org"
+      },
+      "response": {
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 201
+      }
+    },
+    {
+      "description": "a request to get custom attestation type test-coverage",
+      "providerState": "attestation type test-coverage exists with version 1",
+      "request": {
+        "matchingRules": {
+          "$.path": {
+            "match": "regex",
+            "regex": "/api/v2/custom-attestation-types/[^/]+/[^/]+"
+          }
+        },
+        "method": "GET",
+        "path": "/api/v2/custom-attestation-types/test-org/test-coverage"
+      },
+      "response": {
+        "body": {
+          "archived": false,
+          "description": "Code coverage attestation",
+          "name": "test-coverage",
+          "versions": [
+            {
+              "created_by": "Test User",
+              "evaluator": {
+                "content_type": "jq",
+                "rules": [
+                  ".coverage >= 80"
+                ]
+              },
+              "timestamp": 1700000000.123456,
+              "type_schema": {
+                "properties": {
+                  "coverage": {
+                    "type": "number"
+                  }
+                },
+                "type": "object"
+              },
+              "version": 1
+            }
+          ]
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "$.body.archived": {
+            "match": "type"
+          },
+          "$.body.description": {
+            "match": "type"
+          },
+          "$.body.name": {
+            "match": "type"
+          },
+          "$.body.versions": {
+            "match": "type",
+            "min": 1
+          },
+          "$.body.versions[*].created_by": {
+            "match": "type"
+          },
+          "$.body.versions[*].evaluator": {
+            "match": "type"
+          },
+          "$.body.versions[*].timestamp": {
+            "match": "type"
+          },
+          "$.body.versions[*].type_schema": {
+            "match": "type"
+          },
+          "$.body.versions[*].version": {
+            "match": "type"
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a request to get environment production-k8s",
+      "providerState": "environment production-k8s exists",
+      "request": {
+        "matchingRules": {
+          "$.path": {
+            "match": "regex",
+            "regex": "/api/v2/environments/[^/]+/[^/]+"
+          }
+        },
+        "method": "GET",
+        "path": "/api/v2/environments/test-org/production-k8s"
+      },
+      "response": {
+        "body": {
+          "description": "Production Kubernetes cluster",
+          "include_scaling": true,
+          "last_modified_at": 1234567890.123456,
+          "last_reported_at": 1234567891.123456,
+          "name": "production-k8s",
+          "tags": {
+            "env": "prod"
+          },
+          "type": "K8S"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "$.body.description": {
+            "match": "type"
+          },
+          "$.body.include_scaling": {
+            "match": "type"
+          },
+          "$.body.last_modified_at": {
+            "match": "type"
+          },
+          "$.body.last_reported_at": {
+            "match": "type"
+          },
+          "$.body.name": {
+            "match": "type"
+          },
+          "$.body.tags": {
+            "match": "type"
+          },
+          "$.body.type": {
+            "match": "type"
+          }
+        },
+        "status": 200
+      }
+    }
+  ],
+  "metadata": {
+    "pact-go": {
+      "version": "2.4.3"
+    },
+    "pactRust": {
+      "ffi": "0.4.28",
+      "mockserver": "1.2.16",
+      "models": "1.3.5"
+    },
+    "pactSpecification": {
+      "version": "2.0.0"
+    }
+  },
+  "provider": {
+    "name": "KosliAPI"
+  }
+}
