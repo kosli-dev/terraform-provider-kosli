@@ -155,6 +155,21 @@ testacc-policy-attachment: check-testacc-env
 	@echo "Running acceptance tests for policy_attachment resource..."
 	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccPolicyAttachmentResource' -timeout 30m
 
+# Run acceptance tests for service account resource
+testacc-service-account: check-testacc-env
+	@echo "Running acceptance tests for service account resource..."
+	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccServiceAccountResource' -timeout 30m
+
+# Run acceptance tests for service account data source
+testacc-service-account-datasource: check-testacc-env
+	@echo "Running acceptance tests for service account data source..."
+	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccServiceAccountDataSource' -timeout 30m
+
+# Run acceptance tests for service account API key resource
+testacc-service-account-api-key: check-testacc-env
+	@echo "Running acceptance tests for service account API key resource..."
+	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccServiceAccountAPIKeyResource' -timeout 30m
+
 # Format Go code
 fmt:
 	@echo "Formatting code..."

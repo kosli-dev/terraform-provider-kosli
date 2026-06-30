@@ -130,6 +130,8 @@ func TestKosliProvider_Resources(t *testing.T) {
 		"kosli_logical_environment",
 		"kosli_policy",
 		"kosli_policy_attachment",
+		"kosli_service_account",
+		"kosli_service_account_api_key",
 	}
 	for _, name := range expected {
 		if !registered[name] {
@@ -157,6 +159,7 @@ func TestKosliProvider_DataSources(t *testing.T) {
 		"kosli_flow",
 		"kosli_logical_environment",
 		"kosli_policy",
+		"kosli_service_account",
 	}
 	for _, name := range expected {
 		if !registered[name] {

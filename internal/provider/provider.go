@@ -155,6 +155,8 @@ func (p *KosliProvider) Resources(ctx context.Context) []func() resource.Resourc
 		NewLogicalEnvironmentResource,
 		NewPolicyResource,
 		NewPolicyAttachmentResource,
+		NewServiceAccountResource,
+		NewServiceAccountAPIKeyResource,
 	}
 }
 
@@ -167,6 +169,7 @@ func (p *KosliProvider) DataSources(ctx context.Context) []func() datasource.Dat
 		NewFlowDataSource,
 		NewLogicalEnvironmentDataSource,
 		NewPolicyDataSource,
+		NewServiceAccountDataSource,
 	}
 }
 
