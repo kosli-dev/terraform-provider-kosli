@@ -129,6 +129,12 @@ jobs:
             --compliant=${{ steps.unit_tests.outcome == 'success' }} \
             --description "Unit tests"
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: "~1.10.0"
+          terraform_wrapper: false
+
       - name: Run acceptance tests
         id: acceptance_tests
         continue-on-error: true
