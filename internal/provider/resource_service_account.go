@@ -249,11 +249,17 @@ func (r *serviceAccountResource) ImportState(ctx context.Context, req resource.I
 // mapServiceAccountToState maps an API response into the resource model.
 func mapServiceAccountToState(account *client.ServiceAccount, data *serviceAccountResourceModel) {
 	data.Name = types.StringValue(account.Name)
-	// Treat an empty description as null to avoid drift when not configured.
-	if account.Description == "" {
-		data.Description = types.StringNull()
-	} else {
+	// Map an empty API description to null so an unset attribute doesn't
+	// drift — but preserve a known empty string so an explicitly configured
+	// description = "" round-trips as-is instead of triggering a "Provider
+	// produced inconsistent result after apply" error.
+	switch {
+	case account.Description != "":
 		data.Description = types.StringValue(account.Description)
+	case !data.Description.IsNull() && !data.Description.IsUnknown() && data.Description.ValueString() == "":
+		data.Description = types.StringValue("")
+	default:
+		data.Description = types.StringNull()
 	}
 	data.Privilege = types.StringValue(account.Privilege)
 	data.DisplayName = types.StringValue(account.DisplayName)

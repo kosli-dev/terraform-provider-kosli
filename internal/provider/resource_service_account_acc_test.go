@@ -110,6 +110,29 @@ func TestAccServiceAccountResource_clearDescription(t *testing.T) {
 	})
 }
 
+// TestAccServiceAccountResource_emptyDescription verifies that an explicitly
+// configured empty description round-trips as "" without triggering a
+// "Provider produced inconsistent result after apply" error (the mapper must
+// not normalize a configured "" to null).
+func TestAccServiceAccountResource_emptyDescription(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc-test")
+	resourceName := "kosli_service_account.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccServiceAccountResourceConfigFull(rName, "", "reader"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
+					resource.TestCheckResourceAttr(resourceName, "description", ""),
+				),
+			},
+		},
+	})
+}
+
 // TestAccServiceAccountResource_import tests terraform import functionality.
 func TestAccServiceAccountResource_import(t *testing.T) {
 	rName := acctest.RandomWithPrefix("tf-acc-test")

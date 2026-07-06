@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
 
@@ -128,5 +129,29 @@ func TestMapServiceAccountToState(t *testing.T) {
 	}
 	if !data2.ForWebhook.ValueBool() {
 		t.Error("expected for_webhook to be true")
+	}
+
+	// An explicitly configured empty string must round-trip as "" (not be
+	// normalized to null), or Terraform reports an inconsistent result.
+	data3 := serviceAccountResourceModel{Description: types.StringValue("")}
+	mapServiceAccountToState(&client.ServiceAccount{
+		Name:      "ci",
+		Privilege: "member",
+	}, &data3)
+	if data3.Description.IsNull() {
+		t.Error("expected explicitly configured empty description to stay \"\", got null")
+	}
+	if data3.Description.ValueString() != "" {
+		t.Errorf("expected empty description, got %q", data3.Description.ValueString())
+	}
+
+	// An unknown prior value must normalize to null, not be treated as "".
+	data4 := serviceAccountResourceModel{Description: types.StringUnknown()}
+	mapServiceAccountToState(&client.ServiceAccount{
+		Name:      "ci",
+		Privilege: "member",
+	}, &data4)
+	if !data4.Description.IsNull() {
+		t.Error("expected unknown prior description to normalize to null")
 	}
 }
