@@ -116,6 +116,15 @@ func (d *serviceAccountAPIKeysDataSource) Read(ctx context.Context, req datasour
 
 	keys, err := d.client.ListServiceAccountAPIKeys(ctx, data.ServiceAccountName.ValueString())
 	if err != nil {
+		// A 404 from the list endpoint means the service account itself does
+		// not exist — a service account with no keys returns an empty list.
+		if client.IsNotFound(err) {
+			resp.Diagnostics.AddError(
+				"Service Account Not Found",
+				fmt.Sprintf("Could not list API keys: service account %q does not exist in the organization.", data.ServiceAccountName.ValueString()),
+			)
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Error Reading Service Account API Keys",
 			fmt.Sprintf("Could not list API keys for service account %q: %s", data.ServiceAccountName.ValueString(), err.Error()),
