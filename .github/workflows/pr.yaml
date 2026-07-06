@@ -1,4 +1,4 @@
-name: PR Quality Checks
+name: PR Checks
 
 on:
   pull_request:
@@ -10,9 +10,10 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  validate-title:
+  validate-pr-title:
     name: Validate PR Title
     runs-on: ubuntu-latest
     permissions:
