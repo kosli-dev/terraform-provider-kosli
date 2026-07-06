@@ -183,8 +183,8 @@ func (r *serviceAccountAPIKeyResource) Read(ctx context.Context, req resource.Re
 		return
 	}
 
-	// The raw key is never returned by the list endpoint, so data.Key is
-	// intentionally left untouched (preserved from prior state).
+	// The raw key is only returned at creation, never by the get endpoint,
+	// so data.Key is intentionally left untouched (preserved from prior state).
 	mapAPIKeyToState(key, &data)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
