@@ -20,6 +20,11 @@ type ServiceAccount struct {
 
 // CreateServiceAccountRequest represents the request body for creating a
 // service account via POST /api/v2/service-accounts/{org}.
+//
+// Description has no omitempty: an unset description is sent as "", which the
+// create endpoint treats the same as absent. If the API ever starts
+// distinguishing "" from omitted on create, Description needs the same
+// pointer treatment as UpdateServiceAccountRequest.
 type CreateServiceAccountRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`

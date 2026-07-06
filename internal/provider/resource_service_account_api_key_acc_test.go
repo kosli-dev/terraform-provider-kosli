@@ -1,12 +1,15 @@
 package provider
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
 
 // TestAccServiceAccountAPIKeyResource_basic creates a service account and an API
@@ -76,6 +79,66 @@ func TestAccServiceAccountAPIKeyResource_forceRecreate(t *testing.T) {
 			},
 		},
 	})
+}
+
+// TestAccServiceAccountAPIKeyResource_disappears revokes the key out-of-band
+// (directly via the API, outside Terraform) and expects the next refresh to
+// produce a non-empty plan. This proves against the live API that a revoked
+// key's GET returns a real 404 (not a 200/400) and that Read self-heals via
+// RemoveResource instead of erroring.
+func TestAccServiceAccountAPIKeyResource_disappears(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc-test")
+	resourceName := "kosli_service_account_api_key.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccServiceAccountAPIKeyResourceConfig(rName, "Disappearing key"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(resourceName, "id"),
+					testAccCheckServiceAccountAPIKeyDisappears(resourceName),
+				),
+				// The out-of-band revoke must surface as a plan to recreate the
+				// key, not as a refresh error.
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+// testAccCheckServiceAccountAPIKeyDisappears revokes the API key directly via
+// the Kosli API, bypassing Terraform, using the same credentials as the
+// provider under test.
+func testAccCheckServiceAccountAPIKeyDisappears(resourceName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("resource not found in state: %s", resourceName)
+		}
+
+		serviceAccountName := rs.Primary.Attributes["service_account_name"]
+		keyID := rs.Primary.Attributes["id"]
+		if serviceAccountName == "" || keyID == "" {
+			return fmt.Errorf("missing service_account_name or id in state for %s", resourceName)
+		}
+
+		var opts []client.ClientOption
+		if apiURL := os.Getenv("KOSLI_API_URL"); apiURL != "" {
+			opts = append(opts, client.WithBaseURL(apiURL))
+		}
+		c, err := client.NewClient(os.Getenv("KOSLI_API_TOKEN"), os.Getenv("KOSLI_ORG"), opts...)
+		if err != nil {
+			return fmt.Errorf("failed to create out-of-band client: %w", err)
+		}
+
+		if err := c.RevokeServiceAccountAPIKey(context.Background(), serviceAccountName, keyID); err != nil {
+			return fmt.Errorf("failed to revoke API key out-of-band: %w", err)
+		}
+
+		return nil
+	}
 }
 
 // TestAccServiceAccountAPIKeyResource_import imports an existing key using the
