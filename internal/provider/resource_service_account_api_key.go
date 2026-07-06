@@ -225,6 +225,10 @@ func (r *serviceAccountAPIKeyResource) Delete(ctx context.Context, req resource.
 	}
 
 	if err := r.client.RevokeServiceAccountAPIKey(ctx, data.ServiceAccountName.ValueString(), data.ID.ValueString()); err != nil {
+		// Already revoked (e.g. out-of-band); deletion is idempotent.
+		if client.IsNotFound(err) {
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Error Revoking Service Account API Key",
 			fmt.Sprintf("Could not revoke API key %q for service account %q: %s", data.ID.ValueString(), data.ServiceAccountName.ValueString(), err.Error()),

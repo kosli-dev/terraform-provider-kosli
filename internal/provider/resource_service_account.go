@@ -233,6 +233,10 @@ func (r *serviceAccountResource) Delete(ctx context.Context, req resource.Delete
 	}
 
 	if err := r.client.DeleteServiceAccount(ctx, data.Name.ValueString()); err != nil {
+		// Already deleted (e.g. out-of-band); deletion is idempotent.
+		if client.IsNotFound(err) {
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Error Deleting Service Account",
 			fmt.Sprintf("Could not delete service account %q: %s", data.Name.ValueString(), err.Error()),
