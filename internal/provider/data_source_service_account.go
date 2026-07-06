@@ -114,6 +114,9 @@ func (d *serviceAccountDataSource) Read(ctx context.Context, req datasource.Read
 	}
 
 	data.Name = types.StringValue(account.Name)
+	// Unlike the resource mapper, "" always maps to null here: a data source
+	// has no configured value to round-trip, so the consistency concern that
+	// forces the resource to preserve an explicit "" does not apply.
 	if account.Description == "" {
 		data.Description = types.StringNull()
 	} else {

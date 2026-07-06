@@ -83,7 +83,7 @@ Because the raw key value is only returned at creation time, the `key` attribute
 
 ### Optional
 
-- `expires_at` (Number) Unix timestamp (seconds) at which the key expires. Omit (or set to `0`) for a key that never expires. Must not be in the past. Changing this forces creation of a new key.
+- `expires_at` (Number) Unix timestamp (seconds) at which the key expires. Omit (or set to `0`) for a key that never expires. Must not be in the past. Changing this forces creation of a new key. Removing a previously set value from configuration leaves the existing expiry unchanged; to get a non-expiring key again, the key must be recreated (e.g. via `terraform taint` or by changing another argument).
 
 ### Read-Only
 

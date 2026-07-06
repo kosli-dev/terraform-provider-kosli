@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -56,7 +57,7 @@ func (d *serviceAccountAPIKeysDataSource) Schema(ctx context.Context, req dataso
 			},
 			"keys": schema.ListNestedAttribute{
 				Computed:            true,
-				MarkdownDescription: "The list of active API keys for the service account.",
+				MarkdownDescription: "The list of active API keys for the service account, sorted by creation time (oldest first).",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
@@ -121,6 +122,15 @@ func (d *serviceAccountAPIKeysDataSource) Read(ctx context.Context, req datasour
 		)
 		return
 	}
+
+	// Sort for deterministic output: the API does not guarantee list ordering,
+	// and unstable ordering would churn downstream configs indexing keys[*].
+	sort.Slice(keys, func(i, j int) bool {
+		if keys[i].CreatedAt != keys[j].CreatedAt {
+			return keys[i].CreatedAt < keys[j].CreatedAt
+		}
+		return keys[i].ID < keys[j].ID
+	})
 
 	data.Keys = make([]serviceAccountAPIKeyElementModel, 0, len(keys))
 	for _, k := range keys {

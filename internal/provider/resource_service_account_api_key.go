@@ -73,9 +73,12 @@ func (r *serviceAccountAPIKeyResource) Schema(ctx context.Context, req resource.
 				},
 			},
 			"expires_at": schema.Int64Attribute{
-				MarkdownDescription: "Unix timestamp (seconds) at which the key expires. Omit (or set to `0`) for a key that never expires. Must not be in the past. Changing this forces creation of a new key.",
+				MarkdownDescription: "Unix timestamp (seconds) at which the key expires. Omit (or set to `0`) for a key that never expires. Must not be in the past. Changing this forces creation of a new key. Removing a previously set value from configuration leaves the existing expiry unchanged; to get a non-expiring key again, the key must be recreated (e.g. via `terraform taint` or by changing another argument).",
 				Optional:            true,
 				Computed:            true,
+				// Optional+Computed with UseStateForUnknown: unsetting the
+				// attribute intentionally retains the last known value rather
+				// than diffing — only a configured change forces replacement.
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.RequiresReplaceIfConfigured(),
 					int64planmodifier.UseStateForUnknown(),

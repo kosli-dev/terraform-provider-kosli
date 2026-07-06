@@ -59,7 +59,7 @@ output "unused_api_key_ids" {
 
 ### Read-Only
 
-- `keys` (Attributes List) The list of active API keys for the service account. (see [below for nested schema](#nestedatt--keys))
+- `keys` (Attributes List) The list of active API keys for the service account, sorted by creation time (oldest first). (see [below for nested schema](#nestedatt--keys))
 
 <a id="nestedatt--keys"></a>
 ### Nested Schema for `keys`
