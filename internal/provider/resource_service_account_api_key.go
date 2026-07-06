@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -82,6 +83,11 @@ func (r *serviceAccountAPIKeyResource) Schema(ctx context.Context, req resource.
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.RequiresReplaceIfConfigured(),
 					int64planmodifier.UseStateForUnknown(),
+				},
+				// A full "not in the past" check needs a clock and isn't
+				// feasible at plan time; at least reject obvious mistakes.
+				Validators: []validator.Int64{
+					int64validator.AtLeast(0),
 				},
 			},
 			"id": schema.StringAttribute{
