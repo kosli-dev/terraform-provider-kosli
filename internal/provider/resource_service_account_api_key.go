@@ -72,7 +72,7 @@ func (r *serviceAccountAPIKeyResource) Schema(ctx context.Context, req resource.
 				},
 			},
 			"expires_at": schema.StringAttribute{
-				MarkdownDescription: "RFC3339 timestamp at which the key expires, e.g. `2100-01-01T00:00:00Z` (offsets allowed). Omit for a key that never expires. Must not be in the past (validated server-side at apply time). Changing this forces creation of a new key. Removing a previously set value from configuration leaves the existing expiry unchanged; to get a non-expiring key again, the key must be recreated (e.g. via `terraform taint` or by changing another argument).",
+				MarkdownDescription: "RFC3339 timestamp at which the key expires, e.g. `2100-01-01T00:00:00Z` (offsets allowed; whole seconds only). Omit for a key that never expires. Must not be in the past (validated server-side at apply time). Changing this forces creation of a new key. Removing a previously set value from configuration leaves the existing expiry unchanged; to get a non-expiring key again, the key must be recreated (e.g. via `terraform taint` or by changing another argument).",
 				CustomType:          timetypes.RFC3339Type{},
 				Optional:            true,
 				Computed:            true,
@@ -82,6 +82,9 @@ func (r *serviceAccountAPIKeyResource) Schema(ctx context.Context, req resource.
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplaceIfConfigured(),
 					stringplanmodifier.UseStateForUnknown(),
+				},
+				Validators: []validator.String{
+					wholeSecondTimestampValidator{},
 				},
 			},
 			"id": schema.StringAttribute{

@@ -32,6 +32,11 @@ type serviceAccountAPIKeysDataSourceModel struct {
 
 // serviceAccountAPIKeyElementModel is a single API key entry (metadata only;
 // the raw key value is never returned by the list endpoint).
+//
+// The timestamps here are plain strings, unlike the resource's expires_at
+// (timetypes.RFC3339): semantic/offset equality only matters when there is a
+// configured value to compare against, and these computed-only fields always
+// render the same canonical RFC3339 UTC form. Intentional asymmetry.
 type serviceAccountAPIKeyElementModel struct {
 	ID          types.String `tfsdk:"id"`
 	Description types.String `tfsdk:"description"`

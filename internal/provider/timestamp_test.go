@@ -1,8 +1,13 @@
 package provider
 
 import (
+	"context"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 func TestTimestampToState(t *testing.T) {
@@ -35,5 +40,36 @@ func TestTimestampToRFC3339State(t *testing.T) {
 	}
 	if !tm.Equal(time.Date(2100, 1, 1, 0, 0, 0, 0, time.UTC)) {
 		t.Errorf("expected 2100-01-01T00:00:00Z, got %v", tm)
+	}
+}
+
+func TestWholeSecondTimestampValidator(t *testing.T) {
+	cases := []struct {
+		value   types.String
+		wantErr bool
+	}{
+		{types.StringValue("2100-01-01T00:00:00Z"), false},
+		{types.StringValue("2100-01-01T10:00:00+01:00"), false},
+		// Sub-second precision can never round-trip (API stores whole seconds)
+		// and would force a replacement on every plan.
+		{types.StringValue("2100-01-01T00:00:00.5Z"), true},
+		{types.StringValue("2100-01-01T00:00:00.000000001Z"), true},
+		// Malformed values are left to the timetypes.RFC3339 type to report.
+		{types.StringValue("not-a-timestamp"), false},
+		{types.StringNull(), false},
+		{types.StringUnknown(), false},
+	}
+
+	for _, tc := range cases {
+		req := validator.StringRequest{
+			Path:        path.Root("expires_at"),
+			ConfigValue: tc.value,
+		}
+		resp := &validator.StringResponse{}
+		wholeSecondTimestampValidator{}.ValidateString(context.Background(), req, resp)
+
+		if resp.Diagnostics.HasError() != tc.wantErr {
+			t.Errorf("value %v: expected error=%t, got error=%t (%v)", tc.value, tc.wantErr, resp.Diagnostics.HasError(), resp.Diagnostics)
+		}
 	}
 }
