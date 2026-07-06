@@ -106,6 +106,13 @@ func (d *serviceAccountDataSource) Read(ctx context.Context, req datasource.Read
 
 	account, err := d.client.GetServiceAccount(ctx, data.Name.ValueString())
 	if err != nil {
+		if client.IsNotFound(err) {
+			resp.Diagnostics.AddError(
+				"Service Account Not Found",
+				fmt.Sprintf("Service account %q does not exist in the organization.", data.Name.ValueString()),
+			)
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Error Reading Service Account",
 			fmt.Sprintf("Could not read service account %q: %s", data.Name.ValueString(), err.Error()),
