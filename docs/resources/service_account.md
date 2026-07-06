@@ -79,7 +79,7 @@ To mint API keys for a service account, use the `kosli_service_account_api_key` 
 
 ### Read-Only
 
-- `created_at` (Number) Unix timestamp of when the service account was created.
+- `created_at` (String) RFC3339 UTC timestamp of when the service account was created.
 - `creating_user_id` (String) Identifier of the user who created the service account.
 - `display_name` (String) Display name of the service account, assigned by the server.
 - `for_webhook` (Boolean) Whether the service account was created for webhook usage.

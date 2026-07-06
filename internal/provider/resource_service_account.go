@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -38,13 +37,13 @@ type serviceAccountResource struct {
 
 // serviceAccountResourceModel describes the resource data model.
 type serviceAccountResourceModel struct {
-	Name           types.String  `tfsdk:"name"`
-	Description    types.String  `tfsdk:"description"`
-	Privilege      types.String  `tfsdk:"privilege"`
-	DisplayName    types.String  `tfsdk:"display_name"`
-	CreatingUserID types.String  `tfsdk:"creating_user_id"`
-	CreatedAt      types.Float64 `tfsdk:"created_at"`
-	ForWebhook     types.Bool    `tfsdk:"for_webhook"`
+	Name           types.String `tfsdk:"name"`
+	Description    types.String `tfsdk:"description"`
+	Privilege      types.String `tfsdk:"privilege"`
+	DisplayName    types.String `tfsdk:"display_name"`
+	CreatingUserID types.String `tfsdk:"creating_user_id"`
+	CreatedAt      types.String `tfsdk:"created_at"`
+	ForWebhook     types.Bool   `tfsdk:"for_webhook"`
 }
 
 // Metadata returns the resource type name.
@@ -95,11 +94,11 @@ func (r *serviceAccountResource) Schema(ctx context.Context, req resource.Schema
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"created_at": schema.Float64Attribute{
-				MarkdownDescription: "Unix timestamp of when the service account was created.",
+			"created_at": schema.StringAttribute{
+				MarkdownDescription: "RFC3339 UTC timestamp of when the service account was created.",
 				Computed:            true,
-				PlanModifiers: []planmodifier.Float64{
-					float64planmodifier.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"for_webhook": schema.BoolAttribute{
@@ -268,6 +267,6 @@ func mapServiceAccountToState(account *client.ServiceAccount, data *serviceAccou
 	data.Privilege = types.StringValue(account.Privilege)
 	data.DisplayName = types.StringValue(account.DisplayName)
 	data.CreatingUserID = types.StringValue(account.CreatingUserID)
-	data.CreatedAt = types.Float64Value(account.CreatedAt)
+	data.CreatedAt = timestampToState(account.CreatedAt)
 	data.ForWebhook = types.BoolValue(account.ForWebhook)
 }

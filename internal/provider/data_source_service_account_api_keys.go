@@ -33,11 +33,11 @@ type serviceAccountAPIKeysDataSourceModel struct {
 // serviceAccountAPIKeyElementModel is a single API key entry (metadata only;
 // the raw key value is never returned by the list endpoint).
 type serviceAccountAPIKeyElementModel struct {
-	ID          types.String  `tfsdk:"id"`
-	Description types.String  `tfsdk:"description"`
-	CreatedAt   types.Float64 `tfsdk:"created_at"`
-	ExpiresAt   types.Int64   `tfsdk:"expires_at"`
-	LastUsedAt  types.Float64 `tfsdk:"last_used_at"`
+	ID          types.String `tfsdk:"id"`
+	Description types.String `tfsdk:"description"`
+	CreatedAt   types.String `tfsdk:"created_at"`
+	ExpiresAt   types.String `tfsdk:"expires_at"`
+	LastUsedAt  types.String `tfsdk:"last_used_at"`
 }
 
 // Metadata returns the data source type name.
@@ -68,17 +68,17 @@ func (d *serviceAccountAPIKeysDataSource) Schema(ctx context.Context, req dataso
 							Computed:            true,
 							MarkdownDescription: "Description of the API key.",
 						},
-						"created_at": schema.Float64Attribute{
+						"created_at": schema.StringAttribute{
 							Computed:            true,
-							MarkdownDescription: "Unix timestamp of when the API key was created.",
+							MarkdownDescription: "RFC3339 UTC timestamp of when the API key was created.",
 						},
-						"expires_at": schema.Int64Attribute{
+						"expires_at": schema.StringAttribute{
 							Computed:            true,
-							MarkdownDescription: "Unix timestamp (seconds) at which the key expires. `0` if the key never expires.",
+							MarkdownDescription: "RFC3339 UTC timestamp at which the key expires. Null if the key never expires.",
 						},
-						"last_used_at": schema.Float64Attribute{
+						"last_used_at": schema.StringAttribute{
 							Computed:            true,
-							MarkdownDescription: "Unix timestamp of when the API key was last used. `0` if never used.",
+							MarkdownDescription: "RFC3339 UTC timestamp of when the API key was last used. Null if the key has never been used.",
 						},
 					},
 				},
@@ -146,9 +146,9 @@ func (d *serviceAccountAPIKeysDataSource) Read(ctx context.Context, req datasour
 		data.Keys = append(data.Keys, serviceAccountAPIKeyElementModel{
 			ID:          types.StringValue(k.ID),
 			Description: types.StringValue(k.Description),
-			CreatedAt:   types.Float64Value(k.CreatedAt),
-			ExpiresAt:   types.Int64Value(int64(k.ExpiresAt)),
-			LastUsedAt:  types.Float64Value(k.LastUsedAt),
+			CreatedAt:   timestampToState(k.CreatedAt),
+			ExpiresAt:   timestampToState(k.ExpiresAt),
+			LastUsedAt:  timestampToState(k.LastUsedAt),
 		})
 	}
 

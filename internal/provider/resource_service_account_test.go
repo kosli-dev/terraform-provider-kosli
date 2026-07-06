@@ -112,8 +112,8 @@ func TestMapServiceAccountToState(t *testing.T) {
 	if data.Privilege.ValueString() != "member" {
 		t.Errorf("expected privilege 'member', got %q", data.Privilege.ValueString())
 	}
-	if data.CreatedAt.ValueFloat64() != 1234567890 {
-		t.Errorf("expected created_at 1234567890, got %v", data.CreatedAt.ValueFloat64())
+	if data.CreatedAt.ValueString() != "2009-02-13T23:31:30Z" {
+		t.Errorf("expected created_at '2009-02-13T23:31:30Z', got %q", data.CreatedAt.ValueString())
 	}
 
 	// Non-empty description should be preserved.

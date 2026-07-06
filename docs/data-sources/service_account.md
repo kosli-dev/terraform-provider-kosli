@@ -59,7 +59,7 @@ Data sources provide read-only access to service account metadata. To create or 
 
 ### Read-Only
 
-- `created_at` (Number) Unix timestamp of when the service account was created.
+- `created_at` (String) RFC3339 UTC timestamp of when the service account was created.
 - `creating_user_id` (String) Identifier of the user who created the service account.
 - `description` (String) The description of the service account.
 - `display_name` (String) The display name of the service account.

@@ -13,7 +13,7 @@ Use this data source to enumerate the active API keys for a service account — 
 
 ~> **Note:** Only key metadata is returned. The raw key value is never retrievable after creation; to mint a new key use the `kosli_service_account_api_key` resource.
 
--> **Note:** `expires_at` is a whole-second integer (it originates as user input), while `created_at` and `last_used_at` carry fractional seconds, mirroring the API's representation.
+-> **Note:** All timestamps are RFC3339 UTC strings. `expires_at` is null for keys that never expire, and `last_used_at` is null for keys that have never been used.
 
 ## Example Usage
 
@@ -48,7 +48,7 @@ data "kosli_service_account_api_keys" "ci" {
 # Example: surface keys that have never been used, for rotation/cleanup.
 output "unused_api_key_ids" {
   description = "IDs of API keys that have never been used"
-  value       = [for k in data.kosli_service_account_api_keys.ci.keys : k.id if k.last_used_at == 0]
+  value       = [for k in data.kosli_service_account_api_keys.ci.keys : k.id if k.last_used_at == null]
 }
 ```
 
@@ -68,8 +68,8 @@ output "unused_api_key_ids" {
 
 Read-Only:
 
-- `created_at` (Number) Unix timestamp of when the API key was created.
+- `created_at` (String) RFC3339 UTC timestamp of when the API key was created.
 - `description` (String) Description of the API key.
-- `expires_at` (Number) Unix timestamp (seconds) at which the key expires. `0` if the key never expires.
+- `expires_at` (String) RFC3339 UTC timestamp at which the key expires. Null if the key never expires.
 - `id` (String) Server-assigned identifier of the API key.
-- `last_used_at` (Number) Unix timestamp of when the API key was last used. `0` if never used.
+- `last_used_at` (String) RFC3339 UTC timestamp of when the API key was last used. Null if the key has never been used.

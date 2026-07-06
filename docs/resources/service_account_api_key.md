@@ -42,11 +42,11 @@ resource "kosli_service_account_api_key" "ci_key" {
   description          = "Production CI key"
 }
 
-# An API key that expires (Unix timestamp, seconds)
+# An API key that expires (RFC3339 timestamp)
 resource "kosli_service_account_api_key" "ci_key_expiring" {
   service_account_name = kosli_service_account.ci.name
   description          = "Temporary CI key"
-  expires_at           = 4102444800 # 2100-01-01
+  expires_at           = "2100-01-01T00:00:00Z"
 }
 
 # The raw key is only available on creation and is sensitive
@@ -58,9 +58,11 @@ output "ci_api_key" {
 
 ## Expiry
 
-The `expires_at` attribute is a Unix timestamp (seconds). Omit it (or set it to `0`) for a key that never expires. The timestamp must not be in the past.
+The `expires_at` attribute is an RFC3339 timestamp, e.g. `2100-01-01T00:00:00Z` (offsets such as `+01:00` are accepted and normalized to UTC). Omit it for a key that never expires. The timestamp must not be in the past.
 
--> **Note:** `expires_at` is a whole-second integer because it is a user-supplied input, while the read-only `created_at` and `last_used_at` timestamps are numbers with fractional seconds, mirroring the API's representation.
+To derive dates dynamically, use Terraform's built-in functions, e.g. `timeadd("2026-01-01T00:00:00Z", "8760h")`.
+
+-> **Note:** All timestamps (`expires_at`, `created_at`, `last_used_at`) are RFC3339 UTC strings. `last_used_at` is null for a key that has never been used; `expires_at` is null for a key that never expires.
 
 ## Import
 
@@ -85,11 +87,11 @@ Because the raw key value is only returned at creation time, the `key` attribute
 
 ### Optional
 
-- `expires_at` (Number) Unix timestamp (seconds) at which the key expires. Omit (or set to `0`) for a key that never expires. Must not be in the past. Changing this forces creation of a new key. Removing a previously set value from configuration leaves the existing expiry unchanged; to get a non-expiring key again, the key must be recreated (e.g. via `terraform taint` or by changing another argument).
+- `expires_at` (String) RFC3339 timestamp at which the key expires, e.g. `2100-01-01T00:00:00Z` (offsets allowed). Omit for a key that never expires. Must not be in the past (validated server-side at apply time). Changing this forces creation of a new key. Removing a previously set value from configuration leaves the existing expiry unchanged; to get a non-expiring key again, the key must be recreated (e.g. via `terraform taint` or by changing another argument).
 
 ### Read-Only
 
-- `created_at` (Number) Unix timestamp of when the API key was created.
+- `created_at` (String) RFC3339 UTC timestamp of when the API key was created.
 - `id` (String) Server-assigned identifier of the API key.
 - `key` (String, Sensitive) The raw API key value. Only available at creation time and stored as a sensitive value. Empty when the resource is imported.
-- `last_used_at` (Number) Unix timestamp of when the API key was last used. `0` if never used.
+- `last_used_at` (String) RFC3339 UTC timestamp of when the API key was last used. Null if the key has never been used.

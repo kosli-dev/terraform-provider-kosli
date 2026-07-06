@@ -25,13 +25,13 @@ type serviceAccountDataSource struct {
 
 // serviceAccountDataSourceModel describes the data source data model.
 type serviceAccountDataSourceModel struct {
-	Name           types.String  `tfsdk:"name"`
-	Description    types.String  `tfsdk:"description"`
-	Privilege      types.String  `tfsdk:"privilege"`
-	DisplayName    types.String  `tfsdk:"display_name"`
-	CreatingUserID types.String  `tfsdk:"creating_user_id"`
-	CreatedAt      types.Float64 `tfsdk:"created_at"`
-	ForWebhook     types.Bool    `tfsdk:"for_webhook"`
+	Name           types.String `tfsdk:"name"`
+	Description    types.String `tfsdk:"description"`
+	Privilege      types.String `tfsdk:"privilege"`
+	DisplayName    types.String `tfsdk:"display_name"`
+	CreatingUserID types.String `tfsdk:"creating_user_id"`
+	CreatedAt      types.String `tfsdk:"created_at"`
+	ForWebhook     types.Bool   `tfsdk:"for_webhook"`
 }
 
 // Metadata returns the data source type name.
@@ -65,9 +65,9 @@ func (d *serviceAccountDataSource) Schema(ctx context.Context, req datasource.Sc
 				Computed:            true,
 				MarkdownDescription: "Identifier of the user who created the service account.",
 			},
-			"created_at": schema.Float64Attribute{
+			"created_at": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Unix timestamp of when the service account was created.",
+				MarkdownDescription: "RFC3339 UTC timestamp of when the service account was created.",
 			},
 			"for_webhook": schema.BoolAttribute{
 				Computed:            true,
@@ -132,7 +132,7 @@ func (d *serviceAccountDataSource) Read(ctx context.Context, req datasource.Read
 	data.Privilege = types.StringValue(account.Privilege)
 	data.DisplayName = types.StringValue(account.DisplayName)
 	data.CreatingUserID = types.StringValue(account.CreatingUserID)
-	data.CreatedAt = types.Float64Value(account.CreatedAt)
+	data.CreatedAt = timestampToState(account.CreatedAt)
 	data.ForWebhook = types.BoolValue(account.ForWebhook)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -35,13 +33,13 @@ type serviceAccountAPIKeyResource struct {
 
 // serviceAccountAPIKeyResourceModel describes the resource data model.
 type serviceAccountAPIKeyResourceModel struct {
-	ServiceAccountName types.String  `tfsdk:"service_account_name"`
-	Description        types.String  `tfsdk:"description"`
-	ExpiresAt          types.Int64   `tfsdk:"expires_at"`
-	ID                 types.String  `tfsdk:"id"`
-	Key                types.String  `tfsdk:"key"`
-	CreatedAt          types.Float64 `tfsdk:"created_at"`
-	LastUsedAt         types.Float64 `tfsdk:"last_used_at"`
+	ServiceAccountName types.String      `tfsdk:"service_account_name"`
+	Description        types.String      `tfsdk:"description"`
+	ExpiresAt          timetypes.RFC3339 `tfsdk:"expires_at"`
+	ID                 types.String      `tfsdk:"id"`
+	Key                types.String      `tfsdk:"key"`
+	CreatedAt          types.String      `tfsdk:"created_at"`
+	LastUsedAt         types.String      `tfsdk:"last_used_at"`
 }
 
 // Metadata returns the resource type name.
@@ -73,21 +71,17 @@ func (r *serviceAccountAPIKeyResource) Schema(ctx context.Context, req resource.
 					stringvalidator.LengthAtLeast(1),
 				},
 			},
-			"expires_at": schema.Int64Attribute{
-				MarkdownDescription: "Unix timestamp (seconds) at which the key expires. Omit (or set to `0`) for a key that never expires. Must not be in the past. Changing this forces creation of a new key. Removing a previously set value from configuration leaves the existing expiry unchanged; to get a non-expiring key again, the key must be recreated (e.g. via `terraform taint` or by changing another argument).",
+			"expires_at": schema.StringAttribute{
+				MarkdownDescription: "RFC3339 timestamp at which the key expires, e.g. `2100-01-01T00:00:00Z` (offsets allowed). Omit for a key that never expires. Must not be in the past (validated server-side at apply time). Changing this forces creation of a new key. Removing a previously set value from configuration leaves the existing expiry unchanged; to get a non-expiring key again, the key must be recreated (e.g. via `terraform taint` or by changing another argument).",
+				CustomType:          timetypes.RFC3339Type{},
 				Optional:            true,
 				Computed:            true,
 				// Optional+Computed with UseStateForUnknown: unsetting the
 				// attribute intentionally retains the last known value rather
 				// than diffing — only a configured change forces replacement.
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.RequiresReplaceIfConfigured(),
-					int64planmodifier.UseStateForUnknown(),
-				},
-				// A full "not in the past" check needs a clock and isn't
-				// feasible at plan time; at least reject obvious mistakes.
-				Validators: []validator.Int64{
-					int64validator.AtLeast(0),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplaceIfConfigured(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"id": schema.StringAttribute{
@@ -105,15 +99,15 @@ func (r *serviceAccountAPIKeyResource) Schema(ctx context.Context, req resource.
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"created_at": schema.Float64Attribute{
-				MarkdownDescription: "Unix timestamp of when the API key was created.",
+			"created_at": schema.StringAttribute{
+				MarkdownDescription: "RFC3339 UTC timestamp of when the API key was created.",
 				Computed:            true,
-				PlanModifiers: []planmodifier.Float64{
-					float64planmodifier.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"last_used_at": schema.Float64Attribute{
-				MarkdownDescription: "Unix timestamp of when the API key was last used. `0` if never used.",
+			"last_used_at": schema.StringAttribute{
+				MarkdownDescription: "RFC3339 UTC timestamp of when the API key was last used. Null if the key has never been used.",
 				Computed:            true,
 			},
 		},
@@ -149,7 +143,15 @@ func (r *serviceAccountAPIKeyResource) Create(ctx context.Context, req resource.
 
 	createReq := &client.CreateAPIKeyRequest{
 		Description: data.Description.ValueString(),
-		ExpiresAt:   data.ExpiresAt.ValueInt64(),
+	}
+	// The API takes expiry as unix seconds; omitted (zero) means no expiry.
+	if !data.ExpiresAt.IsNull() && !data.ExpiresAt.IsUnknown() {
+		expiresAt, diags := data.ExpiresAt.ValueRFC3339Time()
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		createReq.ExpiresAt = expiresAt.Unix()
 	}
 
 	key, err := r.client.CreateServiceAccountAPIKey(ctx, data.ServiceAccountName.ValueString(), createReq)
@@ -268,9 +270,9 @@ func mapAPIKeyToState(key *client.ServiceAccountAPIKey, data *serviceAccountAPIK
 	data.ID = types.StringValue(key.ID)
 	// description is a required argument (min 1 char), so it is always present.
 	data.Description = types.StringValue(key.Description)
-	// The client decodes expires_at as float64 for JSON robustness; the schema
-	// exposes it as whole seconds.
-	data.ExpiresAt = types.Int64Value(int64(key.ExpiresAt))
-	data.CreatedAt = types.Float64Value(key.CreatedAt)
-	data.LastUsedAt = types.Float64Value(key.LastUsedAt)
+	// Rendered canonically as RFC3339 UTC; timetypes' semantic equality keeps
+	// an offset-formatted configured value (e.g. +01:00) from drifting.
+	data.ExpiresAt = timestampToRFC3339State(key.ExpiresAt)
+	data.CreatedAt = timestampToState(key.CreatedAt)
+	data.LastUsedAt = timestampToState(key.LastUsedAt)
 }

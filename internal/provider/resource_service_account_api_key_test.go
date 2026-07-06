@@ -103,7 +103,7 @@ func TestMapAPIKeyToState_PreservesKey(t *testing.T) {
 		Description: "prod key",
 		CreatedAt:   1234567890,
 		ExpiresAt:   4102444800,
-		LastUsedAt:  1234567900,
+		LastUsedAt:  0,
 	}, &data)
 
 	if data.Key.ValueString() != "secret-from-create" {
@@ -112,7 +112,14 @@ func TestMapAPIKeyToState_PreservesKey(t *testing.T) {
 	if data.ID.ValueString() != "key-1" {
 		t.Errorf("expected id 'key-1', got %q", data.ID.ValueString())
 	}
-	if data.ExpiresAt.ValueInt64() != 4102444800 {
-		t.Errorf("expected expires_at 4102444800, got %d", data.ExpiresAt.ValueInt64())
+	// Timestamps are rendered RFC3339 UTC; 0 means "never" and maps to null.
+	if data.ExpiresAt.ValueString() != "2100-01-01T00:00:00Z" {
+		t.Errorf("expected expires_at '2100-01-01T00:00:00Z', got %q", data.ExpiresAt.ValueString())
+	}
+	if data.CreatedAt.ValueString() != "2009-02-13T23:31:30Z" {
+		t.Errorf("expected created_at '2009-02-13T23:31:30Z', got %q", data.CreatedAt.ValueString())
+	}
+	if !data.LastUsedAt.IsNull() {
+		t.Errorf("expected never-used last_used_at to be null, got %q", data.LastUsedAt.ValueString())
 	}
 }

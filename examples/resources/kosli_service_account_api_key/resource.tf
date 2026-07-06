@@ -19,11 +19,11 @@ resource "kosli_service_account_api_key" "ci_key" {
   description          = "Production CI key"
 }
 
-# An API key that expires (Unix timestamp, seconds)
+# An API key that expires (RFC3339 timestamp)
 resource "kosli_service_account_api_key" "ci_key_expiring" {
   service_account_name = kosli_service_account.ci.name
   description          = "Temporary CI key"
-  expires_at           = 4102444800 # 2100-01-01
+  expires_at           = "2100-01-01T00:00:00Z"
 }
 
 # The raw key is only available on creation and is sensitive

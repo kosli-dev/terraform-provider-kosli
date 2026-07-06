@@ -28,5 +28,5 @@ data "kosli_service_account_api_keys" "ci" {
 # Example: surface keys that have never been used, for rotation/cleanup.
 output "unused_api_key_ids" {
   description = "IDs of API keys that have never been used"
-  value       = [for k in data.kosli_service_account_api_keys.ci.keys : k.id if k.last_used_at == 0]
+  value       = [for k in data.kosli_service_account_api_keys.ci.keys : k.id if k.last_used_at == null]
 }

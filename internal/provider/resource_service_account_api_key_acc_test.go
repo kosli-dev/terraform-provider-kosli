@@ -41,7 +41,7 @@ func TestAccServiceAccountAPIKeyResource_expiry(t *testing.T) {
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	resourceName := "kosli_service_account_api_key.test"
 	// A far-future timestamp (2100-01-01) so the test never produces a past expiry.
-	expiresAt := int64(4102444800)
+	expiresAt := "2100-01-01T00:00:00Z"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -51,8 +51,9 @@ func TestAccServiceAccountAPIKeyResource_expiry(t *testing.T) {
 				Config: testAccServiceAccountAPIKeyResourceConfigExpiry(rName, "Expiring key", expiresAt),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "description", "Expiring key"),
-					resource.TestCheckResourceAttr(resourceName, "expires_at", fmt.Sprintf("%d", expiresAt)),
+					resource.TestCheckResourceAttr(resourceName, "expires_at", expiresAt),
 					resource.TestCheckResourceAttrSet(resourceName, "key"),
+					resource.TestCheckResourceAttrSet(resourceName, "created_at"),
 				),
 			},
 		},
@@ -189,7 +190,7 @@ resource "kosli_service_account_api_key" "test" {
 `, name, description)
 }
 
-func testAccServiceAccountAPIKeyResourceConfigExpiry(name, description string, expiresAt int64) string {
+func testAccServiceAccountAPIKeyResourceConfigExpiry(name, description, expiresAt string) string {
 	return fmt.Sprintf(`
 resource "kosli_service_account" "test" {
   name      = %[1]q
@@ -199,7 +200,7 @@ resource "kosli_service_account" "test" {
 resource "kosli_service_account_api_key" "test" {
   service_account_name = kosli_service_account.test.name
   description          = %[2]q
-  expires_at           = %[3]d
+  expires_at           = %[3]q
 }
 `, name, description, expiresAt)
 }
