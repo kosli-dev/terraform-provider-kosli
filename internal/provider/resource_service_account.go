@@ -3,15 +3,24 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
+
+// serviceAccountNameRegexp mirrors the server-side name validation for
+// service accounts (alphanumeric and hyphens only).
+var serviceAccountNameRegexp = regexp.MustCompile(`^[a-zA-Z0-9\-]+$`)
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &serviceAccountResource{}
@@ -56,6 +65,10 @@ func (r *serviceAccountResource) Schema(ctx context.Context, req resource.Schema
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
+				Validators: []validator.String{
+					stringvalidator.LengthBetween(1, 64),
+					stringvalidator.RegexMatches(serviceAccountNameRegexp, "must contain only alphanumeric characters and hyphens"),
+				},
 			},
 			"description": schema.StringAttribute{
 				MarkdownDescription: "Free-form description of the service account.",
@@ -64,6 +77,9 @@ func (r *serviceAccountResource) Schema(ctx context.Context, req resource.Schema
 			"privilege": schema.StringAttribute{
 				MarkdownDescription: "Privilege (role) granted to the service account within the organization. Valid values: `admin`, `member`, `snapshotter`, `reader`. You can only create a service account with a privilege equal to or lower than your own.",
 				Required:            true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("admin", "member", "snapshotter", "reader"),
+				},
 			},
 			"display_name": schema.StringAttribute{
 				MarkdownDescription: "Display name of the service account, assigned by the server.",
@@ -82,10 +98,16 @@ func (r *serviceAccountResource) Schema(ctx context.Context, req resource.Schema
 			"created_at": schema.Float64Attribute{
 				MarkdownDescription: "Unix timestamp of when the service account was created.",
 				Computed:            true,
+				PlanModifiers: []planmodifier.Float64{
+					float64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"for_webhook": schema.BoolAttribute{
 				MarkdownDescription: "Whether the service account was created for webhook usage.",
 				Computed:            true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}

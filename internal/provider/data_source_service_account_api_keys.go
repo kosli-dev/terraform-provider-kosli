@@ -128,7 +128,7 @@ func (d *serviceAccountAPIKeysDataSource) Read(ctx context.Context, req datasour
 			ID:          types.StringValue(k.ID),
 			Description: types.StringValue(k.Description),
 			CreatedAt:   types.Float64Value(k.CreatedAt),
-			ExpiresAt:   types.Int64Value(k.ExpiresAt),
+			ExpiresAt:   types.Int64Value(int64(k.ExpiresAt)),
 			LastUsedAt:  types.Float64Value(k.LastUsedAt),
 		})
 	}

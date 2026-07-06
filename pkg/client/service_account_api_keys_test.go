@@ -19,13 +19,13 @@ func TestListServiceAccountAPIKeys_Success(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 
-		resp := []ServiceAccountAPIKey{
-			{ID: "key-1", Description: "prod key", CreatedAt: 1234567890, ExpiresAt: 0, LastUsedAt: 1234567900},
-			{ID: "key-2", Description: "temp key", CreatedAt: 1234567891, ExpiresAt: 4102444800},
-		}
-
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		// Raw JSON with float-formatted timestamps: the API serializes numbers
+		// as floats (like its other timestamp fields), which must decode fine.
+		_, _ = w.Write([]byte(`[
+			{"id": "key-1", "description": "prod key", "created_at": 1234567890.5, "expires_at": 0.0, "last_used_at": 1234567900.5},
+			{"id": "key-2", "description": "temp key", "created_at": 1234567891.0, "expires_at": 4102444800.0, "last_used_at": 0}
+		]`))
 	}))
 	defer server.Close()
 
@@ -51,7 +51,7 @@ func TestListServiceAccountAPIKeys_Success(t *testing.T) {
 		t.Errorf("expected empty raw key from list, got %q", keys[0].Key)
 	}
 	if keys[1].ExpiresAt != 4102444800 {
-		t.Errorf("expected expires_at 4102444800, got %d", keys[1].ExpiresAt)
+		t.Errorf("expected expires_at 4102444800, got %v", keys[1].ExpiresAt)
 	}
 }
 
@@ -89,7 +89,7 @@ func TestGetServiceAccountAPIKey_Success(t *testing.T) {
 		t.Errorf("expected empty raw key from get, got %q", key.Key)
 	}
 	if key.ExpiresAt != 4102444800 {
-		t.Errorf("expected expires_at 4102444800, got %d", key.ExpiresAt)
+		t.Errorf("expected expires_at 4102444800, got %v", key.ExpiresAt)
 	}
 }
 
@@ -145,7 +145,7 @@ func TestCreateServiceAccountAPIKey_Success(t *testing.T) {
 			Key:         "raw-secret-value",
 			Description: req.Description,
 			CreatedAt:   1234567890,
-			ExpiresAt:   req.ExpiresAt,
+			ExpiresAt:   float64(req.ExpiresAt),
 		})
 	}))
 	defer server.Close()

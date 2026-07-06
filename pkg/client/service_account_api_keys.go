@@ -10,12 +10,17 @@ import (
 // The raw Key value is only populated by the create endpoint and is never
 // returned again (it is SHA-256 hashed server-side). The list endpoint returns
 // every field except Key.
+//
+// ExpiresAt is decoded as float64 like every other timestamp the API returns:
+// encoding/json fails to unmarshal a JSON float (e.g. 4102444800.0) into an
+// int64, so a float64 field is robust to either serialization. Callers that
+// need whole seconds should convert at the boundary.
 type ServiceAccountAPIKey struct {
 	ID          string  `json:"id"`
 	Key         string  `json:"key"`
 	Description string  `json:"description"`
 	CreatedAt   float64 `json:"created_at"`
-	ExpiresAt   int64   `json:"expires_at"`
+	ExpiresAt   float64 `json:"expires_at"`
 	LastUsedAt  float64 `json:"last_used_at"`
 }
 

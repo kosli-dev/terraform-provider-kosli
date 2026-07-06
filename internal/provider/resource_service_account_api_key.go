@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -12,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
@@ -65,6 +67,9 @@ func (r *serviceAccountAPIKeyResource) Schema(ctx context.Context, req resource.
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
 				},
 			},
 			"expires_at": schema.Int64Attribute{
@@ -250,7 +255,9 @@ func mapAPIKeyToState(key *client.ServiceAccountAPIKey, data *serviceAccountAPIK
 	data.ID = types.StringValue(key.ID)
 	// description is a required argument (min 1 char), so it is always present.
 	data.Description = types.StringValue(key.Description)
-	data.ExpiresAt = types.Int64Value(key.ExpiresAt)
+	// The client decodes expires_at as float64 for JSON robustness; the schema
+	// exposes it as whole seconds.
+	data.ExpiresAt = types.Int64Value(int64(key.ExpiresAt))
 	data.CreatedAt = types.Float64Value(key.CreatedAt)
 	data.LastUsedAt = types.Float64Value(key.LastUsedAt)
 }
