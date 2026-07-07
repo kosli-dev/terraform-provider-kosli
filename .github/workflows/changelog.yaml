@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release tag to generate the changelog entry for (e.g. v0.7.0)'
+        description: 'Release tag to generate the changelog entry for (e.g. vX.Y.Z)'
         required: true
         type: string
 
