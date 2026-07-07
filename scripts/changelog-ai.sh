@@ -2,7 +2,7 @@
 
 # Local dry-run of the CI changelog generator. NOT used by any workflow.
 # Uses the same skill spec at .claude/skills/changelog-creator/SKILL.md
-# that release.yaml loads, so the local output mirrors what CI produces
+# that changelog.yaml loads, so the local output mirrors what CI produces
 # on a real release tag.
 #
 # Set your env vars
@@ -15,10 +15,25 @@ if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
 fi
 
 VERSION="${GITHUB_REF_NAME}"
-DATE=$(date +"%B %d, %Y" | sed 's/ 0/ /')  # "Month D, YYYY" to match prior entries
+# Use the tag's own date (matches CI): prefer the annotated tag's tagger date
+# (the release moment), fall back to the tagged commit's date for lightweight
+# tags; if the tag doesn't exist yet — the usual dry-run case — fall back to
+# today. "Month D, YYYY" to match prior entries.
+DATE=$(git for-each-ref --format='%(taggerdate:format:%B %e, %Y)' "refs/tags/${VERSION}")
+DATE="${DATE:-$(git log -1 --format=%ad --date=format:'%B %e, %Y' "${VERSION}" 2>/dev/null)}"
+DATE=$(echo "$DATE" | sed 's/  / /')
+DATE="${DATE:-$(date +"%B %d, %Y" | sed 's/ 0/ /')}"
 
+# Range policy (matches CI): a stable release consolidates everything since
+# the last stable tag; a pre-release is incremental since the previous tag
+# of any kind.
+if echo "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+  TAG_FILTER='^v[0-9]+\.[0-9]+\.[0-9]+$'
+else
+  TAG_FILTER='^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
+fi
 PREV=$(git tag --sort=-version:refname \
-  | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+  | grep -E "$TAG_FILTER" \
   | grep -v "^${VERSION}$" \
   | head -n 1)
 PREV="${PREV:-$(git rev-list --max-parents=0 HEAD)}"
@@ -39,7 +54,7 @@ ENTRY=$(curl -s -f --max-time 60 \
     --arg version "$VERSION" \
     --arg date "$DATE" \
     '{
-      model: "claude-sonnet-4-6",
+      model: "claude-sonnet-5",
       max_tokens: 2048,
       system: $system,
       messages: [{

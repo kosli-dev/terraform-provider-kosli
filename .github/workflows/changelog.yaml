@@ -1,0 +1,169 @@
+name: Changelog
+
+# Generates the CHANGELOG.md entry for a release tag and opens a PR against
+# the default branch. Runs automatically after the Release workflow completes,
+# and can be dispatched manually (e.g. to backfill a release whose automatic
+# run failed).
+#
+# This lives outside release.yaml because anthropics/claude-code-action does
+# not support `push` events (tag pushes included) — only entity events and
+# the workflow_dispatch / workflow_run / schedule / repository_dispatch
+# automation events.
+
+on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release tag to generate the changelog entry for (vX.Y.Z or vX.Y.Z-<pre-release>)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# One run per version at a time: the automatic workflow_run path and a manual
+# dispatch (or two quick releases) would otherwise race on the shared
+# changelog/<version> PR branch.
+concurrency:
+  group: changelog-${{ github.event.workflow_run.head_branch || inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  changelog:
+    name: Changelog
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write  # required for the Anthropic OIDC/WIF token exchange
+    steps:
+      - name: Resolve release version
+        id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          # Stable (vX.Y.Z) and pre-release (vX.Y.Z-rc1 etc.) tags both get entries.
+          PATTERN='^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            VERSION="$INPUT_VERSION"
+            if ! echo "$VERSION" | grep -Eq "$PATTERN"; then
+              echo "ERROR: '$VERSION' is not a release tag (expected vX.Y.Z or vX.Y.Z-<pre-release>)" >&2
+              exit 1
+            fi
+          else
+            # For tag-push runs of Release, head_branch is the tag name. Skip
+            # cleanly (don't fail) if it isn't a version tag at all.
+            VERSION="$RUN_BRANCH"
+            if ! echo "$VERSION" | grep -Eq "$PATTERN"; then
+              echo "Skipping: '$VERSION' is not a version tag"
+              echo "version=" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        if: steps.version.outputs.version != ''
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ steps.version.outputs.version }}
+          fetch-depth: 0
+
+      - name: Prepare changelog inputs
+        if: steps.version.outputs.version != ''
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p /tmp/changelog-inputs
+          echo "Generating for: ${VERSION}"
+          # Use the tag's own date so manual/backfill runs are dated correctly,
+          # not the date the workflow happens to run. Prefer the annotated
+          # tag's tagger date (the release moment); fall back to the tagged
+          # commit's date for lightweight tags. "Month D, YYYY" to match
+          # prior entries.
+          DATE=$(git for-each-ref --format='%(taggerdate:format:%B %e, %Y)' "refs/tags/${VERSION}")
+          DATE="${DATE:-$(git log -1 --format=%ad --date=format:'%B %e, %Y' "${VERSION}")}"
+          DATE=$(echo "$DATE" | sed 's/  / /')
+
+          # Range policy: a stable release consolidates everything since the
+          # last stable tag (superseding any interim pre-release entries); a
+          # pre-release is incremental since the previous tag of any kind.
+          if echo "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            TAG_FILTER='^v[0-9]+\.[0-9]+\.[0-9]+$'
+          else
+            TAG_FILTER='^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
+          fi
+          PREV=$(git tag --sort=-version:refname \
+            | grep -E "$TAG_FILTER" \
+            | grep -v "^${VERSION}$" \
+            | head -n 1)
+          PREV="${PREV:-$(git rev-list --max-parents=0 HEAD)}"
+
+          git log "${PREV}..${VERSION}" --no-merges --pretty=format:"%s|%b" > /tmp/changelog-inputs/commits.txt
+          tail -n 100 CHANGELOG.md 2>/dev/null > /tmp/changelog-inputs/existing.txt || : > /tmp/changelog-inputs/existing.txt
+          printf 'VERSION=%s\nDATE=%s\n' "$VERSION" "$DATE" > /tmp/changelog-inputs/meta.txt
+
+      - name: Generate changelog entry
+        if: steps.version.outputs.version != ''
+        uses: anthropics/claude-code-action@4633baf5267540f3f8cb58b684f79901d564c280 # v1.0.160
+        with:
+          anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          prompt: |
+            Generate one CHANGELOG.md entry for this Terraform provider.
+
+            Follow the instructions in .claude/skills/changelog-creator/SKILL.md strictly.
+            It is the authoritative spec for scope, format, ordering, and style.
+
+            Inputs (read these from disk):
+            - /tmp/changelog-inputs/existing.txt: tail of the current CHANGELOG.md (style reference only, not content)
+            - /tmp/changelog-inputs/commits.txt: new commits since the previous tag (format: "subject|body" per line)
+            - /tmp/changelog-inputs/meta.txt: defines VERSION and DATE for the new entry
+
+            Write the result to /tmp/entry.md and do not modify any other files.
+          claude_args: |
+            --model claude-sonnet-5
+            --allowedTools "Read,Write"
+
+      - name: Insert changelog entry
+        if: steps.version.outputs.version != ''
+        run: |
+          if [ ! -s /tmp/entry.md ]; then
+            echo "ERROR: changelog entry was not generated" >&2
+            exit 1
+          fi
+          # Defensive: strip any stray triple-backtick lines in case the
+          # model wrapped its output in a code fence despite the prompt.
+          sed -i '/^```/d' /tmp/entry.md
+          ENTRY=$(cat /tmp/entry.md)
+          HEADER_LINE=$(grep -n '^# ' CHANGELOG.md 2>/dev/null | head -1 | cut -d: -f1)
+          if [ -n "$HEADER_LINE" ]; then
+            head -n "$HEADER_LINE" CHANGELOG.md > /tmp/cl.md
+            printf '\n%s\n' "$ENTRY" >> /tmp/cl.md
+            tail -n "+$((HEADER_LINE + 1))" CHANGELOG.md >> /tmp/cl.md
+          else
+            printf '%s\n\n' "$ENTRY" > /tmp/cl.md
+            cat CHANGELOG.md >> /tmp/cl.md 2>/dev/null || true
+          fi
+          mv /tmp/cl.md CHANGELOG.md
+
+      - name: Create changelog PR
+        if: steps.version.outputs.version != ''
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: changelog/${{ steps.version.outputs.version }}
+          base: ${{ github.event.repository.default_branch }}
+          commit-message: "chore: update CHANGELOG.md for ${{ steps.version.outputs.version }}"
+          title: "chore: update CHANGELOG.md for ${{ steps.version.outputs.version }}"
+          body: "Auto-generated changelog entry for ${{ steps.version.outputs.version }}. Please review before merging."
+          add-paths: CHANGELOG.md
+          sign-commits: true
