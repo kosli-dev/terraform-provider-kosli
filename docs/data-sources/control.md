@@ -58,6 +58,10 @@ Data sources provide read-only access to control metadata. To create or modify c
 
 - `identifier` (String) The unique identifier of the control to query (e.g. `SDLC-001`).
 
+### Optional
+
+- `include_archived` (Boolean) Whether an archived control may be returned. Deleting a `kosli_control` resource archives the control rather than hard-deleting it, so by default reading an archived control fails as if it did not exist. Set to `true` to read archived controls. Defaults to `false`.
+
 ### Read-Only
 
 - `archived` (Boolean) Whether the control has been archived.

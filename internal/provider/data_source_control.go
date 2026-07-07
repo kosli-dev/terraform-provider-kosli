@@ -26,6 +26,7 @@ type controlDataSource struct {
 // controlDataSourceModel describes the data source data model.
 type controlDataSourceModel struct {
 	Identifier          types.String `tfsdk:"identifier"`
+	IncludeArchived     types.Bool   `tfsdk:"include_archived"`
 	Name                types.String `tfsdk:"name"`
 	Description         types.String `tfsdk:"description"`
 	Links               types.Map    `tfsdk:"links"`
@@ -52,6 +53,10 @@ func (d *controlDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 			"identifier": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "The unique identifier of the control to query (e.g. `SDLC-001`).",
+			},
+			"include_archived": schema.BoolAttribute{
+				Optional:            true,
+				MarkdownDescription: "Whether an archived control may be returned. Deleting a `kosli_control` resource archives the control rather than hard-deleting it, so by default reading an archived control fails as if it did not exist. Set to `true` to read archived controls. Defaults to `false`.",
 			},
 			"name": schema.StringAttribute{
 				Computed:            true,
@@ -137,6 +142,16 @@ func (d *controlDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			detail += controlBetaHint
 		}
 		resp.Diagnostics.AddError("Error Reading Control", detail)
+		return
+	}
+
+	// Deleting a kosli_control archives it, so an archived control is
+	// treated as nonexistent unless the user opts in via include_archived.
+	if control.Archived && !data.IncludeArchived.ValueBool() {
+		resp.Diagnostics.AddError(
+			"Control Archived",
+			fmt.Sprintf("Control %q exists but is archived. Set `include_archived = true` to read archived controls.", data.Identifier.ValueString()),
+		)
 		return
 	}
 
