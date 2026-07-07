@@ -26,7 +26,6 @@ type controlDataSource struct {
 // controlDataSourceModel describes the data source data model.
 type controlDataSourceModel struct {
 	Identifier          types.String `tfsdk:"identifier"`
-	IncludeArchived     types.Bool   `tfsdk:"include_archived"`
 	Name                types.String `tfsdk:"name"`
 	Description         types.String `tfsdk:"description"`
 	Links               types.Map    `tfsdk:"links"`
@@ -53,10 +52,6 @@ func (d *controlDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 			"identifier": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "The unique identifier of the control to query (e.g. `SDLC-001`).",
-			},
-			"include_archived": schema.BoolAttribute{
-				Optional:            true,
-				MarkdownDescription: "Whether an archived control may be returned. Deleting a `kosli_control` resource archives the control rather than hard-deleting it, so by default reading an archived control fails as if it did not exist. Set to `true` to read archived controls. Defaults to `false`.",
 			},
 			"name": schema.StringAttribute{
 				Computed:            true,
@@ -89,8 +84,9 @@ func (d *controlDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 				MarkdownDescription: "Tags on the control, as a map of tag key to value.",
 			},
 			"archived": schema.BoolAttribute{
+				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "Whether the control has been archived.",
+				MarkdownDescription: "Whether the control is archived. Deleting a `kosli_control` resource archives the control rather than hard-deleting it, and by default reading an archived control fails as if it did not exist. Set to `true` to read an archived control. Defaults to `false`.",
 			},
 			"policies_referencing": schema.ListAttribute{
 				Computed:            true,
@@ -145,13 +141,21 @@ func (d *controlDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	// Deleting a kosli_control archives it, so an archived control is
-	// treated as nonexistent unless the user opts in via include_archived.
-	if control.Archived && !data.IncludeArchived.ValueBool() {
-		resp.Diagnostics.AddError(
-			"Control Archived",
-			fmt.Sprintf("Control %q exists but is archived. Set `include_archived = true` to read archived controls.", data.Identifier.ValueString()),
-		)
+	// Deleting a kosli_control archives it, so the archived argument asserts
+	// the expected state: unset (or false) reads only live controls, true
+	// reads only archived ones.
+	if control.Archived != data.Archived.ValueBool() {
+		if control.Archived {
+			resp.Diagnostics.AddError(
+				"Control Archived",
+				fmt.Sprintf("Control %q exists but is archived. Set `archived = true` to read archived controls.", data.Identifier.ValueString()),
+			)
+		} else {
+			resp.Diagnostics.AddError(
+				"Control Not Archived",
+				fmt.Sprintf("Control %q is not archived, but `archived = true` was set. Remove the argument to read live controls.", data.Identifier.ValueString()),
+			)
+		}
 		return
 	}
 

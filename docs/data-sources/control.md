@@ -60,11 +60,10 @@ Data sources provide read-only access to control metadata. To create or modify c
 
 ### Optional
 
-- `include_archived` (Boolean) Whether an archived control may be returned. Deleting a `kosli_control` resource archives the control rather than hard-deleting it, so by default reading an archived control fails as if it did not exist. Set to `true` to read archived controls. Defaults to `false`.
+- `archived` (Boolean) Whether the control is archived. Deleting a `kosli_control` resource archives the control rather than hard-deleting it, and by default reading an archived control fails as if it did not exist. Set to `true` to read an archived control. Defaults to `false`.
 
 ### Read-Only
 
-- `archived` (Boolean) Whether the control has been archived.
 - `created_at` (String) RFC3339 UTC timestamp of when the control was created.
 - `created_by` (String) Identifier of the user who created the control.
 - `description` (String) The description of the control.
