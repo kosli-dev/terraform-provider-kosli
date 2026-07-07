@@ -2,7 +2,7 @@
 
 # Local dry-run of the CI changelog generator. NOT used by any workflow.
 # Uses the same skill spec at .claude/skills/changelog-creator/SKILL.md
-# that release.yaml loads, so the local output mirrors what CI produces
+# that changelog.yaml loads, so the local output mirrors what CI produces
 # on a real release tag.
 #
 # Set your env vars
@@ -39,7 +39,7 @@ ENTRY=$(curl -s -f --max-time 60 \
     --arg version "$VERSION" \
     --arg date "$DATE" \
     '{
-      model: "claude-sonnet-4-6",
+      model: "claude-sonnet-5",
       max_tokens: 2048,
       system: $system,
       messages: [{

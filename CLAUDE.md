@@ -226,7 +226,7 @@ This mapping applies **only** to the GitHub Release body, not to `CHANGELOG.md`.
 
 ### `CHANGELOG.md` (Claude Code action)
 
-After GoReleaser publishes the release, `.github/workflows/release.yaml` runs `anthropics/claude-code-action` (authenticated via the same OIDC/WIF federation used by the PR review job) to generate the new `CHANGELOG.md` entry and open a PR against `main`.
+After the Release workflow completes, the separate `.github/workflows/changelog.yaml` workflow (triggered via `workflow_run`) runs `anthropics/claude-code-action` (authenticated via the same OIDC/WIF federation used by the PR review job) to generate the new `CHANGELOG.md` entry and open a PR against `main`. It can also be dispatched manually with a `version` input (e.g. `v0.7.0`) to backfill an entry for a release whose automatic run failed. The changelog generation cannot live in `release.yaml` itself because `claude-code-action` does not support tag-push events.
 
 The single source of truth for scope, format, ordering, and style is the skill at `.claude/skills/changelog-creator/SKILL.md`. Both the workflow and the local helper script load that file as the governing prompt; the wrappers themselves only supply runtime data (commits, previous tag, version, date). To change the changelog rules, edit the skill - do not edit the wrappers.
 
