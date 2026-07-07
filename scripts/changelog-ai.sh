@@ -15,9 +15,13 @@ if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
 fi
 
 VERSION="${GITHUB_REF_NAME}"
-# Use the tag's own date (matches CI); if the tag doesn't exist yet — the
-# usual dry-run case — fall back to today. "Month D, YYYY" to match prior entries.
-DATE=$(git log -1 --format=%ad --date=format:'%B %e, %Y' "${VERSION}" 2>/dev/null | sed 's/  / /')
+# Use the tag's own date (matches CI): prefer the annotated tag's tagger date
+# (the release moment), fall back to the tagged commit's date for lightweight
+# tags; if the tag doesn't exist yet — the usual dry-run case — fall back to
+# today. "Month D, YYYY" to match prior entries.
+DATE=$(git for-each-ref --format='%(taggerdate:format:%B %e, %Y)' "refs/tags/${VERSION}")
+DATE="${DATE:-$(git log -1 --format=%ad --date=format:'%B %e, %Y' "${VERSION}" 2>/dev/null)}"
+DATE=$(echo "$DATE" | sed 's/  / /')
 DATE="${DATE:-$(date +"%B %d, %Y" | sed 's/ 0/ /')}"
 
 # Range policy (matches CI): a stable release consolidates everything since
