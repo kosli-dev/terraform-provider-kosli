@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.7.0 (July 7, 2026)
+
+FEATURES:
+
+* **New Resource**: `kosli_service_account` for managing Kosli service accounts
+* **New Resource**: `kosli_service_account_api_key` for managing service account API keys
+* **New Data Source**: `kosli_service_account` for querying existing service accounts
+
+IMPROVEMENTS:
+
+* client: Added `ServiceAccount` and `ServiceAccountAPIKey` clients supporting create/get/list/update/delete of service accounts and create/list/revoke of their API keys
+* resource/kosli_service_account: Added `name`, `description`, and `privilege` attributes with import support by `name`
+* resource/kosli_service_account_api_key: Added support for minting and revoking API keys; the raw key is a write-once sensitive value preserved across reads, and all arguments force replacement since keys are immutable
+* data_source/kosli_service_account: Added lookup of existing service accounts by `name`
+* docs: Added examples and generated documentation for the new service account resources and data source
+
 ## 0.6.4 (May 11, 2026)
 
 IMPROVEMENTS:
