@@ -111,6 +111,11 @@ func (r *controlResource) Schema(ctx context.Context, req resource.SchemaRequest
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			// tags and policies_referencing deliberately omit
+			// UseStateForUnknown(): both can change out-of-band (tags edited
+			// in Kosli, a policy attaching to the control), and pinning the
+			// stale state value in the plan would fail the apply with
+			// "Provider produced inconsistent result" when that happens.
 			"tags": schema.MapAttribute{
 				MarkdownDescription: "Tags on the control, as a map of tag key to value. Tags are managed in Kosli and cannot be set via this resource.",
 				Computed:            true,
@@ -238,9 +243,14 @@ func (r *controlResource) Update(ctx context.Context, req resource.UpdateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
 	// PUT replaces the mutable fields wholesale: an unset description or links
-	// is sent as its empty value, which clears the field server-side.
+	// is sent as its empty value, which clears the field server-side. The
+	// empty links map must be non-nil — a nil map marshals to JSON null
+	// instead of {}.
+	if links == nil {
+		links = map[string]string{}
+	}
+
 	updateReq := &client.UpdateControlRequest{
 		Name:        data.Name.ValueString(),
 		Description: data.Description.ValueString(),

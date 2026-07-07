@@ -41,7 +41,8 @@ type CreateControlRequest struct {
 //
 // PUT replaces the mutable fields wholesale, so every field is always sent
 // with its resolved value ("" / empty map to clear) rather than using pointer
-// null semantics.
+// null semantics. Links must be a non-nil map: a nil map marshals to JSON
+// null rather than {}, and only an empty object reliably clears the field.
 type UpdateControlRequest struct {
 	Name        string            `json:"name"`
 	Description string            `json:"description"`

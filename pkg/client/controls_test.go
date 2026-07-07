@@ -291,12 +291,16 @@ func TestUpdateControl_Success(t *testing.T) {
 
 		body, _ := io.ReadAll(r.Body)
 		// PUT replaces mutable fields wholesale, so every field must be present
-		// even when cleared.
+		// even when cleared. Cleared links must be sent as {} — not JSON null,
+		// which the server may treat as "leave unchanged".
 		if !strings.Contains(string(body), "\"description\"") {
 			t.Errorf("expected description field in body, got %s", string(body))
 		}
-		if !strings.Contains(string(body), "\"links\"") {
-			t.Errorf("expected links field in body, got %s", string(body))
+		if !strings.Contains(string(body), "\"links\":{}") {
+			t.Errorf("expected links:{} in body, got %s", string(body))
+		}
+		if strings.Contains(string(body), "\"links\":null") {
+			t.Errorf("cleared links must not be sent as null, got %s", string(body))
 		}
 		var req UpdateControlRequest
 		if err := json.Unmarshal(body, &req); err != nil {
