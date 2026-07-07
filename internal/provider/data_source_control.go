@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
@@ -67,8 +69,12 @@ func (d *controlDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 				MarkdownDescription: "Named links related to the control, as a map of link name to URL.",
 			},
 			"version": schema.Int64Attribute{
+				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "Version number of the control, incremented on every update.",
+				MarkdownDescription: "Version of the control to read. Every update to a control creates a new version; set this to read the name, description, and links of a specific version. Defaults to the latest version.",
+				Validators: []validator.Int64{
+					int64validator.AtLeast(1),
+				},
 			},
 			"created_at": schema.StringAttribute{
 				Computed:            true,
@@ -159,19 +165,52 @@ func (d *controlDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
+	// Versioned fields come from the requested version when one is set, and
+	// from the control (latest version) otherwise. Control-level fields
+	// (tags, policies_referencing, archived) always come from the control.
+	name := control.Name
+	description := control.Description
+	links := control.Links
+	version := control.Version
+	createdAt := control.CreatedAt
+	createdBy := control.CreatedBy
+	if !data.Version.IsNull() {
+		controlVersion, err := d.client.GetControlVersion(ctx, data.Identifier.ValueString(), data.Version.ValueInt64())
+		if err != nil {
+			if client.IsNotFound(err) {
+				resp.Diagnostics.AddError(
+					"Control Version Not Found",
+					fmt.Sprintf("Version %d of control %q does not exist.", data.Version.ValueInt64(), data.Identifier.ValueString()),
+				)
+				return
+			}
+			detail := fmt.Sprintf("Could not read version %d of control %q: %s", data.Version.ValueInt64(), data.Identifier.ValueString(), err.Error())
+			if client.IsForbidden(err) {
+				detail += controlBetaHint
+			}
+			resp.Diagnostics.AddError("Error Reading Control Version", detail)
+			return
+		}
+		name = controlVersion.Name
+		description = controlVersion.Description
+		links = controlVersion.Links
+		version = controlVersion.Version
+		createdAt = controlVersion.CreatedAt
+		createdBy = controlVersion.CreatedBy
+	}
+
 	data.Identifier = types.StringValue(control.Identifier)
-	data.Name = types.StringValue(control.Name)
+	data.Name = types.StringValue(name)
 	// Unlike the resource mapper, "" always maps to null here: a data source
 	// has no configured value to round-trip, so the consistency concern that
 	// forces the resource to preserve an explicit "" does not apply.
-	if control.Description == "" {
+	if description == "" {
 		data.Description = types.StringNull()
 	} else {
-		data.Description = types.StringValue(control.Description)
+		data.Description = types.StringValue(description)
 	}
 
 	// Normalize nil collections to empty so values are always known.
-	links := control.Links
 	if links == nil {
 		links = map[string]string{}
 	}
@@ -182,9 +221,9 @@ func (d *controlDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	}
 	data.Links = linksValue
 
-	data.Version = types.Int64Value(control.Version)
-	data.CreatedAt = timestampToState(control.CreatedAt)
-	data.CreatedBy = types.StringValue(control.CreatedBy)
+	data.Version = types.Int64Value(version)
+	data.CreatedAt = timestampToState(createdAt)
+	data.CreatedBy = types.StringValue(createdBy)
 
 	tags := control.Tags
 	if tags == nil {

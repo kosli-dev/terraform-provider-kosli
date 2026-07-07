@@ -436,6 +436,79 @@ func TestUpdateControl_NotFound(t *testing.T) {
 	}
 }
 
+func TestGetControlVersion_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		if !strings.Contains(r.URL.Path, "/controls/test-org/SDLC-001/versions/2") {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+
+		resp := ControlVersion{
+			Identifier:  "SDLC-001",
+			Version:     2,
+			Name:        "Binary provenance",
+			Description: "Second revision",
+			Links:       map[string]string{"docs": "https://example.com/v2"},
+			CreatedAt:   1234567890,
+			CreatedBy:   "user-123",
+			Status:      "created",
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	version, err := client.GetControlVersion(context.Background(), "SDLC-001", 2)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if version.Version != 2 {
+		t.Errorf("expected version 2, got %d", version.Version)
+	}
+	if version.Description != "Second revision" {
+		t.Errorf("expected description 'Second revision', got %s", version.Description)
+	}
+	if version.Status != "created" {
+		t.Errorf("expected status 'created', got %s", version.Status)
+	}
+}
+
+func TestGetControlVersion_NotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Control or version not found"})
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	_, err = client.GetControlVersion(context.Background(), "SDLC-001", 99)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !IsNotFound(err) {
+		t.Errorf("expected not-found error, got %v", err)
+	}
+}
+
 func TestArchiveControl_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {

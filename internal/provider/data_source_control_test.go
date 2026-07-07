@@ -44,6 +44,9 @@ func TestControlDataSource_Schema(t *testing.T) {
 	if !attrs["archived"].IsOptional() {
 		t.Error("Expected 'archived' attribute to be optional")
 	}
+	if !attrs["version"].IsOptional() {
+		t.Error("Expected 'version' attribute to be optional")
+	}
 	for _, attr := range []string{"name", "description", "links", "version", "created_at", "created_by", "tags", "archived", "policies_referencing"} {
 		if !attrs[attr].IsComputed() {
 			t.Errorf("Expected %q attribute to be computed", attr)

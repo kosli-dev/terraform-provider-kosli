@@ -164,6 +164,40 @@ func (c *Client) UpdateControl(ctx context.Context, identifier string, req *Upda
 	return &result, nil
 }
 
+// ControlVersion represents a specific version of a control as returned by
+// GET /api/v2/controls/{org}/{identifier}/versions/{version_number}. Unlike
+// the control endpoints, version responses carry a Status and do not include
+// control-level fields (tags, policies_referencing).
+type ControlVersion struct {
+	Identifier  string            `json:"identifier"`
+	Version     int64             `json:"version"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Links       map[string]string `json:"links"`
+	CreatedAt   float64           `json:"created_at"`
+	CreatedBy   string            `json:"created_by"`
+	Archived    bool              `json:"archived"`
+	Status      string            `json:"status"`
+}
+
+// GetControlVersion retrieves a specific version of a control.
+func (c *Client) GetControlVersion(ctx context.Context, identifier string, version int64) (*ControlVersion, error) {
+	// Build path: GET /api/v2/controls/{org}/{identifier}/versions/{version_number}
+	path := fmt.Sprintf("/controls/%s/%s/versions/%d", c.Organization(), identifier, version)
+
+	resp, err := c.Get(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	var result ControlVersion
+	if err := ParseResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
 // ArchiveControl archives (soft-deletes) a control and returns the archived
 // object. Controls cannot be hard-deleted via the API.
 func (c *Client) ArchiveControl(ctx context.Context, identifier string) (*Control, error) {

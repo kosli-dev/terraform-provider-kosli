@@ -61,6 +61,7 @@ Data sources provide read-only access to control metadata. To create or modify c
 ### Optional
 
 - `archived` (Boolean) Whether the control is archived. Deleting a `kosli_control` resource archives the control rather than hard-deleting it, and by default reading an archived control fails as if it did not exist. Set to `true` to read an archived control. Defaults to `false`.
+- `version` (Number) Version of the control to read. Every update to a control creates a new version; set this to read the name, description, and links of a specific version. Defaults to the latest version.
 
 ### Read-Only
 
@@ -71,4 +72,3 @@ Data sources provide read-only access to control metadata. To create or modify c
 - `name` (String) Human-readable display name of the control.
 - `policies_referencing` (List of String) Names of the environment policies that reference this control.
 - `tags` (Map of String) Tags on the control, as a map of tag key to value.
-- `version` (Number) Version number of the control, incremented on every update.
