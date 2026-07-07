@@ -104,6 +104,32 @@ func (c *Client) ListControls(ctx context.Context, opts *ListControlsOptions) (*
 	return &result, nil
 }
 
+// ListAllControls retrieves all controls for the organization, following
+// pagination until every page has been fetched. Page and PerPage in opts are
+// managed internally (each page is requested at the API maximum page size);
+// Search and Archived are honored.
+func (c *Client) ListAllControls(ctx context.Context, opts *ListControlsOptions) ([]Control, error) {
+	pageOpts := ListControlsOptions{}
+	if opts != nil {
+		pageOpts = *opts
+	}
+	pageOpts.PerPage = 100 // API maximum, minimizes round trips
+	pageOpts.Page = 1
+
+	var all []Control
+	for {
+		result, err := c.ListControls(ctx, &pageOpts)
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, result.Controls...)
+		if pageOpts.Page >= result.TotalPages || len(result.Controls) == 0 {
+			return all, nil
+		}
+		pageOpts.Page++
+	}
+}
+
 // GetControl retrieves a specific control by identifier.
 func (c *Client) GetControl(ctx context.Context, identifier string) (*Control, error) {
 	// Build path: GET /api/v2/controls/{org}/{identifier}

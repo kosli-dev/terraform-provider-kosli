@@ -82,6 +82,74 @@ func TestListControls_Success(t *testing.T) {
 	}
 }
 
+func TestListAllControls_FollowsPagination(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("per_page"); got != "100" {
+			t.Errorf("expected per_page=100, got %q", got)
+		}
+
+		page := ControlsPage{PerPage: 100, TotalPages: 2, TotalCount: 3}
+		switch r.URL.Query().Get("page") {
+		case "1":
+			page.Page = 1
+			page.Controls = []Control{{Identifier: "SDLC-001"}, {Identifier: "SDLC-002"}}
+		case "2":
+			page.Page = 2
+			page.Controls = []Control{{Identifier: "SDLC-003"}}
+		default:
+			t.Errorf("unexpected page: %q", r.URL.Query().Get("page"))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(page)
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	controls, err := client.ListAllControls(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(controls) != 3 {
+		t.Fatalf("expected 3 controls across pages, got %d", len(controls))
+	}
+	if controls[2].Identifier != "SDLC-003" {
+		t.Errorf("expected identifier 'SDLC-003' from page 2, got %s", controls[2].Identifier)
+	}
+}
+
+func TestListAllControls_Empty(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(ControlsPage{Page: 1, PerPage: 100, TotalPages: 0, TotalCount: 0})
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	controls, err := client.ListAllControls(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(controls) != 0 {
+		t.Errorf("expected no controls, got %d", len(controls))
+	}
+}
+
 func TestGetControl_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
