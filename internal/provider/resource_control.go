@@ -73,7 +73,8 @@ func (r *controlResource) Schema(ctx context.Context, req resource.SchemaRequest
 					stringplanmodifier.RequiresReplace(),
 				},
 				Validators: []validator.String{
-					stringvalidator.LengthAtLeast(1),
+					// The regexp requires a leading character, so it also
+					// rejects the empty string — no separate length validator.
 					stringvalidator.RegexMatches(controlIdentifierRegexp, "must start with a letter or number and contain only letters, numbers, periods, hyphens, underscores, and tildes"),
 				},
 			},

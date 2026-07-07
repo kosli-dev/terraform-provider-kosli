@@ -61,72 +61,48 @@ type ControlsPage struct {
 // ListControlsOptions are the optional query parameters for ListControls.
 // Zero values are omitted from the request so the API defaults apply.
 type ListControlsOptions struct {
-	Page     int    // page number (API default 1)
-	PerPage  int    // controls per page (API default 15, max 100)
 	Search   string // case-insensitive substring match on name or identifier
 	Archived bool   // include archived controls when true
 }
 
-// ListControls retrieves one page of controls for the organization.
-func (c *Client) ListControls(ctx context.Context, opts *ListControlsOptions) (*ControlsPage, error) {
-	// Build path: GET /api/v2/controls/{org}
-	path := fmt.Sprintf("/controls/%s", c.Organization())
+// controlsPageSize is the API's maximum per_page value; requesting it
+// minimizes round trips when paging through the collection.
+const controlsPageSize = 100
 
-	if opts != nil {
-		query := url.Values{}
-		if opts.Page > 0 {
-			query.Set("page", strconv.Itoa(opts.Page))
-		}
-		if opts.PerPage > 0 {
-			query.Set("per_page", strconv.Itoa(opts.PerPage))
-		}
-		if opts.Search != "" {
-			query.Set("search", opts.Search)
-		}
-		if opts.Archived {
-			query.Set("archived", "true")
-		}
-		if encoded := query.Encode(); encoded != "" {
-			path += "?" + encoded
-		}
-	}
-
-	resp, err := c.Get(ctx, path)
-	if err != nil {
-		return nil, err
-	}
-
-	var result ControlsPage
-	if err := ParseResponse(resp, &result); err != nil {
-		return nil, err
-	}
-
-	return &result, nil
-}
-
-// ListAllControls retrieves all controls for the organization, following
-// pagination until every page has been fetched. Page and PerPage in opts are
-// managed internally (each page is requested at the API maximum page size);
-// Search and Archived are honored.
-func (c *Client) ListAllControls(ctx context.Context, opts *ListControlsOptions) ([]Control, error) {
-	pageOpts := ListControlsOptions{}
-	if opts != nil {
-		pageOpts = *opts
-	}
-	pageOpts.PerPage = 100 // API maximum, minimizes round trips
-	pageOpts.Page = 1
-
+// ListControls retrieves all controls for the organization. The list endpoint
+// paginates by default, so this transparently requests every page (at the API
+// maximum page size) and aggregates the results.
+func (c *Client) ListControls(ctx context.Context, opts *ListControlsOptions) ([]Control, error) {
 	var all []Control
-	for {
-		result, err := c.ListControls(ctx, &pageOpts)
+	for page := 1; ; page++ {
+		// Build path: GET /api/v2/controls/{org}
+		query := url.Values{}
+		query.Set("page", strconv.Itoa(page))
+		query.Set("per_page", strconv.Itoa(controlsPageSize))
+		if opts != nil {
+			if opts.Search != "" {
+				query.Set("search", opts.Search)
+			}
+			if opts.Archived {
+				query.Set("archived", "true")
+			}
+		}
+		path := fmt.Sprintf("/controls/%s?%s", c.Organization(), query.Encode())
+
+		resp, err := c.Get(ctx, path)
 		if err != nil {
 			return nil, err
 		}
+
+		var result ControlsPage
+		if err := ParseResponse(resp, &result); err != nil {
+			return nil, err
+		}
+
 		all = append(all, result.Controls...)
-		if pageOpts.Page >= result.TotalPages || len(result.Controls) == 0 {
+		if page >= result.TotalPages || len(result.Controls) == 0 {
 			return all, nil
 		}
-		pageOpts.Page++
 	}
 }
 

@@ -26,7 +26,7 @@ func testAccControlsPreCheck(t *testing.T) {
 		t.Fatalf("failed to create client for precheck: %v", err)
 	}
 
-	if _, err := c.ListControls(context.Background(), &client.ListControlsOptions{PerPage: 1}); client.IsForbidden(err) {
+	if _, err := c.ListControls(context.Background(), nil); client.IsForbidden(err) {
 		t.Skip("Controls is a beta feature and is not enabled for the test organization")
 	}
 }

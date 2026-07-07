@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestListControls_Success(t *testing.T) {
+func TestListControls_FollowsPagination(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -22,12 +22,11 @@ func TestListControls_Success(t *testing.T) {
 			t.Errorf("expected per_page=100, got %q", got)
 		}
 
-		resp := ControlsPage{
-			Page:       1,
-			PerPage:    100,
-			TotalPages: 1,
-			TotalCount: 2,
-			Controls: []Control{
+		page := ControlsPage{PerPage: 100, TotalPages: 2, TotalCount: 3}
+		switch r.URL.Query().Get("page") {
+		case "1":
+			page.Page = 1
+			page.Controls = []Control{
 				{
 					Identifier:  "SDLC-001",
 					Name:        "Binary provenance",
@@ -44,58 +43,10 @@ func TestListControls_Success(t *testing.T) {
 					CreatedAt:  1234567891,
 					CreatedBy:  "user-456",
 				},
-			},
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
-	}))
-	defer server.Close()
-
-	client, err := NewClient("test-token", "test-org",
-		WithBaseURL(server.URL),
-		WithAPIPath(""),
-	)
-	if err != nil {
-		t.Fatalf("failed to create client: %v", err)
-	}
-
-	page, err := client.ListControls(context.Background(), &ListControlsOptions{PerPage: 100})
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if page.TotalCount != 2 {
-		t.Fatalf("expected total count 2, got %d", page.TotalCount)
-	}
-	if len(page.Controls) != 2 {
-		t.Fatalf("expected 2 controls, got %d", len(page.Controls))
-	}
-	if page.Controls[0].Identifier != "SDLC-001" {
-		t.Errorf("expected identifier 'SDLC-001', got %s", page.Controls[0].Identifier)
-	}
-	if page.Controls[0].Tags["framework"] != "finos-sdlc" {
-		t.Errorf("unexpected tags: %v", page.Controls[0].Tags)
-	}
-	if page.Controls[1].Version != 3 {
-		t.Errorf("expected version 3, got %d", page.Controls[1].Version)
-	}
-}
-
-func TestListAllControls_FollowsPagination(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if got := r.URL.Query().Get("per_page"); got != "100" {
-			t.Errorf("expected per_page=100, got %q", got)
-		}
-
-		page := ControlsPage{PerPage: 100, TotalPages: 2, TotalCount: 3}
-		switch r.URL.Query().Get("page") {
-		case "1":
-			page.Page = 1
-			page.Controls = []Control{{Identifier: "SDLC-001"}, {Identifier: "SDLC-002"}}
+			}
 		case "2":
 			page.Page = 2
-			page.Controls = []Control{{Identifier: "SDLC-003"}}
+			page.Controls = []Control{{Identifier: "SDLC-003", Name: "SBOM"}}
 		default:
 			t.Errorf("unexpected page: %q", r.URL.Query().Get("page"))
 		}
@@ -113,7 +64,7 @@ func TestListAllControls_FollowsPagination(t *testing.T) {
 		t.Fatalf("failed to create client: %v", err)
 	}
 
-	controls, err := client.ListAllControls(context.Background(), nil)
+	controls, err := client.ListControls(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -121,12 +72,21 @@ func TestListAllControls_FollowsPagination(t *testing.T) {
 	if len(controls) != 3 {
 		t.Fatalf("expected 3 controls across pages, got %d", len(controls))
 	}
+	if controls[0].Identifier != "SDLC-001" {
+		t.Errorf("expected identifier 'SDLC-001', got %s", controls[0].Identifier)
+	}
+	if controls[0].Tags["framework"] != "finos-sdlc" {
+		t.Errorf("unexpected tags: %v", controls[0].Tags)
+	}
+	if controls[1].Version != 3 {
+		t.Errorf("expected version 3, got %d", controls[1].Version)
+	}
 	if controls[2].Identifier != "SDLC-003" {
 		t.Errorf("expected identifier 'SDLC-003' from page 2, got %s", controls[2].Identifier)
 	}
 }
 
-func TestListAllControls_Empty(t *testing.T) {
+func TestListControls_Empty(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(ControlsPage{Page: 1, PerPage: 100, TotalPages: 0, TotalCount: 0})
@@ -141,12 +101,49 @@ func TestListAllControls_Empty(t *testing.T) {
 		t.Fatalf("failed to create client: %v", err)
 	}
 
-	controls, err := client.ListAllControls(context.Background(), nil)
+	controls, err := client.ListControls(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if len(controls) != 0 {
 		t.Errorf("expected no controls, got %d", len(controls))
+	}
+}
+
+func TestListControls_Filters(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("search"); got != "sdlc" {
+			t.Errorf("expected search=sdlc, got %q", got)
+		}
+		if got := r.URL.Query().Get("archived"); got != "true" {
+			t.Errorf("expected archived=true, got %q", got)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(ControlsPage{
+			Page:       1,
+			PerPage:    100,
+			TotalPages: 1,
+			TotalCount: 1,
+			Controls:   []Control{{Identifier: "SDLC-001", Archived: true}},
+		})
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	controls, err := client.ListControls(context.Background(), &ListControlsOptions{Search: "sdlc", Archived: true})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(controls) != 1 {
+		t.Fatalf("expected 1 control, got %d", len(controls))
 	}
 }
 
