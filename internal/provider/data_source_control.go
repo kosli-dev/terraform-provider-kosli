@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -32,6 +33,7 @@ type controlDataSourceModel struct {
 	Description         types.String `tfsdk:"description"`
 	Links               types.Map    `tfsdk:"links"`
 	Version             types.Int64  `tfsdk:"version"`
+	Status              types.String `tfsdk:"status"`
 	CreatedAt           types.String `tfsdk:"created_at"`
 	CreatedBy           types.String `tfsdk:"created_by"`
 	Tags                types.Map    `tfsdk:"tags"`
@@ -54,6 +56,9 @@ func (d *controlDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 			"identifier": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "The unique identifier of the control to query (e.g. `SDLC-001`).",
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(controlIdentifierRegexp, "must start with a letter or number and contain only letters, numbers, periods, hyphens, underscores, and tildes"),
+				},
 			},
 			"name": schema.StringAttribute{
 				Computed:            true,
@@ -76,13 +81,17 @@ func (d *controlDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 					int64validator.AtLeast(1),
 				},
 			},
+			"status": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "Status of the requested version (e.g. `created`). Only populated when `version` is set; the latest-control endpoint does not report a status.",
+			},
 			"created_at": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "RFC3339 UTC timestamp of when the control was created.",
+				MarkdownDescription: "RFC3339 UTC timestamp of when the control was created. When `version` is set, this is when that version was created.",
 			},
 			"created_by": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Identifier of the user who created the control.",
+				MarkdownDescription: "Identifier of the user who created the control. When `version` is set, this is who created that version.",
 			},
 			"tags": schema.MapAttribute{
 				Computed:            true,
@@ -174,6 +183,8 @@ func (d *controlDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	version := control.Version
 	createdAt := control.CreatedAt
 	createdBy := control.CreatedBy
+	// The latest-control endpoint does not report a version status.
+	data.Status = types.StringNull()
 	if !data.Version.IsNull() {
 		controlVersion, err := d.client.GetControlVersion(ctx, data.Identifier.ValueString(), data.Version.ValueInt64())
 		if err != nil {
@@ -197,6 +208,9 @@ func (d *controlDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		version = controlVersion.Version
 		createdAt = controlVersion.CreatedAt
 		createdBy = controlVersion.CreatedBy
+		if controlVersion.Status != "" {
+			data.Status = types.StringValue(controlVersion.Status)
+		}
 	}
 
 	data.Identifier = types.StringValue(control.Identifier)

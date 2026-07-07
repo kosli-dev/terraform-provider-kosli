@@ -32,7 +32,7 @@ func TestControlDataSource_Schema(t *testing.T) {
 	}
 
 	attrs := resp.Schema.Attributes
-	for _, attr := range []string{"identifier", "name", "description", "links", "version", "created_at", "created_by", "tags", "archived", "policies_referencing"} {
+	for _, attr := range []string{"identifier", "name", "description", "links", "version", "status", "created_at", "created_by", "tags", "archived", "policies_referencing"} {
 		if _, exists := attrs[attr]; !exists {
 			t.Errorf("Expected attribute %q to exist in schema", attr)
 		}
@@ -47,7 +47,7 @@ func TestControlDataSource_Schema(t *testing.T) {
 	if !attrs["version"].IsOptional() {
 		t.Error("Expected 'version' attribute to be optional")
 	}
-	for _, attr := range []string{"name", "description", "links", "version", "created_at", "created_by", "tags", "archived", "policies_referencing"} {
+	for _, attr := range []string{"name", "description", "links", "version", "status", "created_at", "created_by", "tags", "archived", "policies_referencing"} {
 		if !attrs[attr].IsComputed() {
 			t.Errorf("Expected %q attribute to be computed", attr)
 		}

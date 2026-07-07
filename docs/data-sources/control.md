@@ -70,10 +70,11 @@ Data sources provide read-only access to control metadata. To create or modify c
 
 ### Read-Only
 
-- `created_at` (String) RFC3339 UTC timestamp of when the control was created.
-- `created_by` (String) Identifier of the user who created the control.
+- `created_at` (String) RFC3339 UTC timestamp of when the control was created. When `version` is set, this is when that version was created.
+- `created_by` (String) Identifier of the user who created the control. When `version` is set, this is who created that version.
 - `description` (String) The description of the control.
 - `links` (Map of String) Named links related to the control, as a map of link name to URL.
 - `name` (String) Human-readable display name of the control.
 - `policies_referencing` (List of String) Names of the environment policies that reference this control.
+- `status` (String) Status of the requested version (e.g. `created`). Only populated when `version` is set; the latest-control endpoint does not report a status.
 - `tags` (Map of String) Tags on the control, as a map of tag key to value.
