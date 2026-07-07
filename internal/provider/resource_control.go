@@ -112,16 +112,16 @@ func (r *controlResource) Schema(ctx context.Context, req resource.SchemaRequest
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			// tags and policies_referencing deliberately omit
-			// UseStateForUnknown(): both can change out-of-band (tags edited
-			// in Kosli, a policy attaching to the control), and pinning the
-			// stale state value in the plan would fail the apply with
-			// "Provider produced inconsistent result" when that happens.
 			"tags": schema.MapAttribute{
-				MarkdownDescription: "Tags on the control, as a map of tag key to value. Tags are managed in Kosli and cannot be set via this resource.",
+				MarkdownDescription: "Key-value pairs to tag the control.",
+				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
+			// policies_referencing deliberately omits UseStateForUnknown():
+			// it can change out-of-band (a policy attaching to the control),
+			// and pinning the stale state value in the plan would fail the
+			// apply with "Provider produced inconsistent result".
 			"policies_referencing": schema.ListAttribute{
 				MarkdownDescription: "Names of the environment policies that reference this control.",
 				Computed:            true,
@@ -184,6 +184,23 @@ func (r *controlResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	// Apply tags via the dedicated PATCH endpoint (no prior tags on a new
+	// control), then re-read so state reflects them.
+	applyTags(ctx, r.client, data.Identifier.ValueString(), "control", types.MapNull(types.StringType), data.Tags, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if !data.Tags.IsNull() && !data.Tags.IsUnknown() && len(data.Tags.Elements()) > 0 {
+		control, err = r.client.GetControl(ctx, data.Identifier.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error Reading Control After Create",
+				fmt.Sprintf("Could not read control %q after create: %s", data.Identifier.ValueString(), err.Error()),
+			)
+			return
+		}
+	}
+
 	mapControlToState(ctx, control, &data, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
@@ -234,8 +251,15 @@ func (r *controlResource) Read(ctx context.Context, req resource.ReadRequest, re
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *controlResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data controlResourceModel
+	var oldData controlResourceModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Read prior state to compute the tag diff
+	resp.Diagnostics.Append(req.State.Get(ctx, &oldData)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -266,6 +290,23 @@ func (r *controlResource) Update(ctx context.Context, req resource.UpdateRequest
 		}
 		resp.Diagnostics.AddError("Error Updating Control", detail)
 		return
+	}
+
+	// Apply the tag diff via the dedicated PATCH endpoint, then re-read so
+	// state reflects it (the PUT response predates the tag change).
+	applyTags(ctx, r.client, data.Identifier.ValueString(), "control", oldData.Tags, data.Tags, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if !data.Tags.IsUnknown() && !data.Tags.Equal(oldData.Tags) {
+		control, err = r.client.GetControl(ctx, data.Identifier.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error Reading Control After Update",
+				fmt.Sprintf("Could not read control %q after update: %s", data.Identifier.ValueString(), err.Error()),
+			)
+			return
+		}
 	}
 
 	mapControlToState(ctx, control, &data, &resp.Diagnostics)

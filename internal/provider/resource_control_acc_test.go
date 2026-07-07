@@ -143,6 +143,44 @@ func TestAccControlResource_clearDescription(t *testing.T) {
 	})
 }
 
+// TestAccControlResource_tags tests setting, changing, and clearing tags,
+// which are managed via the dedicated tags PATCH endpoint.
+func TestAccControlResource_tags(t *testing.T) {
+	rIdentifier := acctest.RandomWithPrefix("tf-acc-test")
+	resourceName := "kosli_control.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1: Create with a tag
+			{
+				Config: testAccControlResourceConfigTags(rIdentifier, `{ team = "platform" }`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "tags.%", "1"),
+					resource.TestCheckResourceAttr(resourceName, "tags.team", "platform"),
+				),
+			},
+			// Step 2: Change and add tags
+			{
+				Config: testAccControlResourceConfigTags(rIdentifier, `{ team = "security", framework = "finos-sdlc" }`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "tags.%", "2"),
+					resource.TestCheckResourceAttr(resourceName, "tags.team", "security"),
+					resource.TestCheckResourceAttr(resourceName, "tags.framework", "finos-sdlc"),
+				),
+			},
+			// Step 3: Clear tags with an explicit empty map
+			{
+				Config: testAccControlResourceConfigTags(rIdentifier, `{}`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "tags.%", "0"),
+				),
+			},
+		},
+	})
+}
+
 // TestAccControlResource_import tests terraform import functionality.
 func TestAccControlResource_import(t *testing.T) {
 	rIdentifier := acctest.RandomWithPrefix("tf-acc-test")
@@ -199,6 +237,16 @@ resource "kosli_control" "test" {
   name       = %[2]q
 }
 `, identifier, name)
+}
+
+func testAccControlResourceConfigTags(identifier, tags string) string {
+	return fmt.Sprintf(`
+resource "kosli_control" "test" {
+  identifier = %[1]q
+  name       = "Binary provenance"
+  tags       = %[2]s
+}
+`, identifier, tags)
 }
 
 func testAccControlResourceConfigFull(identifier, name, description, docsLink string) string {

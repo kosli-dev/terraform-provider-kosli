@@ -53,6 +53,9 @@ func TestControlResource_Schema(t *testing.T) {
 	if !attrs["links"].IsOptional() {
 		t.Error("Expected 'links' attribute to be optional")
 	}
+	if !attrs["tags"].IsOptional() {
+		t.Error("Expected 'tags' attribute to be optional")
+	}
 	for _, attr := range []string{"version", "created_at", "created_by", "tags", "policies_referencing"} {
 		if !attrs[attr].IsComputed() {
 			t.Errorf("Expected %q attribute to be computed", attr)

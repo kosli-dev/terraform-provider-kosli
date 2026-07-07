@@ -45,6 +45,11 @@ output "control_policies" {
   description = "Environment policies referencing the control"
   value       = data.kosli_control.binary_provenance.policies_referencing
 }
+
+output "control_tags" {
+  description = "Tags on the control"
+  value       = data.kosli_control.binary_provenance.tags
+}
 ```
 
 ## Read-Only Access

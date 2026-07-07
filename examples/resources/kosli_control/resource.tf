@@ -15,6 +15,11 @@ resource "kosli_control" "binary_provenance" {
   links = {
     docs = "https://example.com/sdlc/binary-provenance"
   }
+
+  tags = {
+    framework = "finos-sdlc"
+    team      = "platform"
+  }
 }
 
 # Minimal control with only the required attributes

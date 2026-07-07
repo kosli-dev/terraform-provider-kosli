@@ -35,6 +35,11 @@ resource "kosli_control" "binary_provenance" {
   links = {
     docs = "https://example.com/sdlc/binary-provenance"
   }
+
+  tags = {
+    framework = "finos-sdlc"
+    team      = "platform"
+  }
 }
 
 # Minimal control with only the required attributes
@@ -65,11 +70,11 @@ terraform import kosli_control.binary_provenance SDLC-001
 
 - `description` (String) Free-form description of the control.
 - `links` (Map of String) Named links related to the control (e.g. documentation or runbook URLs), as a map of link name to URL.
+- `tags` (Map of String) Key-value pairs to tag the control.
 
 ### Read-Only
 
 - `created_at` (String) RFC3339 UTC timestamp of when the control was created.
 - `created_by` (String) Identifier of the user who created the control.
 - `policies_referencing` (List of String) Names of the environment policies that reference this control.
-- `tags` (Map of String) Tags on the control, as a map of tag key to value. Tags are managed in Kosli and cannot be set via this resource.
 - `version` (Number) Version number of the control, assigned by the server and incremented on every update.
