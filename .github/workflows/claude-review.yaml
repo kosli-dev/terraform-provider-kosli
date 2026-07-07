@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   review-dependency-updates:
-    if: contains(fromJSON('["dependabot[bot]", "ci-signed-commit-bot[bot]"]'), github.actor)
+    if: contains(fromJSON('["dependabot[bot]", "ci-signed-commit-bot[bot]", "github-actions[bot]"]'), github.actor)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -70,7 +70,7 @@ jobs:
 
   review-general:
     # Skip for Dependabot|CI bot PRs
-    if: ${{ !contains(fromJSON('["dependabot[bot]", "ci-signed-commit-bot[bot]"]'), github.actor) }}
+    if: ${{ !contains(fromJSON('["dependabot[bot]", "ci-signed-commit-bot[bot]", "github-actions[bot]"]'), github.actor) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
