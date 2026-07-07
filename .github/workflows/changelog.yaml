@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release tag to generate the changelog entry for (e.g. vX.Y.Z)'
+        description: 'Release tag to generate the changelog entry for (vX.Y.Z or vX.Y.Z-<pre-release>)'
         required: true
         type: string
 
@@ -42,34 +42,55 @@ jobs:
           INPUT_VERSION: ${{ inputs.version }}
           RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
+          # Stable (vX.Y.Z) and pre-release (vX.Y.Z-rc1 etc.) tags both get entries.
+          PATTERN='^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             VERSION="$INPUT_VERSION"
+            if ! echo "$VERSION" | grep -Eq "$PATTERN"; then
+              echo "ERROR: '$VERSION' is not a release tag (expected vX.Y.Z or vX.Y.Z-<pre-release>)" >&2
+              exit 1
+            fi
           else
-            # For tag-push runs of Release, head_branch is the tag name.
+            # For tag-push runs of Release, head_branch is the tag name. Skip
+            # cleanly (don't fail) if it isn't a version tag at all.
             VERSION="$RUN_BRANCH"
-          fi
-          if ! echo "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "ERROR: '$VERSION' is not a release tag (expected vX.Y.Z)" >&2
-            exit 1
+            if ! echo "$VERSION" | grep -Eq "$PATTERN"; then
+              echo "Skipping: '$VERSION' is not a version tag"
+              echo "version=" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Checkout
+        if: steps.version.outputs.version != ''
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ steps.version.outputs.version }}
           fetch-depth: 0
 
       - name: Prepare changelog inputs
+        if: steps.version.outputs.version != ''
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           mkdir -p /tmp/changelog-inputs
           echo "Generating for: ${VERSION}"
-          DATE=$(date +"%B %d, %Y" | sed 's/ 0/ /')  # "Month D, YYYY" to match prior entries
+          # Use the tag's own date so manual/backfill runs are dated correctly,
+          # not the date the workflow happens to run. "Month D, YYYY" to match
+          # prior entries.
+          DATE=$(git log -1 --format=%ad --date=format:'%B %e, %Y' "${VERSION}" | sed 's/  / /')
 
+          # Range policy: a stable release consolidates everything since the
+          # last stable tag (superseding any interim pre-release entries); a
+          # pre-release is incremental since the previous tag of any kind.
+          if echo "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            TAG_FILTER='^v[0-9]+\.[0-9]+\.[0-9]+$'
+          else
+            TAG_FILTER='^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'
+          fi
           PREV=$(git tag --sort=-version:refname \
-            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | grep -E "$TAG_FILTER" \
             | grep -v "^${VERSION}$" \
             | head -n 1)
           PREV="${PREV:-$(git rev-list --max-parents=0 HEAD)}"
@@ -79,6 +100,7 @@ jobs:
           printf 'VERSION=%s\nDATE=%s\n' "$VERSION" "$DATE" > /tmp/changelog-inputs/meta.txt
 
       - name: Generate changelog entry
+        if: steps.version.outputs.version != ''
         uses: anthropics/claude-code-action@4633baf5267540f3f8cb58b684f79901d564c280 # v1.0.160
         with:
           anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
@@ -101,6 +123,7 @@ jobs:
             --allowedTools "Read,Write"
 
       - name: Insert changelog entry
+        if: steps.version.outputs.version != ''
         run: |
           if [ ! -s /tmp/entry.md ]; then
             echo "ERROR: changelog entry was not generated" >&2
@@ -122,6 +145,7 @@ jobs:
           mv /tmp/cl.md CHANGELOG.md
 
       - name: Create changelog PR
+        if: steps.version.outputs.version != ''
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
