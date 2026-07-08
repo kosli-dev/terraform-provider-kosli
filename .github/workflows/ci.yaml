@@ -40,7 +40,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
-          terraform_version: "~1.10.0"
+          terraform_version: "~1.14.0"
           terraform_wrapper: false
 
       - name: Check code formatting
@@ -132,6 +132,7 @@ jobs:
           - examples/data-sources/kosli_policy
           - examples/data-sources/kosli_service_account
           - examples/data-sources/kosli_service_account_api_keys
+          - examples/list-resources/kosli_control
 
     steps:
       - name: Checkout code
@@ -154,7 +155,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
         with:
-          terraform_version: "~1.10.0"
+          terraform_version: "~1.14.0"
           terraform_wrapper: false
 
       - name: Install provider
@@ -179,5 +180,5 @@ jobs:
           echo "Validating ${{ matrix.example }}..."
           cd "${{ matrix.example }}"
           terraform init -backend=false
-          terraform validate
+          terraform validate -query
           echo "✓ ${{ matrix.example }} validated successfully"

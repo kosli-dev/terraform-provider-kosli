@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/list"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -24,6 +25,7 @@ const (
 
 // Ensure KosliProvider satisfies various provider interfaces.
 var _ provider.Provider = &KosliProvider{}
+var _ provider.ProviderWithListResources = &KosliProvider{}
 
 // KosliProvider defines the provider implementation.
 type KosliProvider struct {
@@ -140,9 +142,10 @@ func (p *KosliProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		return
 	}
 
-	// Make the client available to resources and data sources
+	// Make the client available to resources, data sources, and list resources
 	resp.DataSourceData = kosliClient
 	resp.ResourceData = kosliClient
+	resp.ListResourceData = kosliClient
 }
 
 // Resources defines the resources implemented in the provider.
@@ -158,6 +161,14 @@ func (p *KosliProvider) Resources(ctx context.Context) []func() resource.Resourc
 		NewPolicyAttachmentResource,
 		NewServiceAccountResource,
 		NewServiceAccountAPIKeyResource,
+	}
+}
+
+// ListResources defines the list resources implemented in the provider,
+// used by `terraform query` (Terraform >= 1.14).
+func (p *KosliProvider) ListResources(ctx context.Context) []func() list.ListResource {
+	return []func() list.ListResource{
+		NewControlListResource,
 	}
 }
 

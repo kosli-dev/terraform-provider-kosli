@@ -29,6 +29,7 @@ make testacc-custom-attestation-type          # Specific resource tests
 make testacc-custom-attestation-type-datasource
 make testacc-environment
 make testacc-environment-datasource
+make testacc-control-list                     # List resource (terraform query), needs Terraform >= 1.14
 
 # Individual test execution
 go test -run TestClientGet ./pkg/client/...
@@ -95,6 +96,9 @@ The client supports:
 - `kosli_custom_attestation_type` - Reference existing attestation types
 - `kosli_environment` - Reference existing physical environments
 - `kosli_logical_environment` - Reference existing logical environments
+
+**List Resources (`terraform query`, requires Terraform >= 1.14):**
+- `kosli_control` - Discover existing controls and generate import/config blocks (`internal/provider/list_resource_control.go`). List resources require the managed resource to implement `resource.ResourceWithIdentity`; `kosli_control` sets the pattern. Files follow `list_resource_<name>.go`, examples live in `examples/list-resources/<full name>/list-resource.tfquery.hcl`, templates in `templates/list-resources/`.
 
 **Note:** Logical environments can ONLY contain physical environments, not other logical environments. See ADR-004 for the validation strategy.
 

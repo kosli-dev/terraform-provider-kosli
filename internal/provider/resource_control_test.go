@@ -88,9 +88,38 @@ func TestControlResource_Configure_WrongType(t *testing.T) {
 	}
 }
 
+func TestControlResource_IdentitySchema(t *testing.T) {
+	r := &controlResource{}
+
+	resp := &resource.IdentitySchemaResponse{}
+	r.IdentitySchema(context.TODO(), resource.IdentitySchemaRequest{}, resp)
+
+	attr, exists := resp.IdentitySchema.Attributes["identifier"]
+	if !exists {
+		t.Fatal("Expected 'identifier' attribute to exist in identity schema")
+	}
+	if !attr.IsRequiredForImport() {
+		t.Error("Expected 'identifier' identity attribute to be required for import")
+	}
+	if attr.GetDescription() == "" {
+		t.Error("Expected non-empty description on 'identifier' identity attribute")
+	}
+}
+
+func TestSetControlIdentity_NilIdentity(t *testing.T) {
+	// Terraform < 1.12 does not support resource identity; the response
+	// identity is nil and setting it must be a silent no-op.
+	var diags diag.Diagnostics
+	setControlIdentity(context.TODO(), "SDLC-001", nil, &diags)
+	if diags.HasError() {
+		t.Errorf("expected no diagnostics for nil identity, got %v", diags)
+	}
+}
+
 func TestControlResource_Implements(t *testing.T) {
 	var _ resource.Resource = &controlResource{}
 	var _ resource.ResourceWithImportState = &controlResource{}
+	var _ resource.ResourceWithIdentity = &controlResource{}
 }
 
 func TestNewControlResource(t *testing.T) {

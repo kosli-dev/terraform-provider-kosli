@@ -141,6 +141,28 @@ func TestKosliProvider_Resources(t *testing.T) {
 	}
 }
 
+func TestKosliProvider_ListResources(t *testing.T) {
+	p := &KosliProvider{}
+	ctx := context.Background()
+
+	registered := make(map[string]bool)
+	for _, factory := range p.ListResources(ctx) {
+		lr := factory()
+		resp := &resource.MetadataResponse{}
+		lr.Metadata(ctx, resource.MetadataRequest{ProviderTypeName: "kosli"}, resp)
+		registered[resp.TypeName] = true
+	}
+
+	expected := []string{
+		"kosli_control",
+	}
+	for _, name := range expected {
+		if !registered[name] {
+			t.Errorf("Expected list resource %q to be registered", name)
+		}
+	}
+}
+
 func TestKosliProvider_DataSources(t *testing.T) {
 	p := &KosliProvider{}
 	ctx := context.Background()

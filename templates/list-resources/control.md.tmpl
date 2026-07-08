@@ -1,0 +1,20 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Type}}: {{.Name}}
+
+{{ .Description | trimspace }}
+
+## Example Usage
+
+Place `list` blocks in a `.tfquery.hcl` file and run `terraform query` (requires Terraform >= 1.14):
+
+{{tffile "examples/list-resources/kosli_control/list-resource.tfquery.hcl"}}
+
+Use `terraform query -generate-config-out=generated.tf` to generate `import` blocks and resource configuration for the discovered controls.
+
+{{ .SchemaMarkdown | trimspace }}
