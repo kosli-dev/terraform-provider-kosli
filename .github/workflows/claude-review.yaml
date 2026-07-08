@@ -42,7 +42,7 @@ jobs:
           anthropic_service_account_id: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
           track_progress: true
           use_sticky_comment: true
-          allowed_bots: 'ci-signed-commit-bot[bot], dependabot[bot]'
+          allowed_bots: 'ci-signed-commit-bot[bot], dependabot[bot], github-actions[bot]'
           claude_args: |
             --max-turns 40
             --max-budget-usd 5
