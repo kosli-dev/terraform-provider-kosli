@@ -149,6 +149,7 @@ func (p *KosliProvider) Configure(ctx context.Context, req provider.ConfigureReq
 func (p *KosliProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewActionResource,
+		NewControlResource,
 		NewCustomAttestationTypeResource,
 		NewEnvironmentResource,
 		NewFlowResource,
@@ -164,6 +165,7 @@ func (p *KosliProvider) Resources(ctx context.Context) []func() resource.Resourc
 func (p *KosliProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewActionDataSource,
+		NewControlDataSource,
 		NewCustomAttestationTypeDataSource,
 		NewEnvironmentDataSource,
 		NewFlowDataSource,

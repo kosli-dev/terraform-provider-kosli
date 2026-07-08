@@ -124,6 +124,7 @@ func TestKosliProvider_Resources(t *testing.T) {
 
 	expected := []string{
 		"kosli_action",
+		"kosli_control",
 		"kosli_custom_attestation_type",
 		"kosli_environment",
 		"kosli_flow",
@@ -154,6 +155,7 @@ func TestKosliProvider_DataSources(t *testing.T) {
 
 	expected := []string{
 		"kosli_action",
+		"kosli_control",
 		"kosli_custom_attestation_type",
 		"kosli_environment",
 		"kosli_flow",

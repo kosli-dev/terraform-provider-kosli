@@ -81,6 +81,7 @@ For more details on attestation types, see the [Kosli documentation](https://doc
 - `kosli_policy_attachment` - Attach a policy to an environment (physical or logical)
 - `kosli_service_account` - Create and manage service accounts used to authenticate automation against the Kosli API
 - `kosli_service_account_api_key` - Mint and revoke API keys for a service account
+- `kosli_control` - Create and manage controls, org-level definitions of SDLC requirements evaluated from attestations and enforced through environment policies (beta feature)
 
 ### Data Sources
 - `kosli_custom_attestation_type` - Reference existing attestation types
@@ -91,6 +92,7 @@ For more details on attestation types, see the [Kosli documentation](https://doc
 - `kosli_policy` - Reference existing policies
 - `kosli_service_account` - Reference existing service accounts
 - `kosli_service_account_api_keys` - List the API keys (metadata only) for a service account
+- `kosli_control` - Reference existing controls
 
 ## Configuration
 
