@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.8.0 (July 8, 2026)
+
+FEATURES:
+
+* **New Resource**: `kosli_control` for managing Kosli Controls (beta)
+* **New Data Source**: `kosli_control` for querying existing Kosli Controls (beta)
+
+IMPROVEMENTS:
+
+* client: Added a `Control` client supporting create/get/list/update/archive of Kosli Controls
+* resource/kosli_control: Added `identifier` (immutable), `name`, `description`, and `links` attributes, plus computed `version`, `created_at`, `created_by`, `tags`, and `policies_referencing`; supports import by `identifier`
+* resource/kosli_control: Archived controls are treated as deleted for drift detection, with diagnostics hinting at the Controls beta feature flag on `403` responses and at archived identifier conflicts on `409` responses
+* data_source/kosli_control: Added lookup of existing controls by `identifier`
+* docs: Added examples and generated documentation for the new `kosli_control` resource and data source
+
 ## 0.7.0 (July 7, 2026)
 
 FEATURES:
