@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.1 (July 8, 2026)
+
+FEATURES:
+
+* **New Resource**: `kosli_control` for managing Kosli Controls (beta)
+* **New Data Source**: `kosli_control` for querying existing Kosli Controls
+
 ## 0.7.0 (July 7, 2026)
 
 FEATURES:
