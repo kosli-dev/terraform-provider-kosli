@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/list"
 	listschema "github.com/hashicorp/terraform-plugin-framework/list/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -83,8 +82,9 @@ func (l *controlListResource) Configure(ctx context.Context, req resource.Config
 func (l *controlListResource) List(ctx context.Context, req list.ListRequest, stream *list.ListResultsStream) {
 	var config controlListModel
 
-	if diags := req.Config.Get(ctx, &config); diags.HasError() {
-		stream.Results = list.ListResultsStreamDiagnostics(diags)
+	configDiags := req.Config.Get(ctx, &config)
+	if configDiags.HasError() {
+		stream.Results = list.ListResultsStreamDiagnostics(configDiags)
 		return
 	}
 
@@ -102,13 +102,24 @@ func (l *controlListResource) List(ctx context.Context, req list.ListRequest, st
 		if client.IsForbidden(err) {
 			detail += controlBetaHint
 		}
-		stream.Results = list.ListResultsStreamDiagnostics(diag.Diagnostics{
-			diag.NewErrorDiagnostic("Error Listing Controls", detail),
-		})
+		// Seed from configDiags so any non-error config diagnostics survive
+		// alongside the error.
+		configDiags.AddError("Error Listing Controls", detail)
+		stream.Results = list.ListResultsStreamDiagnostics(configDiags)
 		return
 	}
 
 	stream.Results = func(push func(list.ListResult) bool) {
+		// Surface non-error config diagnostics before streaming results,
+		// mirroring the CRUD handlers that append config diags to the
+		// response. The framework passes through a result carrying only
+		// non-error diagnostics.
+		if len(configDiags) > 0 {
+			if !push(list.ListResult{Diagnostics: configDiags}) {
+				return
+			}
+		}
+
 		for i := range controls {
 			if req.Limit > 0 && int64(i) >= req.Limit {
 				return

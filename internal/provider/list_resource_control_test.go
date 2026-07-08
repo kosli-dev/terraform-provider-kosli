@@ -214,6 +214,56 @@ func TestControlListResource_List(t *testing.T) {
 	}
 }
 
+func TestControlListResource_List_Archived(t *testing.T) {
+	ctx := context.Background()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("archived") != "true" {
+			t.Errorf("expected archived query param 'true', got %q", r.URL.Query().Get("archived"))
+		}
+		if r.URL.Query().Get("search") != "" {
+			t.Errorf("expected search query param to be omitted, got %q", r.URL.Query().Get("search"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{
+			"page": 1, "per_page": 100, "total_pages": 1, "total_count": 1,
+			"controls": [
+				{"identifier": "SDLC-OLD", "name": "Archived control"}
+			]
+		}`)
+	}))
+	defer server.Close()
+
+	c, err := client.NewClient("test-token", "test-org", client.WithBaseURL(server.URL))
+	if err != nil {
+		t.Fatalf("unexpected error creating client: %v", err)
+	}
+
+	l := &controlListResource{client: c}
+	req := newControlListRequest(t, ctx,
+		tftypes.NewValue(tftypes.String, nil),
+		tftypes.NewValue(tftypes.Bool, true),
+		false, 0)
+
+	stream := &list.ListResultsStream{}
+	l.List(ctx, req, stream)
+	results := collectListResults(stream)
+
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if results[0].Diagnostics.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", results[0].Diagnostics)
+	}
+	var identity controlResourceIdentityModel
+	if diags := results[0].Identity.Get(ctx, &identity); diags.HasError() {
+		t.Fatalf("unexpected diagnostics reading identity: %v", diags)
+	}
+	if identity.Identifier.ValueString() != "SDLC-OLD" {
+		t.Errorf("expected identity identifier 'SDLC-OLD', got %q", identity.Identifier.ValueString())
+	}
+}
+
 func TestControlListResource_List_Limit(t *testing.T) {
 	ctx := context.Background()
 
