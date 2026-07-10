@@ -14,7 +14,7 @@ The Terraform provider enables you to automate the management of Kosli resources
 
 ## Requirements
 
-- [Terraform](https://www.terraform.io/downloads.html) >= 1.10
+- [Terraform](https://www.terraform.io/downloads.html) >= 1.10 (>= 1.14 for `terraform query` list resources)
 - [Go](https://golang.org/doc/install) 1.26 or later (for development)
 - [Kosli](https://app.kosli.com/) account and API credentials
 
@@ -47,6 +47,7 @@ For complete examples with variables and multiple use cases, see the [examples](
 
 - [Resource examples](examples/resources/) - Creating and managing resources
 - [Data source examples](examples/data-sources/) - Referencing existing resources
+- [List resource examples](examples/list-resources/) - Discovering existing resources with `terraform query`
 - [Complete examples](examples/complete/) - End-to-end scenarios
 
 ## Documentation
@@ -93,6 +94,28 @@ For more details on attestation types, see the [Kosli documentation](https://doc
 - `kosli_service_account` - Reference existing service accounts
 - `kosli_service_account_api_keys` - List the API keys (metadata only) for a service account
 - `kosli_control` - Reference existing controls
+
+### List Resources (`terraform query`, Terraform >= 1.14)
+- `kosli_control` - Discover existing (unmanaged) controls and generate `import`/config blocks for them (beta feature)
+
+Place `list` blocks in a `.tfquery.hcl` file and run `terraform query`:
+
+```hcl
+list "kosli_control" "all" {
+  provider = kosli
+}
+
+list "kosli_control" "sdlc" {
+  provider         = kosli
+  include_resource = true
+
+  config {
+    search = "SDLC"
+  }
+}
+```
+
+Use `terraform query -generate-config-out=generated.tf` to bring the discovered controls under Terraform management.
 
 ## Configuration
 

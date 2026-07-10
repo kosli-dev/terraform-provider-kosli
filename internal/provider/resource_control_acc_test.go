@@ -8,6 +8,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfversion"
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
 
@@ -201,6 +204,39 @@ func TestAccControlResource_import(t *testing.T) {
 				ImportState:                          true,
 				ImportStateVerify:                    true,
 				ImportStateId:                        rIdentifier,
+				ImportStateVerifyIdentifierAttribute: "identifier",
+			},
+		},
+	})
+}
+
+// TestAccControlResource_identity verifies the resource identity is stored in
+// state and that a control can be imported via an identity-based import block.
+func TestAccControlResource_identity(t *testing.T) {
+	rIdentifier := acctest.RandomWithPrefix("tf-acc-test")
+	resourceName := "kosli_control.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() { testAccControlsPreCheck(t) },
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			// Resource identity requires Terraform 1.12+.
+			tfversion.SkipBelow(tfversion.Version1_12_0),
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccControlResourceConfig(rIdentifier, "Binary provenance"),
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectIdentity(resourceName, map[string]knownvalue.Check{
+						"identifier": knownvalue.StringExact(rIdentifier),
+					}),
+				},
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportState:                          true,
+				ImportStateKind:                      resource.ImportBlockWithResourceIdentity,
+				ImportStateVerify:                    true,
 				ImportStateVerifyIdentifierAttribute: "identifier",
 			},
 		},

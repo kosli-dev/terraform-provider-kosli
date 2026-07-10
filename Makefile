@@ -24,7 +24,7 @@ INSTALL_DIR=~/.terraform.d/plugins/registry.terraform.io/kosli-dev/kosli/dev/$(O
 # Coverage output
 COVERAGE_OUT=coverage.out
 
-.PHONY: all build clean test test-coverage testacc testacc-action testacc-action-datasource testacc-control testacc-control-datasource testacc-custom-attestation-type testacc-custom-attestation-type-datasource testacc-environment testacc-environment-datasource testacc-flow testacc-flow-datasource testacc-logical-environment testacc-logical-environment-datasource testacc-policy testacc-policy-datasource testacc-policy-attachment check-testacc-env fmt vet lint install docs help default
+.PHONY: all build clean test test-coverage testacc testacc-action testacc-action-datasource testacc-control testacc-control-datasource testacc-control-list testacc-custom-attestation-type testacc-custom-attestation-type-datasource testacc-environment testacc-environment-datasource testacc-flow testacc-flow-datasource testacc-logical-environment testacc-logical-environment-datasource testacc-policy testacc-policy-datasource testacc-policy-attachment check-testacc-env fmt vet lint install docs help default
 
 # Default target
 default: build
@@ -109,6 +109,11 @@ testacc-control: check-testacc-env
 testacc-control-datasource: check-testacc-env
 	@echo "Running acceptance tests for control data source..."
 	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccControlDataSource' -timeout 30m
+
+# Run acceptance tests for control list resource (terraform query, requires Terraform >= 1.14)
+testacc-control-list: check-testacc-env
+	@echo "Running acceptance tests for control list resource..."
+	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccControlListResource' -timeout 30m
 
 # Run acceptance tests for custom attestation type resource
 testacc-custom-attestation-type: check-testacc-env
@@ -241,6 +246,8 @@ help:
 	@echo "                Run acceptance tests for control resource"
 	@echo "  testacc-control-datasource"
 	@echo "                Run acceptance tests for control data source"
+	@echo "  testacc-control-list"
+	@echo "                Run acceptance tests for control list resource (terraform query)"
 	@echo "  testacc-custom-attestation-type"
 	@echo "                Run acceptance tests for custom_attestation_type resource"
 	@echo "  testacc-custom-attestation-type-datasource"
