@@ -72,6 +72,7 @@ Each heading is left-aligned, in all caps, with a trailing colon and a blank lin
 - `<subsystem>` is one of:
   - `resource/<name>:` (e.g. `resource/kosli_environment:`)
   - `data_source/<name>:` (underscore, matching this repo's history; note this diverges from HashiCorp's hyphenated `data-source/` style, but is consistent across all prior entries here)
+  - `list_resource/<name>:` (e.g. `list_resource/kosli_control:`; list resources queried via `terraform query`)
   - `provider:` (cross-cutting provider behavior)
   - `client:` (the underlying Kosli API client behavior, when user-visible)
   - `docs:` (user-facing documentation or examples)

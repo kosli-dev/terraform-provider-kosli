@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.1 (July 10, 2026)
+
+FEATURES:
+
+* **New List Resource**: `kosli_control` for discovering existing Kosli Controls via `terraform query` (requires Terraform >= 1.14)
+
+IMPROVEMENTS:
+
+* list_resource/kosli_control: Added `search` and `archived` filters to the list configuration for scoping query results
+* list_resource/kosli_control: Surfaces the Controls beta feature-flag hint on `403` responses, matching the `kosli_control` resource
+* docs: Added a `.tfquery.hcl` example and generated documentation for the new `kosli_control` list resource
+
 ## 0.8.0 (July 8, 2026)
 
 FEATURES:
