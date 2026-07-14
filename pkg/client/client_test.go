@@ -1,9 +1,12 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -322,6 +325,127 @@ func TestClient_Post_Success(t *testing.T) {
 
 	if resp.StatusCode != http.StatusCreated {
 		t.Errorf("expected status 201, got %d", resp.StatusCode)
+	}
+}
+
+// testMultipartRequest implements MultipartMarshaler for testing doRequest dispatch.
+type testMultipartRequest struct {
+	field string
+	err   error
+}
+
+func (r *testMultipartRequest) MarshalMultipart() (io.Reader, string, error) {
+	if r.err != nil {
+		return nil, "", r.err
+	}
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+	if err := writer.WriteField("field", r.field); err != nil {
+		return nil, "", err
+	}
+	contentType := writer.FormDataContentType()
+	if err := writer.Close(); err != nil {
+		return nil, "", err
+	}
+	return &buf, contentType, nil
+}
+
+// TestClient_Post_Multipart tests that doRequest dispatches bodies implementing
+// MultipartMarshaler to multipart/form-data encoding instead of JSON.
+func TestClient_Post_Multipart(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+
+		if ct := r.Header.Get("Content-Type"); !strings.HasPrefix(ct, "multipart/form-data") {
+			t.Errorf("expected multipart/form-data Content-Type, got %q", ct)
+		}
+
+		// Auth headers must be set on multipart requests too
+		if auth := r.Header.Get("Authorization"); auth != "Bearer test-token" {
+			t.Errorf("expected Authorization 'Bearer test-token', got %q", auth)
+		}
+
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			t.Fatalf("failed to parse multipart form: %v", err)
+		}
+		if got := r.FormValue("field"); got != "value" {
+			t.Errorf("expected field 'value', got %q", got)
+		}
+
+		w.WriteHeader(http.StatusCreated)
+		w.Write([]byte(`"OK"`))
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	resp, err := client.Post(context.Background(), "/test-path", &testMultipartRequest{field: "value"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		t.Errorf("expected status 201, got %d", resp.StatusCode)
+	}
+}
+
+// TestClient_Post_MultipartMarshalError tests that MarshalMultipart errors are surfaced.
+func TestClient_Post_MultipartMarshalError(t *testing.T) {
+	client, err := NewClient("test-token", "test-org")
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	_, err = client.Post(context.Background(), "/test-path", &testMultipartRequest{err: errors.New("boom")})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "failed to marshal multipart body") {
+		t.Errorf("expected multipart marshal error, got %q", err.Error())
+	}
+	if !strings.Contains(err.Error(), "boom") {
+		t.Errorf("expected wrapped error 'boom', got %q", err.Error())
+	}
+}
+
+// TestClient_Put_TypedNilMultipartBody tests that a typed-nil pointer
+// implementing MultipartMarshaler surfaces as an error from doRequest
+// instead of a panic (which would crash the provider plugin process).
+func TestClient_Put_TypedNilMultipartBody(t *testing.T) {
+	requestCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	_, err = client.Put(context.Background(), "/test-path", (*CreateFlowRequest)(nil))
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "failed to marshal multipart body") {
+		t.Errorf("expected multipart marshal error, got %q", err.Error())
+	}
+	if requestCount != 0 {
+		t.Errorf("expected no request to be sent, got %d", requestCount)
 	}
 }
 

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
-	"net/http"
 )
 
 // Flow represents a Kosli flow as returned by the API.
@@ -27,11 +26,21 @@ type CreateFlowRequest struct {
 	Template    string // Optional YAML template content; when empty, template_file is omitted from the multipart request
 }
 
-// createFlowMultipartRequest builds a multipart/form-data body for flow creation.
-// Fields:
+// MarshalMultipart implements MultipartMarshaler. It encodes the request as
+// multipart/form-data with:
 //   - data_json: JSON with name, description, visibility
-//   - template_file: YAML template content (only included when template is non-empty)
-func createFlowMultipartRequest(payload map[string]any, template string) (io.Reader, string, error) {
+//   - template_file: YAML template content (only included when Template is non-empty)
+func (req *CreateFlowRequest) MarshalMultipart() (io.Reader, string, error) {
+	if req == nil {
+		return nil, "", fmt.Errorf("nil request")
+	}
+
+	payload := map[string]any{
+		"name":        req.Name,
+		"description": req.Description,
+		"visibility":  req.Visibility,
+	}
+
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 
@@ -45,12 +54,12 @@ func createFlowMultipartRequest(payload map[string]any, template string) (io.Rea
 	}
 
 	// Add template_file field only when template is provided
-	if template != "" {
+	if req.Template != "" {
 		part, err := writer.CreateFormFile("template_file", "template.yml")
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to create template_file field: %w", err)
 		}
-		if _, err := part.Write([]byte(template)); err != nil {
+		if _, err := part.Write([]byte(req.Template)); err != nil {
 			return nil, "", fmt.Errorf("failed to write template_file content: %w", err)
 		}
 	}
@@ -67,37 +76,14 @@ func createFlowMultipartRequest(payload map[string]any, template string) (io.Rea
 // The request always includes a data_json field with flow metadata (name, description, visibility).
 // The template_file field is conditionally included when a YAML template is provided.
 func (c *Client) CreateFlow(ctx context.Context, req *CreateFlowRequest) error {
-	payload := map[string]any{
-		"name":        req.Name,
-		"description": req.Description,
-		"visibility":  req.Visibility,
-	}
-
 	path := fmt.Sprintf("/flows/%s/template_file", c.Organization())
 
-	body, contentType, err := createFlowMultipartRequest(payload, req.Template)
+	// doRequest dispatches to MarshalMultipart for the multipart body
+	resp, err := c.Put(ctx, path, req)
 	if err != nil {
-		return fmt.Errorf("failed to create multipart request: %w", err)
-	}
-
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPut, c.apiURL+path, body)
-	if err != nil {
-		return fmt.Errorf("failed to create HTTP request: %w", err)
-	}
-
-	httpReq.Header.Set("Content-Type", contentType)
-	httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiToken))
-	httpReq.Header.Set("User-Agent", c.userAgent)
-
-	resp, err := c.httpClient.Do(httpReq)
-	if err != nil {
-		return fmt.Errorf("failed to execute request: %w", err)
+		return err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return parseErrorResponse(resp)
-	}
 
 	return nil
 }

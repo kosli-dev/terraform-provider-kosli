@@ -529,6 +529,16 @@ func TestArchiveCustomAttestationType_NotFound(t *testing.T) {
 	}
 }
 
+// TestCreateCustomAttestationTypeRequest_MarshalMultipart_Nil tests that a nil
+// request returns an error instead of panicking.
+func TestCreateCustomAttestationTypeRequest_MarshalMultipart_Nil(t *testing.T) {
+	var req *CreateCustomAttestationTypeRequest
+	_, _, err := req.MarshalMultipart()
+	if err == nil {
+		t.Fatal("expected error for nil request, got nil")
+	}
+}
+
 // TestTransformation_ToAPIFormat tests toAPIFormat transformation
 func TestTransformation_ToAPIFormat(t *testing.T) {
 	req := &CreateCustomAttestationTypeRequest{

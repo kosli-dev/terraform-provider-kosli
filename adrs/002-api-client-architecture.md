@@ -293,40 +293,15 @@ func (at *CustomAttestationType) fromAPIFormat() {
 
 ```go
 func (c *Client) CreateCustomAttestationType(ctx context.Context, req *CreateCustomAttestationTypeRequest) error {
-    // Transform to API format
-    data := req.toAPIFormat()
-
-    // Create multipart form body
-    body, contentType, err := createMultipartRequest(data, req.Schema)
-    if err != nil {
-        return fmt.Errorf("failed to create multipart request: %w", err)
-    }
-
     // Build path
     path := fmt.Sprintf("/custom-attestation-types/%s", c.Organization())
 
-    // Create custom HTTP request (not using client.Post because it sends JSON)
-    httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.apiURL+path, body)
+    // doRequest dispatches to MarshalMultipart for the multipart body
+    resp, err := c.Post(ctx, path, req)
     if err != nil {
-        return fmt.Errorf("failed to create HTTP request: %w", err)
-    }
-
-    // Set headers manually
-    httpReq.Header.Set("Content-Type", contentType)
-    httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiToken))
-    httpReq.Header.Set("User-Agent", c.userAgent)
-
-    // Execute request
-    resp, err := c.httpClient.Do(httpReq)
-    if err != nil {
-        return fmt.Errorf("failed to execute request: %w", err)
+        return err
     }
     defer resp.Body.Close()
-
-    // Handle errors
-    if resp.StatusCode >= 400 {
-        return parseErrorResponse(resp)
-    }
 
     // Verify 201 status
     if resp.StatusCode != http.StatusCreated {
@@ -337,6 +312,32 @@ func (c *Client) CreateCustomAttestationType(ctx context.Context, req *CreateCus
     return nil
 }
 ```
+
+### Multipart Requests (Update, 2026-07)
+
+Some Kosli endpoints expect `multipart/form-data` (file uploads) rather than JSON.
+Originally these methods bypassed `doRequest()` and built raw HTTP requests,
+duplicating auth header setup, URL construction, and error handling ([#198](https://github.com/kosli-dev/terraform-provider-kosli/issues/198)).
+
+The Client now follows the dispatch pattern used by SDK generators (OpenAI Go SDK,
+Cloudflare Go SDK, Speakeasy): request types that need multipart encoding implement
+the `MultipartMarshaler` interface, and `doRequest()` type-switches on the body
+before falling back to JSON:
+
+```go
+// MultipartMarshaler is implemented by request types that require
+// multipart/form-data encoding (e.g., file uploads).
+type MultipartMarshaler interface {
+    MarshalMultipart() (body io.Reader, contentType string, err error)
+}
+```
+
+`CreateCustomAttestationTypeRequest`, `CreatePolicyRequest`, and `CreateFlowRequest`
+implement this interface. All requests — JSON and multipart — flow through
+`doRequest()`, so auth, error handling, retries, and any future middleware live in
+one place, and the Client keeps the shape required for eventual extraction into a
+standalone Kosli Go SDK. Adding a new multipart endpoint only requires implementing
+`MarshalMultipart()` on the request struct.
 
 ---
 
