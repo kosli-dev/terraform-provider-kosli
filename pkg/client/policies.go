@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"mime/multipart"
 )
 
@@ -106,17 +105,10 @@ func (c *Client) GetPolicy(ctx context.Context, name string) (*Policy, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-	log.Printf("[DEBUG] GetPolicy: received response for policy %q", name)
 
 	var result Policy
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	if err := ParseResponse(resp, &result); err != nil {
+		return nil, err
 	}
 
 	return &result, nil
