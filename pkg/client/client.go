@@ -270,6 +270,11 @@ func (c *Client) Delete(ctx context.Context, path string) (*http.Response, error
 // multipart/form-data encoding (e.g., file uploads). doRequest dispatches
 // on this interface before falling back to JSON encoding, so multipart
 // requests share the same auth, error handling, and retry path as JSON ones.
+//
+// Implementations must tolerate a nil receiver by returning an error: a
+// typed-nil pointer wrapped in a non-nil interface skips doRequest's nil
+// case and reaches MarshalMultipart, where a missing guard would panic
+// and crash the provider (see TestClient_Put_TypedNilMultipartBody).
 type MultipartMarshaler interface {
 	MarshalMultipart() (body io.Reader, contentType string, err error)
 }

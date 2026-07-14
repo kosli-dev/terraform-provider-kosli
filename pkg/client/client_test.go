@@ -399,6 +399,56 @@ func TestClient_Post_Multipart(t *testing.T) {
 	}
 }
 
+// TestClient_Post_MultipartRetryReplay tests that a multipart body is re-sent
+// intact when the retry layer replays the request after a 5xx response.
+func TestClient_Post_MultipartRetryReplay(t *testing.T) {
+	var bodies []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("failed to read request body: %v", err)
+		}
+		bodies = append(bodies, string(raw))
+		if len(bodies) == 1 {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+		WithRetryPolicy(2, 1*time.Millisecond, 5*time.Millisecond),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	resp, err := client.Post(context.Background(), "/test-path", &testMultipartRequest{field: "value"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		t.Errorf("expected status 201, got %d", resp.StatusCode)
+	}
+	if len(bodies) != 2 {
+		t.Fatalf("expected 2 requests (original + retry), got %d", len(bodies))
+	}
+	if bodies[0] == "" {
+		t.Fatal("first request body is empty")
+	}
+	if bodies[0] != bodies[1] {
+		t.Errorf("retried body differs from original:\nfirst:  %q\nsecond: %q", bodies[0], bodies[1])
+	}
+	if !strings.Contains(bodies[1], `name="field"`) || !strings.Contains(bodies[1], "value") {
+		t.Errorf("retried body missing multipart field: %q", bodies[1])
+	}
+}
+
 // TestClient_Post_MultipartMarshalError tests that MarshalMultipart errors are surfaced.
 func TestClient_Post_MultipartMarshalError(t *testing.T) {
 	client, err := NewClient("test-token", "test-org")
