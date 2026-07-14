@@ -151,7 +151,9 @@ func (c *Client) CreateCustomAttestationType(ctx context.Context, req *CreateCus
 	}
 	defer resp.Body.Close()
 
-	// Verify 201 status
+	// This POST's API contract is exactly 201, even for existing names
+	// (a new version is created). Deliberately stricter than CreatePolicy
+	// and CreateFlow, whose PUT upserts legitimately return 200 or 201.
 	if resp.StatusCode != http.StatusCreated {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}

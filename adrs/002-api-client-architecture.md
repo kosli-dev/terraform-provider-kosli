@@ -319,8 +319,8 @@ Some Kosli endpoints expect `multipart/form-data` (file uploads) rather than JSO
 Originally these methods bypassed `doRequest()` and built raw HTTP requests,
 duplicating auth header setup, URL construction, and error handling ([#198](https://github.com/kosli-dev/terraform-provider-kosli/issues/198)).
 
-The Client now follows the dispatch pattern used by SDK generators (OpenAI Go SDK,
-Cloudflare Go SDK, Speakeasy): request types that need multipart encoding implement
+The Client now follows the dispatch pattern used by SDK generators (Cloudflare Go
+SDK, Speakeasy): request types that need multipart encoding implement
 the `MultipartMarshaler` interface, and `doRequest()` type-switches on the body
 before falling back to JSON:
 
