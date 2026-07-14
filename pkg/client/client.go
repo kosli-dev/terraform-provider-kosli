@@ -275,6 +275,13 @@ func (c *Client) Delete(ctx context.Context, path string) (*http.Response, error
 // typed-nil pointer wrapped in a non-nil interface skips doRequest's nil
 // case and reaches MarshalMultipart, where a missing guard would panic
 // and crash the provider (see TestClient_Put_TypedNilMultipartBody).
+//
+// The returned body may be any reader: the retry layer buffers request
+// bodies fully in memory before sending (go-retryablehttp's FromRequest),
+// so retries replay the body intact regardless of the concrete reader
+// type (see TestClient_Post_MultipartRetryReplay*). The flip side is that
+// bodies are always held in memory — do not stream unbounded content
+// through this interface.
 type MultipartMarshaler interface {
 	MarshalMultipart() (body io.Reader, contentType string, err error)
 }
