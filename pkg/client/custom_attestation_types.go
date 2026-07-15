@@ -99,13 +99,18 @@ func (at *CustomAttestationType) fromAPIFormat() error {
 	return nil
 }
 
-// createMultipartRequest builds multipart/form-data request for POST.
-func createMultipartRequest(data map[string]any, schema string) (io.Reader, string, error) {
+// MarshalMultipart implements MultipartMarshaler. It encodes the request as
+// multipart/form-data with a data_json field and an optional type_schema file.
+func (req *CreateCustomAttestationTypeRequest) MarshalMultipart() (io.Reader, string, error) {
+	if req == nil {
+		return nil, "", fmt.Errorf("nil request")
+	}
+
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 
 	// Add data_json field
-	dataJSON, err := json.Marshal(data)
+	dataJSON, err := json.Marshal(req.toAPIFormat())
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to marshal data: %w", err)
 	}
@@ -114,12 +119,12 @@ func createMultipartRequest(data map[string]any, schema string) (io.Reader, stri
 	}
 
 	// Add type_schema field if provided
-	if schema != "" {
+	if req.Schema != "" {
 		part, err := writer.CreateFormFile("type_schema", "schema.json")
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to create type_schema field: %w", err)
 		}
-		if _, err := part.Write([]byte(schema)); err != nil {
+		if _, err := part.Write([]byte(req.Schema)); err != nil {
 			return nil, "", fmt.Errorf("failed to write type_schema content: %w", err)
 		}
 	}
@@ -136,42 +141,19 @@ func createMultipartRequest(data map[string]any, schema string) (io.Reader, stri
 // Per ADR 002, this method is a thin wrapper that returns what the API returns.
 // The API returns "OK" (201 Created), not the created object.
 func (c *Client) CreateCustomAttestationType(ctx context.Context, req *CreateCustomAttestationTypeRequest) error {
-	// Build API-format data
-	data := req.toAPIFormat()
-
-	// Create multipart form body
-	body, contentType, err := createMultipartRequest(data, req.Schema)
-	if err != nil {
-		return fmt.Errorf("failed to create multipart request: %w", err)
-	}
-
 	// Build path
 	path := fmt.Sprintf("/custom-attestation-types/%s", c.Organization())
 
-	// Create custom HTTP request (not using client.Post because it sends JSON)
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.apiURL+path, body)
+	// doRequest dispatches to MarshalMultipart for the multipart body
+	resp, err := c.Post(ctx, path, req)
 	if err != nil {
-		return fmt.Errorf("failed to create HTTP request: %w", err)
-	}
-
-	// Set headers manually
-	httpReq.Header.Set("Content-Type", contentType)
-	httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiToken))
-	httpReq.Header.Set("User-Agent", c.userAgent)
-
-	// Execute request
-	resp, err := c.httpClient.Do(httpReq)
-	if err != nil {
-		return fmt.Errorf("failed to execute request: %w", err)
+		return err
 	}
 	defer resp.Body.Close()
 
-	// Handle errors
-	if resp.StatusCode >= 400 {
-		return parseErrorResponse(resp)
-	}
-
-	// Verify 201 status
+	// This POST's API contract is exactly 201, even for existing names
+	// (a new version is created). Deliberately stricter than CreatePolicy
+	// and CreateFlow, whose PUT upserts legitimately return 200 or 201.
 	if resp.StatusCode != http.StatusCreated {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}

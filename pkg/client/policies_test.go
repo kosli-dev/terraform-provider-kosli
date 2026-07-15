@@ -248,9 +248,19 @@ func TestListPolicies_Empty(t *testing.T) {
 	}
 }
 
-func TestCreatePolicyMultipartRequest_NoContent(t *testing.T) {
-	payload := map[string]any{"name": "test", "type": "env"}
-	body, ct, err := createPolicyMultipartRequest(payload, "")
+// TestCreatePolicyRequest_MarshalMultipart_Nil tests that a nil request
+// returns an error instead of panicking.
+func TestCreatePolicyRequest_MarshalMultipart_Nil(t *testing.T) {
+	var req *CreatePolicyRequest
+	_, _, err := req.MarshalMultipart()
+	if err == nil {
+		t.Fatal("expected error for nil request, got nil")
+	}
+}
+
+func TestCreatePolicyRequest_MarshalMultipart_NoContent(t *testing.T) {
+	req := &CreatePolicyRequest{Name: "test"}
+	body, ct, err := req.MarshalMultipart()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

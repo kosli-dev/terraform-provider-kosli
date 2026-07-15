@@ -266,19 +266,50 @@ func (c *Client) Delete(ctx context.Context, path string) (*http.Response, error
 	return c.doRequest(ctx, http.MethodDelete, path, nil)
 }
 
+// MultipartMarshaler is implemented by request types that require
+// multipart/form-data encoding (e.g., file uploads). doRequest dispatches
+// on this interface before falling back to JSON encoding, so multipart
+// requests share the same auth, error handling, and retry path as JSON ones.
+//
+// Implementations must tolerate a nil receiver by returning an error: a
+// typed-nil pointer wrapped in a non-nil interface skips doRequest's nil
+// case and reaches MarshalMultipart, where a missing guard would panic
+// and crash the provider (see TestClient_Put_TypedNilMultipartBody).
+//
+// The returned body may be any reader: the retry layer buffers request
+// bodies fully in memory before sending (go-retryablehttp's FromRequest),
+// so retries replay the body intact regardless of the concrete reader
+// type (see TestClient_Post_MultipartRetryReplay*). The flip side is that
+// bodies are always held in memory — do not stream unbounded content
+// through this interface.
+type MultipartMarshaler interface {
+	MarshalMultipart() (body io.Reader, contentType string, err error)
+}
+
 // doRequest performs an HTTP request with authentication and error handling.
 func (c *Client) doRequest(ctx context.Context, method, path string, body any) (*http.Response, error) {
 	// Build full URL
 	url := c.apiURL + path
 
-	// Marshal body to JSON if provided
+	// Encode the body: multipart if the request type opts in, JSON otherwise
 	var bodyReader io.Reader
-	if body != nil {
+	var contentType string
+	switch v := body.(type) {
+	case nil:
+		// No body
+	case MultipartMarshaler:
+		var err error
+		bodyReader, contentType, err = v.MarshalMultipart()
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal multipart body: %w", err)
+		}
+	default:
 		jsonBody, err := json.Marshal(body)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal request body: %w", err)
 		}
 		bodyReader = bytes.NewReader(jsonBody)
+		contentType = "application/json"
 	}
 
 	// Create HTTP request
@@ -290,8 +321,8 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any) (
 	// Add headers
 	req.Header.Set("Authorization", "Bearer "+c.apiToken)
 	req.Header.Set("User-Agent", c.userAgent)
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
 	}
 
 	// Execute request

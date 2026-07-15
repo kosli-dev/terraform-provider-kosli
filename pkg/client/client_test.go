@@ -1,9 +1,12 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -322,6 +325,250 @@ func TestClient_Post_Success(t *testing.T) {
 
 	if resp.StatusCode != http.StatusCreated {
 		t.Errorf("expected status 201, got %d", resp.StatusCode)
+	}
+}
+
+// testMultipartRequest implements MultipartMarshaler for testing doRequest dispatch.
+type testMultipartRequest struct {
+	field string
+	err   error
+}
+
+func (r *testMultipartRequest) MarshalMultipart() (io.Reader, string, error) {
+	if r.err != nil {
+		return nil, "", r.err
+	}
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+	if err := writer.WriteField("field", r.field); err != nil {
+		return nil, "", err
+	}
+	contentType := writer.FormDataContentType()
+	if err := writer.Close(); err != nil {
+		return nil, "", err
+	}
+	return &buf, contentType, nil
+}
+
+// TestClient_Post_Multipart tests that doRequest dispatches bodies implementing
+// MultipartMarshaler to multipart/form-data encoding instead of JSON.
+func TestClient_Post_Multipart(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+
+		if ct := r.Header.Get("Content-Type"); !strings.HasPrefix(ct, "multipart/form-data") {
+			t.Errorf("expected multipart/form-data Content-Type, got %q", ct)
+		}
+
+		// Auth headers must be set on multipart requests too
+		if auth := r.Header.Get("Authorization"); auth != "Bearer test-token" {
+			t.Errorf("expected Authorization 'Bearer test-token', got %q", auth)
+		}
+
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			t.Fatalf("failed to parse multipart form: %v", err)
+		}
+		if got := r.FormValue("field"); got != "value" {
+			t.Errorf("expected field 'value', got %q", got)
+		}
+
+		w.WriteHeader(http.StatusCreated)
+		w.Write([]byte(`"OK"`))
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	resp, err := client.Post(context.Background(), "/test-path", &testMultipartRequest{field: "value"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		t.Errorf("expected status 201, got %d", resp.StatusCode)
+	}
+}
+
+// TestClient_Post_MultipartRetryReplay tests that a multipart body is re-sent
+// intact when the retry layer replays the request after a 5xx response.
+func TestClient_Post_MultipartRetryReplay(t *testing.T) {
+	var bodies []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("failed to read request body: %v", err)
+		}
+		bodies = append(bodies, string(raw))
+		if len(bodies) == 1 {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+		WithRetryPolicy(2, 1*time.Millisecond, 5*time.Millisecond),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	resp, err := client.Post(context.Background(), "/test-path", &testMultipartRequest{field: "value"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		t.Errorf("expected status 201, got %d", resp.StatusCode)
+	}
+	if len(bodies) != 2 {
+		t.Fatalf("expected 2 requests (original + retry), got %d", len(bodies))
+	}
+	if bodies[0] == "" {
+		t.Fatal("first request body is empty")
+	}
+	if bodies[0] != bodies[1] {
+		t.Errorf("retried body differs from original:\nfirst:  %q\nsecond: %q", bodies[0], bodies[1])
+	}
+	if !strings.Contains(bodies[1], `name="field"`) || !strings.Contains(bodies[1], "value") {
+		t.Errorf("retried body missing multipart field: %q", bodies[1])
+	}
+}
+
+// onceReader hides the concrete type of the wrapped reader: no Seek, no Len,
+// not one of the buffer types net/http or retryablehttp special-case. It
+// simulates a streaming MarshalMultipart implementation.
+type onceReader struct{ r io.Reader }
+
+func (o *onceReader) Read(p []byte) (int, error) { return o.r.Read(p) }
+
+// testStreamingMultipartRequest returns a non-rewindable reader from
+// MarshalMultipart.
+type testStreamingMultipartRequest struct{ field string }
+
+func (r *testStreamingMultipartRequest) MarshalMultipart() (io.Reader, string, error) {
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+	if err := writer.WriteField("field", r.field); err != nil {
+		return nil, "", err
+	}
+	contentType := writer.FormDataContentType()
+	if err := writer.Close(); err != nil {
+		return nil, "", err
+	}
+	return &onceReader{&buf}, contentType, nil
+}
+
+// TestClient_Post_MultipartRetryReplay_StreamingReader tests that the retry
+// replay guarantee does not depend on MarshalMultipart returning a rewindable
+// reader type: the retry layer buffers any reader in memory before sending
+// (go-retryablehttp FromRequest), so even a streaming body is re-sent intact.
+func TestClient_Post_MultipartRetryReplay_StreamingReader(t *testing.T) {
+	var bodies []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("failed to read request body: %v", err)
+		}
+		bodies = append(bodies, string(raw))
+		if len(bodies) == 1 {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+		WithRetryPolicy(2, 1*time.Millisecond, 5*time.Millisecond),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	resp, err := client.Post(context.Background(), "/test-path", &testStreamingMultipartRequest{field: "value"})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	defer resp.Body.Close()
+
+	if len(bodies) != 2 {
+		t.Fatalf("expected 2 requests (original + retry), got %d", len(bodies))
+	}
+	if bodies[0] == "" || bodies[1] == "" {
+		t.Fatalf("expected non-empty bodies, got first %d bytes, second %d bytes", len(bodies[0]), len(bodies[1]))
+	}
+	if bodies[0] != bodies[1] {
+		t.Errorf("retried body differs from original:\nfirst:  %q\nsecond: %q", bodies[0], bodies[1])
+	}
+	if !strings.Contains(bodies[1], `name="field"`) || !strings.Contains(bodies[1], "value") {
+		t.Errorf("retried body missing multipart field: %q", bodies[1])
+	}
+}
+
+// TestClient_Post_MultipartMarshalError tests that MarshalMultipart errors are surfaced.
+func TestClient_Post_MultipartMarshalError(t *testing.T) {
+	client, err := NewClient("test-token", "test-org")
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	_, err = client.Post(context.Background(), "/test-path", &testMultipartRequest{err: errors.New("boom")})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "failed to marshal multipart body") {
+		t.Errorf("expected multipart marshal error, got %q", err.Error())
+	}
+	if !strings.Contains(err.Error(), "boom") {
+		t.Errorf("expected wrapped error 'boom', got %q", err.Error())
+	}
+}
+
+// TestClient_Put_TypedNilMultipartBody tests that a typed-nil pointer
+// implementing MultipartMarshaler surfaces as an error from doRequest
+// instead of a panic (which would crash the provider plugin process).
+func TestClient_Put_TypedNilMultipartBody(t *testing.T) {
+	requestCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	_, err = client.Put(context.Background(), "/test-path", (*CreateFlowRequest)(nil))
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "failed to marshal multipart body") {
+		t.Errorf("expected multipart marshal error, got %q", err.Error())
+	}
+	if requestCount != 0 {
+		t.Errorf("expected no request to be sent, got %d", requestCount)
 	}
 }
 
