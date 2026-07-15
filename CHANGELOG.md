@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0 (July 15, 2026)
+
+NOTES:
+
+* No user-facing changes in this release. (internal refactoring and optimisation)
+
 ## 0.8.1 (July 10, 2026)
 
 FEATURES:
