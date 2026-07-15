@@ -4,7 +4,7 @@
 
 NOTES:
 
-* No user-facing changes in this release.
+* No user-facing changes in this release. (internal refactoring and optimisation)
 
 ## 0.8.1 (July 10, 2026)
 
