@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.1 (July 28, 2026)
+
+NOTES:
+
+* No user-facing changes in this release.
+
 ## 0.9.0 (July 15, 2026)
 
 NOTES:
