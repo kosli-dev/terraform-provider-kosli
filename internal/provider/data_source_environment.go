@@ -28,7 +28,6 @@ type environmentDataSourceModel struct {
 	Name           types.String  `tfsdk:"name"`
 	Type           types.String  `tfsdk:"type"`
 	Description    types.String  `tfsdk:"description"`
-	IncludeScaling types.Bool    `tfsdk:"include_scaling"`
 	LastModifiedAt types.Float64 `tfsdk:"last_modified_at"`
 	LastReportedAt types.Float64 `tfsdk:"last_reported_at"`
 	Tags           types.Map     `tfsdk:"tags"`
@@ -56,10 +55,6 @@ func (d *environmentDataSource) Schema(ctx context.Context, req datasource.Schem
 			"description": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "The description of the environment.",
-			},
-			"include_scaling": schema.BoolAttribute{
-				Computed:            true,
-				MarkdownDescription: "Whether the environment includes scaling events in snapshots.",
 			},
 			"last_modified_at": schema.Float64Attribute{
 				Computed:            true,
@@ -129,7 +124,6 @@ func (d *environmentDataSource) Read(ctx context.Context, req datasource.ReadReq
 		data.Description = types.StringValue(env.Description)
 	}
 
-	data.IncludeScaling = types.BoolValue(env.IncludeScaling)
 	data.LastModifiedAt = types.Float64Value(env.LastModifiedAt)
 
 	// Handle nullable LastReportedAt

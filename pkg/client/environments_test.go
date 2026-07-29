@@ -23,30 +23,26 @@ func TestListEnvironments_Success(t *testing.T) {
 		// Return mock response
 		resp := []Environment{
 			{
-				Org:               "test-org",
-				Name:              "production-k8s",
-				Type:              "K8S",
-				Description:       "Production Kubernetes cluster",
-				LastModifiedAt:    1234567890.123456,
-				LastReportedAt:    nil,
-				State:             nil,
-				IncludeScaling:    true,
-				RequireProvenance: false,
-				Tags:              map[string]string{"env": "prod"},
-				Policies:          []any{},
+				Org:            "test-org",
+				Name:           "production-k8s",
+				Type:           "K8S",
+				Description:    "Production Kubernetes cluster",
+				LastModifiedAt: 1234567890.123456,
+				LastReportedAt: nil,
+				State:          nil,
+				Tags:           map[string]string{"env": "prod"},
+				Policies:       []any{},
 			},
 			{
-				Org:               "test-org",
-				Name:              "staging-ecs",
-				Type:              "ECS",
-				Description:       "Staging ECS cluster",
-				LastModifiedAt:    1234567891.123456,
-				LastReportedAt:    floatPtr(1234567892.123456),
-				State:             map[string]any{"status": "healthy"},
-				IncludeScaling:    false,
-				RequireProvenance: true,
-				Tags:              map[string]string{},
-				Policies:          []any{},
+				Org:            "test-org",
+				Name:           "staging-ecs",
+				Type:           "ECS",
+				Description:    "Staging ECS cluster",
+				LastModifiedAt: 1234567891.123456,
+				LastReportedAt: floatPtr(1234567892.123456),
+				State:          map[string]any{"status": "healthy"},
+				Tags:           map[string]string{},
+				Policies:       []any{},
 			},
 		}
 
@@ -82,18 +78,12 @@ func TestListEnvironments_Success(t *testing.T) {
 	if environments[0].LastReportedAt != nil {
 		t.Errorf("expected nil LastReportedAt, got %v", environments[0].LastReportedAt)
 	}
-	if !environments[0].IncludeScaling {
-		t.Error("expected IncludeScaling to be true")
-	}
 
 	// Verify second environment with nullable fields
 	if environments[1].LastReportedAt == nil {
 		t.Error("expected non-nil LastReportedAt")
 	} else if *environments[1].LastReportedAt != 1234567892.123456 {
 		t.Errorf("expected LastReportedAt 1234567892.123456, got %f", *environments[1].LastReportedAt)
-	}
-	if environments[1].RequireProvenance != true {
-		t.Error("expected RequireProvenance to be true")
 	}
 }
 
@@ -110,17 +100,15 @@ func TestGetEnvironment_Success(t *testing.T) {
 
 		// Return mock response
 		resp := Environment{
-			Org:               "test-org",
-			Name:              "production-k8s",
-			Type:              "K8S",
-			Description:       "Production Kubernetes cluster",
-			LastModifiedAt:    1234567890.123456,
-			LastReportedAt:    floatPtr(1234567891.123456),
-			State:             map[string]any{"ready": true},
-			IncludeScaling:    true,
-			RequireProvenance: false,
-			Tags:              map[string]string{"env": "prod"},
-			Policies:          []any{},
+			Org:            "test-org",
+			Name:           "production-k8s",
+			Type:           "K8S",
+			Description:    "Production Kubernetes cluster",
+			LastModifiedAt: 1234567890.123456,
+			LastReportedAt: floatPtr(1234567891.123456),
+			State:          map[string]any{"ready": true},
+			Tags:           map[string]string{"env": "prod"},
+			Policies:       []any{},
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -152,12 +140,6 @@ func TestGetEnvironment_Success(t *testing.T) {
 	}
 	if env.LastReportedAt == nil {
 		t.Error("expected non-nil LastReportedAt")
-	}
-	if !env.IncludeScaling {
-		t.Error("expected IncludeScaling to be true")
-	}
-	if env.RequireProvenance {
-		t.Error("expected RequireProvenance to be false")
 	}
 }
 
@@ -221,8 +203,9 @@ func TestCreateEnvironment_Success(t *testing.T) {
 		if body["description"] != "Production cluster" {
 			t.Errorf("expected description 'Production cluster', got %v", body["description"])
 		}
-		if body["include_scaling"] != true {
-			t.Errorf("expected include_scaling true, got %v", body["include_scaling"])
+		// include_scaling was removed from the API and must never be sent (issue #235)
+		if _, exists := body["include_scaling"]; exists {
+			t.Errorf("expected include_scaling to be omitted, got %v", body["include_scaling"])
 		}
 
 		// Verify policies field is sent correctly
@@ -249,11 +232,10 @@ func TestCreateEnvironment_Success(t *testing.T) {
 	}
 
 	req := &CreateEnvironmentRequest{
-		Name:           "production-k8s",
-		Type:           "K8S",
-		Description:    "Production cluster",
-		IncludeScaling: true,
-		Policies:       []any{}, // Resource layer will send empty array initially
+		Name:        "production-k8s",
+		Type:        "K8S",
+		Description: "Production cluster",
+		Policies:    []any{}, // Resource layer will send empty array initially
 	}
 
 	err = client.CreateEnvironment(context.Background(), req)
@@ -295,11 +277,10 @@ func TestCreateEnvironment_Idempotent(t *testing.T) {
 	}
 
 	req := &CreateEnvironmentRequest{
-		Name:           "production-k8s",
-		Type:           "K8S",
-		Description:    "Production cluster",
-		IncludeScaling: false,
-		Policies:       []any{},
+		Name:        "production-k8s",
+		Type:        "K8S",
+		Description: "Production cluster",
+		Policies:    []any{},
 	}
 
 	// First call (create)
@@ -436,12 +417,12 @@ func TestEnvironment_NullableFields(t *testing.T) {
 	}{
 		{
 			name:     "null LastReportedAt",
-			respJSON: `{"org":"test-org","name":"env1","type":"K8S","description":"","last_modified_at":123.456,"last_reported_at":null,"state":null,"include_scaling":false,"require_provenance":false,"tags":{},"policies":[]}`,
+			respJSON: `{"org":"test-org","name":"env1","type":"K8S","description":"","last_modified_at":123.456,"last_reported_at":null,"state":null,"tags":{},"policies":[]}`,
 			wantNil:  true,
 		},
 		{
 			name:     "non-null LastReportedAt",
-			respJSON: `{"org":"test-org","name":"env2","type":"ECS","description":"","last_modified_at":123.456,"last_reported_at":789.012,"state":{},"include_scaling":false,"require_provenance":false,"tags":{},"policies":[]}`,
+			respJSON: `{"org":"test-org","name":"env2","type":"ECS","description":"","last_modified_at":123.456,"last_reported_at":789.012,"state":{},"tags":{},"policies":[]}`,
 			wantNil:  false,
 		},
 	}
@@ -500,8 +481,6 @@ func TestGetEnvironment_LogicalEnvironment(t *testing.T) {
 			LastModifiedAt:       1234567890.123456,
 			LastReportedAt:       nil,
 			State:                nil,
-			IncludeScaling:       false,
-			RequireProvenance:    false,
 			Tags:                 map[string]string{},
 			Policies:             []any{},
 			IncludedEnvironments: []string{"prod-k8s", "prod-ecs", "prod-lambda"},
@@ -544,11 +523,6 @@ func TestGetEnvironment_LogicalEnvironment(t *testing.T) {
 		if env.IncludedEnvironments[i] != expectedEnv {
 			t.Errorf("expected included_environments[%d] = %s, got %s", i, expectedEnv, env.IncludedEnvironments[i])
 		}
-	}
-
-	// Verify logical environments don't have include_scaling set to true
-	if env.IncludeScaling {
-		t.Error("expected IncludeScaling to be false for logical environment")
 	}
 }
 
@@ -630,9 +604,9 @@ func TestUpdateEnvironment_LogicalChangedEnvironments(t *testing.T) {
 				t.Errorf("call 2: expected 3 environments, got %d", len(includedEnvs))
 			}
 		}
-		// include_scaling must be omitted for logical environments
+		// include_scaling was removed from the API and must never be sent (issue #235)
 		if _, exists := body["include_scaling"]; exists {
-			t.Errorf("call %d: expected include_scaling to be omitted for logical environment, got %v", callCount, body["include_scaling"])
+			t.Errorf("call %d: expected include_scaling to be omitted, got %v", callCount, body["include_scaling"])
 		}
 
 		w.WriteHeader(http.StatusOK)
@@ -675,17 +649,15 @@ func TestListEnvironments_WithLogical(t *testing.T) {
 		// Return mix of physical and logical environments
 		resp := []Environment{
 			{
-				Org:               "test-org",
-				Name:              "production-k8s",
-				Type:              "K8S",
-				Description:       "Production cluster",
-				LastModifiedAt:    1234567890.123456,
-				LastReportedAt:    nil,
-				State:             nil,
-				IncludeScaling:    true,
-				RequireProvenance: false,
-				Tags:              map[string]string{},
-				Policies:          []any{},
+				Org:            "test-org",
+				Name:           "production-k8s",
+				Type:           "K8S",
+				Description:    "Production cluster",
+				LastModifiedAt: 1234567890.123456,
+				LastReportedAt: nil,
+				State:          nil,
+				Tags:           map[string]string{},
+				Policies:       []any{},
 			},
 			{
 				Org:                  "test-org",
@@ -695,8 +667,6 @@ func TestListEnvironments_WithLogical(t *testing.T) {
 				LastModifiedAt:       1234567891.123456,
 				LastReportedAt:       nil,
 				State:                nil,
-				IncludeScaling:       false,
-				RequireProvenance:    false,
 				Tags:                 map[string]string{},
 				Policies:             []any{},
 				IncludedEnvironments: []string{"production-k8s"},
@@ -768,8 +738,9 @@ func TestUpdateEnvironment_Success(t *testing.T) {
 		if body["description"] != "Updated description" {
 			t.Errorf("expected description 'Updated description', got %v", body["description"])
 		}
-		if body["include_scaling"] != true {
-			t.Errorf("expected include_scaling true, got %v", body["include_scaling"])
+		// include_scaling was removed from the API and must never be sent (issue #235)
+		if _, exists := body["include_scaling"]; exists {
+			t.Errorf("expected include_scaling to be omitted, got %v", body["include_scaling"])
 		}
 		// included_environments should be omitted for physical env updates
 		if _, exists := body["included_environments"]; exists {
@@ -797,10 +768,8 @@ func TestUpdateEnvironment_Success(t *testing.T) {
 	}
 
 	description := "Updated description"
-	includeScaling := true
 	req := &UpdateEnvironmentRequest{
-		Description:    &description,
-		IncludeScaling: &includeScaling,
+		Description: &description,
 	}
 
 	if err := client.UpdateEnvironment(context.Background(), "production-k8s", req); err != nil {
@@ -839,10 +808,8 @@ func TestUpdateEnvironment_ClearDescription(t *testing.T) {
 	}
 
 	description := ""
-	includeScaling := false
 	req := &UpdateEnvironmentRequest{
-		Description:    &description,
-		IncludeScaling: &includeScaling,
+		Description: &description,
 	}
 
 	if err := client.UpdateEnvironment(context.Background(), "production-k8s", req); err != nil {
@@ -851,7 +818,7 @@ func TestUpdateEnvironment_ClearDescription(t *testing.T) {
 }
 
 // TestUpdateEnvironment_OmitsNilFields verifies that nil pointer fields are
-// omitted from the request body — for example, a scaling-only update should
+// omitted from the request body - for example, a members-only update should
 // not contain a "description" key, leaving the existing description unchanged.
 func TestUpdateEnvironment_OmitsNilFields(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -862,11 +829,8 @@ func TestUpdateEnvironment_OmitsNilFields(t *testing.T) {
 		if _, exists := body["description"]; exists {
 			t.Errorf("expected description to be omitted, got %v", body["description"])
 		}
-		if _, exists := body["included_environments"]; exists {
-			t.Errorf("expected included_environments to be omitted, got %v", body["included_environments"])
-		}
-		if body["include_scaling"] != true {
-			t.Errorf("expected include_scaling true, got %v", body["include_scaling"])
+		if _, exists := body["included_environments"]; !exists {
+			t.Error("expected included_environments in PATCH body")
 		}
 
 		w.WriteHeader(http.StatusOK)
@@ -882,19 +846,17 @@ func TestUpdateEnvironment_OmitsNilFields(t *testing.T) {
 		t.Fatalf("failed to create client: %v", err)
 	}
 
-	includeScaling := true
 	req := &UpdateEnvironmentRequest{
-		IncludeScaling: &includeScaling,
+		IncludedEnvironments: []string{"env1"},
 	}
 
-	if err := client.UpdateEnvironment(context.Background(), "production-k8s", req); err != nil {
+	if err := client.UpdateEnvironment(context.Background(), "logical-prod", req); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 }
 
 // TestUpdateEnvironment_LogicalIncludesEnvironments verifies that
-// included_environments is sent for logical environment updates and that
-// include_scaling is omitted (logical envs don't have scaling).
+// included_environments is sent for logical environment updates.
 func TestUpdateEnvironment_LogicalIncludesEnvironments(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPatch {
@@ -917,10 +879,9 @@ func TestUpdateEnvironment_LogicalIncludesEnvironments(t *testing.T) {
 		if len(included) != 2 || included[0] != "env1" || included[1] != "env2" {
 			t.Errorf("unexpected included_environments: %v", included)
 		}
-		// include_scaling does not apply to logical environments and must
-		// not be sent in the PATCH body.
+		// include_scaling was removed from the API and must never be sent (issue #235)
 		if _, exists := body["include_scaling"]; exists {
-			t.Errorf("expected include_scaling to be omitted for logical environment, got %v", body["include_scaling"])
+			t.Errorf("expected include_scaling to be omitted, got %v", body["include_scaling"])
 		}
 
 		w.WriteHeader(http.StatusOK)

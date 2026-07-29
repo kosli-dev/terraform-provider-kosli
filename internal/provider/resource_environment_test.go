@@ -40,7 +40,7 @@ func TestEnvironmentResource_Schema(t *testing.T) {
 
 	// Verify required attributes exist
 	attrs := resp.Schema.Attributes
-	requiredAttrs := []string{"name", "type", "description", "include_scaling", "tags"}
+	requiredAttrs := []string{"name", "type", "description", "tags"}
 	for _, attr := range requiredAttrs {
 		if _, exists := attrs[attr]; !exists {
 			t.Errorf("Expected attribute %q to exist in schema", attr)
@@ -65,13 +65,9 @@ func TestEnvironmentResource_Schema(t *testing.T) {
 		t.Error("Expected 'description' attribute to be optional")
 	}
 
-	// Verify include_scaling is optional and computed
-	includeScalingAttr := attrs["include_scaling"]
-	if includeScalingAttr.IsOptional() == false {
-		t.Error("Expected 'include_scaling' attribute to be optional")
-	}
-	if includeScalingAttr.IsComputed() == false {
-		t.Error("Expected 'include_scaling' attribute to be computed")
+	// include_scaling was removed from the API and must not be in the schema (issue #235)
+	if _, exists := attrs["include_scaling"]; exists {
+		t.Error("Expected 'include_scaling' attribute to be removed from schema")
 	}
 
 	// Verify tags is optional
@@ -124,11 +120,10 @@ func TestEnvironmentResource_Configure_WrongType(t *testing.T) {
 func TestEnvironmentResourceModel_Structure(t *testing.T) {
 	// Test that the model can be created with expected fields
 	model := environmentResourceModel{
-		Name:           types.StringValue("production-k8s"),
-		Type:           types.StringValue("K8S"),
-		Description:    types.StringValue("Production cluster"),
-		IncludeScaling: types.BoolValue(true),
-		Tags:           types.MapNull(types.StringType),
+		Name:        types.StringValue("production-k8s"),
+		Type:        types.StringValue("K8S"),
+		Description: types.StringValue("Production cluster"),
+		Tags:        types.MapNull(types.StringType),
 	}
 
 	if model.Name.ValueString() != "production-k8s" {
@@ -141,10 +136,6 @@ func TestEnvironmentResourceModel_Structure(t *testing.T) {
 
 	if model.Description.ValueString() != "Production cluster" {
 		t.Error("Expected Description to be set correctly")
-	}
-
-	if model.IncludeScaling.ValueBool() != true {
-		t.Error("Expected IncludeScaling to be set correctly")
 	}
 
 	if !model.Tags.IsNull() {
@@ -163,11 +154,10 @@ func TestEnvironmentResourceModel_WithTags(t *testing.T) {
 	}
 
 	model := environmentResourceModel{
-		Name:           types.StringValue("production-k8s"),
-		Type:           types.StringValue("K8S"),
-		Description:    types.StringNull(),
-		IncludeScaling: types.BoolValue(false),
-		Tags:           tagsMap,
+		Name:        types.StringValue("production-k8s"),
+		Type:        types.StringValue("K8S"),
+		Description: types.StringNull(),
+		Tags:        tagsMap,
 	}
 
 	if model.Tags.IsNull() {
@@ -191,11 +181,10 @@ func TestEnvironmentResourceModel_WithTags(t *testing.T) {
 func TestEnvironmentResourceModel_WithNullValues(t *testing.T) {
 	// Test that the model handles null values correctly
 	model := environmentResourceModel{
-		Name:           types.StringValue("test-env"),
-		Type:           types.StringValue("docker"),
-		Description:    types.StringNull(),
-		IncludeScaling: types.BoolValue(false),
-		Tags:           types.MapNull(types.StringType),
+		Name:        types.StringValue("test-env"),
+		Type:        types.StringValue("docker"),
+		Description: types.StringNull(),
+		Tags:        types.MapNull(types.StringType),
 	}
 
 	if model.Name.ValueString() != "test-env" {
@@ -204,10 +193,6 @@ func TestEnvironmentResourceModel_WithNullValues(t *testing.T) {
 
 	if !model.Description.IsNull() {
 		t.Error("Expected Description to be null")
-	}
-
-	if model.IncludeScaling.ValueBool() != false {
-		t.Error("Expected IncludeScaling to be false")
 	}
 
 	if !model.Tags.IsNull() {

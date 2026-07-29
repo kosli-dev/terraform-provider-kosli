@@ -60,11 +60,6 @@ output "production_type" {
   value       = data.kosli_environment.production.type
 }
 
-output "production_includes_scaling" {
-  description = "Whether production environment includes scaling events"
-  value       = data.kosli_environment.production.include_scaling
-}
-
 # Access tags applied to the environment
 output "production_tags" {
   description = "Tags applied to the production environment"
@@ -117,7 +112,6 @@ Data sources provide read-only access to environment metadata. To modify environ
 ### Read-Only
 
 - `description` (String) The description of the environment.
-- `include_scaling` (Boolean) Whether the environment includes scaling events in snapshots.
 - `last_modified_at` (Number) Unix timestamp (with fractional seconds) of when the environment was last modified.
 - `last_reported_at` (Number) Unix timestamp (with fractional seconds) of when the environment was last reported. May be null if never reported.
 - `tags` (Map of String) Key-value pairs tagging the environment.

@@ -13,12 +13,11 @@ resource "kosli_environment" "production_k8s" {
   description = "Production Kubernetes cluster"
 }
 
-# ECS environment with scaling
+# ECS environment
 resource "kosli_environment" "staging_ecs" {
-  name            = "staging-ecs"
-  type            = "ECS"
-  description     = "Staging ECS cluster"
-  include_scaling = true
+  name        = "staging-ecs"
+  type        = "ECS"
+  description = "Staging ECS cluster"
 }
 
 # S3 environment
@@ -36,10 +35,9 @@ resource "kosli_environment" "local_docker" {
 
 # Server environment
 resource "kosli_environment" "production_servers" {
-  name            = "production-servers"
-  type            = "server"
-  description     = "Production bare-metal servers"
-  include_scaling = false
+  name        = "production-servers"
+  type        = "server"
+  description = "Production bare-metal servers"
 }
 
 # Lambda environment

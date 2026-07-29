@@ -26,7 +26,6 @@ func TestAccEnvironmentDataSource_basic(t *testing.T) {
 					resource.TestCheckResourceAttrPair(dataSourceName, "name", resourceName, "name"),
 					resource.TestCheckResourceAttrPair(dataSourceName, "type", resourceName, "type"),
 					resource.TestCheckResourceAttrPair(dataSourceName, "description", resourceName, "description"),
-					resource.TestCheckResourceAttrPair(dataSourceName, "include_scaling", resourceName, "include_scaling"),
 					// Verify timestamp fields are populated
 					resource.TestCheckResourceAttrSet(dataSourceName, "last_modified_at"),
 				),
@@ -53,13 +52,11 @@ func TestAccEnvironmentDataSource_computedAttributes(t *testing.T) {
 					resource.TestCheckResourceAttr(dataSourceName, "name", rName),
 					resource.TestCheckResourceAttr(dataSourceName, "type", "ECS"),
 					resource.TestCheckResourceAttr(dataSourceName, "description", description),
-					resource.TestCheckResourceAttr(dataSourceName, "include_scaling", "true"),
 					resource.TestCheckResourceAttrSet(dataSourceName, "last_modified_at"),
 					// Verify data source matches resource
 					resource.TestCheckResourceAttrPair(dataSourceName, "name", resourceName, "name"),
 					resource.TestCheckResourceAttrPair(dataSourceName, "type", resourceName, "type"),
 					resource.TestCheckResourceAttrPair(dataSourceName, "description", resourceName, "description"),
-					resource.TestCheckResourceAttrPair(dataSourceName, "include_scaling", resourceName, "include_scaling"),
 				),
 			},
 		},
@@ -177,10 +174,9 @@ data "kosli_environment" "test" {
 func testAccEnvironmentDataSourceConfigFull(name, description string) string {
 	return fmt.Sprintf(`
 resource "kosli_environment" "test" {
-  name            = %[1]q
-  type            = "ECS"
-  description     = %[2]q
-  include_scaling = true
+  name        = %[1]q
+  type        = "ECS"
+  description = %[2]q
 }
 
 data "kosli_environment" "test" {
