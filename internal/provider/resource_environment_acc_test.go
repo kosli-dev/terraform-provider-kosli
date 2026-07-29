@@ -23,7 +23,6 @@ func TestAccEnvironmentResource_basic(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
 					resource.TestCheckResourceAttr(resourceName, "type", "K8S"),
-					resource.TestCheckResourceAttr(resourceName, "include_scaling", "false"),
 				),
 			},
 		},
@@ -46,7 +45,6 @@ func TestAccEnvironmentResource_full(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
 					resource.TestCheckResourceAttr(resourceName, "type", "ECS"),
 					resource.TestCheckResourceAttr(resourceName, "description", description),
-					resource.TestCheckResourceAttr(resourceName, "include_scaling", "true"),
 				),
 			},
 		},
@@ -70,16 +68,14 @@ func TestAccEnvironmentResource_update(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
 					resource.TestCheckResourceAttr(resourceName, "description", description1),
-					resource.TestCheckResourceAttr(resourceName, "include_scaling", "true"),
 				),
 			},
-			// Step 2: Update description and include_scaling
+			// Step 2: Update description
 			{
 				Config: testAccEnvironmentResourceConfigUpdate(rName, description2),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
 					resource.TestCheckResourceAttr(resourceName, "description", description2),
-					resource.TestCheckResourceAttr(resourceName, "include_scaling", "false"),
 				),
 			},
 		},
@@ -246,10 +242,9 @@ resource "kosli_environment" "test" {
 func testAccEnvironmentResourceConfigFull(name, description string) string {
 	return fmt.Sprintf(`
 resource "kosli_environment" "test" {
-  name            = %[1]q
-  type            = "ECS"
-  description     = %[2]q
-  include_scaling = true
+  name        = %[1]q
+  type        = "ECS"
+  description = %[2]q
 }
 `, name, description)
 }
@@ -259,9 +254,8 @@ resource "kosli_environment" "test" {
 func testAccEnvironmentResourceConfigNoDescription(name string) string {
 	return fmt.Sprintf(`
 resource "kosli_environment" "test" {
-  name            = %[1]q
-  type            = "ECS"
-  include_scaling = true
+  name = %[1]q
+  type = "ECS"
 }
 `, name)
 }
@@ -270,10 +264,9 @@ resource "kosli_environment" "test" {
 func testAccEnvironmentResourceConfigUpdate(name, description string) string {
 	return fmt.Sprintf(`
 resource "kosli_environment" "test" {
-  name            = %[1]q
-  type            = "ECS"
-  description     = %[2]q
-  include_scaling = false
+  name        = %[1]q
+  type        = "ECS"
+  description = %[2]q
 }
 `, name, description)
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -31,11 +30,10 @@ type environmentResource struct {
 
 // environmentResourceModel describes the resource data model.
 type environmentResourceModel struct {
-	Name           types.String `tfsdk:"name"`
-	Type           types.String `tfsdk:"type"`
-	Description    types.String `tfsdk:"description"`
-	IncludeScaling types.Bool   `tfsdk:"include_scaling"`
-	Tags           types.Map    `tfsdk:"tags"`
+	Name        types.String `tfsdk:"name"`
+	Type        types.String `tfsdk:"type"`
+	Description types.String `tfsdk:"description"`
+	Tags        types.Map    `tfsdk:"tags"`
 }
 
 // Metadata returns the resource type name.
@@ -68,12 +66,6 @@ func (r *environmentResource) Schema(ctx context.Context, req resource.SchemaReq
 			"description": schema.StringAttribute{
 				MarkdownDescription: "Description of the environment. Explains the purpose and characteristics of this deployment target.",
 				Optional:            true,
-			},
-			"include_scaling": schema.BoolAttribute{
-				MarkdownDescription: "Whether to include scaling information when reporting environment snapshots. Defaults to `false`.",
-				Optional:            true,
-				Computed:            true,
-				Default:             booldefault.StaticBool(false),
 			},
 			"tags": schema.MapAttribute{
 				MarkdownDescription: "Key-value pairs to tag the environment.",
@@ -115,10 +107,9 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 
 	// Create API request
 	createReq := &client.CreateEnvironmentRequest{
-		Name:           data.Name.ValueString(),
-		Type:           data.Type.ValueString(),
-		Description:    data.Description.ValueString(),
-		IncludeScaling: data.IncludeScaling.ValueBool(),
+		Name:        data.Name.ValueString(),
+		Type:        data.Type.ValueString(),
+		Description: data.Description.ValueString(),
 	}
 
 	// Call API to create the environment
@@ -219,10 +210,8 @@ func (r *environmentResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 
 	description := data.Description.ValueString()
-	includeScaling := data.IncludeScaling.ValueBool()
 	updateReq := &client.UpdateEnvironmentRequest{
-		Description:    &description,
-		IncludeScaling: &includeScaling,
+		Description: &description,
 	}
 
 	// Call API to update the environment
@@ -300,7 +289,6 @@ func mapEnvToState(ctx context.Context, env *client.Environment, data *environme
 	} else {
 		data.Description = types.StringValue(env.Description)
 	}
-	data.IncludeScaling = types.BoolValue(env.IncludeScaling)
 
 	// Normalize nil tags to empty map to prevent drift when tags = {} is set in config.
 	tags := env.Tags

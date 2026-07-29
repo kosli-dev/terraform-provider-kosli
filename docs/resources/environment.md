@@ -45,12 +45,11 @@ resource "kosli_environment" "production_k8s" {
   description = "Production Kubernetes cluster"
 }
 
-# ECS environment with scaling
+# ECS environment
 resource "kosli_environment" "staging_ecs" {
-  name            = "staging-ecs"
-  type            = "ECS"
-  description     = "Staging ECS cluster"
-  include_scaling = true
+  name        = "staging-ecs"
+  type        = "ECS"
+  description = "Staging ECS cluster"
 }
 
 # S3 environment
@@ -68,10 +67,9 @@ resource "kosli_environment" "local_docker" {
 
 # Server environment
 resource "kosli_environment" "production_servers" {
-  name            = "production-servers"
-  type            = "server"
-  description     = "Production bare-metal servers"
-  include_scaling = false
+  name        = "production-servers"
+  type        = "server"
+  description = "Production bare-metal servers"
 }
 
 # Lambda environment
@@ -105,12 +103,6 @@ The `type` attribute must be one of the following physical environment types:
 - `server` - Bare-metal or VM servers
 - `lambda` - AWS Lambda functions
 
-## Configuration Options
-
-### Include Scaling
-
-The `include_scaling` attribute (default: `false`) determines whether scaling events in the environment should be tracked. This is useful for environments with auto-scaling where you want to monitor scale-up and scale-down events.
-
 ## Import
 
 Environments can be imported using their name:
@@ -141,5 +133,4 @@ For querying environment metadata such as `last_modified_at` and `last_reported_
 ### Optional
 
 - `description` (String) Description of the environment. Explains the purpose and characteristics of this deployment target.
-- `include_scaling` (Boolean) Whether to include scaling information when reporting environment snapshots. Defaults to `false`.
 - `tags` (Map of String) Key-value pairs to tag the environment.

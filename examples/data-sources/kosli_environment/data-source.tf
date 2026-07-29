@@ -39,11 +39,6 @@ output "production_type" {
   value       = data.kosli_environment.production.type
 }
 
-output "production_includes_scaling" {
-  description = "Whether production environment includes scaling events"
-  value       = data.kosli_environment.production.include_scaling
-}
-
 # Access tags applied to the environment
 output "production_tags" {
   description = "Tags applied to the production environment"

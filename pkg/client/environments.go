@@ -7,17 +7,15 @@ import (
 
 // Environment represents a Kosli environment as returned by the API
 type Environment struct {
-	Org               string            `json:"org"`
-	Name              string            `json:"name"`
-	Type              string            `json:"type"`
-	Description       string            `json:"description"`
-	LastModifiedAt    float64           `json:"last_modified_at"`
-	LastReportedAt    *float64          `json:"last_reported_at"` // nullable
-	State             any               `json:"state"`            // any JSON type
-	IncludeScaling    bool              `json:"include_scaling"`
-	RequireProvenance bool              `json:"require_provenance"`
-	Tags              map[string]string `json:"tags"`
-	Policies          []any             `json:"policies"`
+	Org            string            `json:"org"`
+	Name           string            `json:"name"`
+	Type           string            `json:"type"`
+	Description    string            `json:"description"`
+	LastModifiedAt float64           `json:"last_modified_at"`
+	LastReportedAt *float64          `json:"last_reported_at"` // nullable
+	State          any               `json:"state"`            // any JSON type
+	Tags           map[string]string `json:"tags"`
+	Policies       []any             `json:"policies"`
 	// Logical environments only:
 	IncludedEnvironments []string `json:"included_environments,omitempty"`
 }
@@ -27,7 +25,6 @@ type CreateEnvironmentRequest struct {
 	Name                 string
 	Type                 string
 	Description          string
-	IncludeScaling       bool
 	IncludedEnvironments []string // for logical environments only
 	Policies             []any    // policies to attach to the environment
 }
@@ -43,7 +40,6 @@ type CreateEnvironmentRequest struct {
 // (see issue #122).
 type UpdateEnvironmentRequest struct {
 	Description          *string  // nil to omit; pointer to "" to clear
-	IncludeScaling       *bool    // nil to omit (e.g. logical environments)
 	IncludedEnvironments []string // for logical environments only; nil to omit
 }
 
@@ -99,7 +95,6 @@ func (c *Client) CreateEnvironment(ctx context.Context, req *CreateEnvironmentRe
 		"name":                  req.Name,
 		"type":                  req.Type,
 		"description":           req.Description,
-		"include_scaling":       req.IncludeScaling,
 		"included_environments": req.IncludedEnvironments,
 		"policies":              req.Policies,
 	}
@@ -126,13 +121,10 @@ func (c *Client) UpdateEnvironment(ctx context.Context, name string, req *Update
 
 	// Build request body. Only include optional fields when the caller
 	// provided them, so fields that don't apply to a given environment
-	// kind (e.g. include_scaling on a logical environment) are omitted.
+	// kind (e.g. included_environments on a physical environment) are omitted.
 	body := map[string]any{}
 	if req.Description != nil {
 		body["description"] = *req.Description
-	}
-	if req.IncludeScaling != nil {
-		body["include_scaling"] = *req.IncludeScaling
 	}
 	if req.IncludedEnvironments != nil {
 		body["included_environments"] = req.IncludedEnvironments

@@ -40,7 +40,7 @@ func TestEnvironmentDataSource_Schema(t *testing.T) {
 
 	// Verify required attributes exist
 	attrs := resp.Schema.Attributes
-	requiredAttrs := []string{"name", "type", "description", "include_scaling", "last_modified_at", "last_reported_at", "tags"}
+	requiredAttrs := []string{"name", "type", "description", "last_modified_at", "last_reported_at", "tags"}
 	for _, attr := range requiredAttrs {
 		if _, exists := attrs[attr]; !exists {
 			t.Errorf("Expected attribute %q to exist in schema", attr)
@@ -65,10 +65,9 @@ func TestEnvironmentDataSource_Schema(t *testing.T) {
 		t.Error("Expected 'description' attribute to be computed")
 	}
 
-	// Verify include_scaling is computed
-	includeScalingAttr := attrs["include_scaling"]
-	if includeScalingAttr.IsComputed() == false {
-		t.Error("Expected 'include_scaling' attribute to be computed")
+	// include_scaling was removed from the API and must not be in the schema (issue #235)
+	if _, exists := attrs["include_scaling"]; exists {
+		t.Error("Expected 'include_scaling' attribute to be removed from schema")
 	}
 
 	// Verify last_modified_at is computed
@@ -136,7 +135,6 @@ func TestEnvironmentDataSourceModel_Structure(t *testing.T) {
 		Name:           types.StringValue("production-k8s"),
 		Type:           types.StringValue("K8S"),
 		Description:    types.StringValue("Production cluster"),
-		IncludeScaling: types.BoolValue(true),
 		LastModifiedAt: types.Float64Value(1640000000.123456),
 		LastReportedAt: types.Float64Value(1640000100.654321),
 		Tags:           types.MapNull(types.StringType),
@@ -152,10 +150,6 @@ func TestEnvironmentDataSourceModel_Structure(t *testing.T) {
 
 	if model.Description.ValueString() != "Production cluster" {
 		t.Error("Expected Description to be set correctly")
-	}
-
-	if model.IncludeScaling.ValueBool() != true {
-		t.Error("Expected IncludeScaling to be true")
 	}
 
 	if model.LastModifiedAt.ValueFloat64() != 1640000000.123456 {
@@ -185,7 +179,6 @@ func TestEnvironmentDataSourceModel_WithTags(t *testing.T) {
 		Name:           types.StringValue("production-k8s"),
 		Type:           types.StringValue("K8S"),
 		Description:    types.StringNull(),
-		IncludeScaling: types.BoolValue(false),
 		LastModifiedAt: types.Float64Value(1640000000.0),
 		LastReportedAt: types.Float64Null(),
 		Tags:           tagsMap,
@@ -215,7 +208,6 @@ func TestEnvironmentDataSourceModel_WithNullValues(t *testing.T) {
 		Name:           types.StringValue("test-env"),
 		Type:           types.StringValue("docker"),
 		Description:    types.StringNull(),
-		IncludeScaling: types.BoolValue(false),
 		LastModifiedAt: types.Float64Value(1640000000.0),
 		LastReportedAt: types.Float64Null(),
 		Tags:           types.MapNull(types.StringType),
@@ -231,10 +223,6 @@ func TestEnvironmentDataSourceModel_WithNullValues(t *testing.T) {
 
 	if !model.LastReportedAt.IsNull() {
 		t.Error("Expected LastReportedAt to be null")
-	}
-
-	if model.IncludeScaling.ValueBool() != false {
-		t.Error("Expected IncludeScaling to be false")
 	}
 
 	if !model.Tags.IsNull() {
