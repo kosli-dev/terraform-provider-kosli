@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.2 (July 30, 2026)
+
+BREAKING CHANGES:
+
+* data_source/kosli_environment: Removed the `include_scaling` attribute; the Kosli API no longer honors it and always reports it as `false` [GH-236]
+* resource/kosli_environment: Removed the `include_scaling` attribute; the Kosli API no longer honors it, so setting it to `true` caused apply failures [GH-236]
+
 ## 0.9.1 (July 28, 2026)
 
 NOTES:
