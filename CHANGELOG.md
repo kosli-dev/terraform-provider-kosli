@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.3 (August 18, 2026)
+
+FEATURES:
+
+* data_source/kosli_custom_attestation_type: Added `summary` attribute exposing the ordered, labelled jq expressions rendered as rows on the attestation detail page [GH-243]
+* resource/kosli_custom_attestation_type: Added optional `summary` attribute for defining ordered, labelled jq expressions rendered as rows on the attestation detail page, with URL values rendered as links [GH-243]
+
+BUG FIXES:
+
+* data_source/kosli_custom_attestation_type: Fixed `schema` being read as an empty string instead of `null` for attestation types defined without a schema, which caused a "not valid JSON" error [GH-243]
+
 ## 0.9.2 (July 30, 2026)
 
 BREAKING CHANGES:
