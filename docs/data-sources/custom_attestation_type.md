@@ -36,8 +36,9 @@ resource "kosli_custom_attestation_type" "security_strict" {
   name        = "security-scan-strict"
   description = "Stricter security requirements"
 
-  # Reuse the schema from the existing type
-  schema = data.kosli_custom_attestation_type.security.schema
+  # Reuse the schema and summary rows from the existing type
+  schema       = data.kosli_custom_attestation_type.security.schema
+  summary_json = data.kosli_custom_attestation_type.security.summary_json
 
   # Apply stricter validation rules
   jq_rules = [
@@ -56,6 +57,11 @@ output "security_scan_description" {
 output "security_scan_rules" {
   description = "JQ rules for the security scan attestation type"
   value       = data.kosli_custom_attestation_type.security.jq_rules
+}
+
+output "security_scan_summary" {
+  description = "Summary rows shown on the attestation detail page, as a JSON array"
+  value       = data.kosli_custom_attestation_type.security.summary_json
 }
 
 output "security_scan_archived" {
@@ -83,3 +89,4 @@ The `archived` attribute indicates whether an attestation type has been deleted/
 - `description` (String) A description of what this attestation type validates.
 - `jq_rules` (List of String) List of jq expressions that define evaluation rules. All rules must evaluate to `true` for compliance.
 - `schema` (String) JSON Schema that defines the structure of attestation data.
+- `summary_json` (String) JSON array of ordered, labelled jq expressions rendered as rows on the attestation detail page in Kosli. Each element is an object with a `name` and an `expression`. Null when the type defines no summary.

@@ -30,6 +30,7 @@ type customAttestationTypeDataSourceModel struct {
 	Description types.String         `tfsdk:"description"`
 	Schema      jsontypes.Normalized `tfsdk:"schema"`
 	JqRules     types.List           `tfsdk:"jq_rules"`
+	SummaryJSON jsontypes.Normalized `tfsdk:"summary_json"`
 	Archived    types.Bool           `tfsdk:"archived"`
 }
 
@@ -61,6 +62,11 @@ func (d *customAttestationTypeDataSource) Schema(ctx context.Context, req dataso
 				Computed:            true,
 				ElementType:         types.StringType,
 				MarkdownDescription: "List of jq expressions that define evaluation rules. All rules must evaluate to `true` for compliance.",
+			},
+			"summary_json": schema.StringAttribute{
+				Computed:            true,
+				CustomType:          jsontypes.NormalizedType{},
+				MarkdownDescription: "JSON array of ordered, labelled jq expressions rendered as rows on the attestation detail page in Kosli. Each element is an object with a `name` and an `expression`. Null when the type defines no summary.",
 			},
 			"archived": schema.BoolAttribute{
 				Computed:            true,
@@ -113,8 +119,21 @@ func (d *customAttestationTypeDataSource) Read(ctx context.Context, req datasour
 	// Map response to model
 	data.Name = types.StringValue(attestationType.Name)
 	data.Description = types.StringValue(attestationType.Description)
-	data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
 	data.Archived = types.BoolValue(attestationType.Archived)
+
+	// A type with no schema or no summary reports null rather than an empty
+	// string, which the JSON custom type would reject as malformed JSON
+	if attestationType.Schema == "" || attestationType.Schema == "None" {
+		data.Schema = jsontypes.NewNormalizedNull()
+	} else {
+		data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
+	}
+
+	if attestationType.Summary == "" {
+		data.SummaryJSON = jsontypes.NewNormalizedNull()
+	} else {
+		data.SummaryJSON = jsontypes.NewNormalizedValue(attestationType.Summary)
+	}
 
 	// Convert jq_rules (API client already transformed from evaluator format)
 	jqRules := make([]types.String, 0, len(attestationType.JqRules))

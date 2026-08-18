@@ -703,3 +703,158 @@ func TestTransformation_EmptyRules(t *testing.T) {
 		t.Error("expected evaluator to be absent when jq_rules is empty")
 	}
 }
+
+// TestTransformation_ToAPIFormat_Summary tests that summary is passed through
+// verbatim as raw JSON when provided.
+func TestTransformation_ToAPIFormat_Summary(t *testing.T) {
+	req := &CreateCustomAttestationTypeRequest{
+		Name:    "test-type",
+		Summary: `[{"name":"Coverage","expression":".coverage"}]`,
+	}
+
+	result := req.toAPIFormat()
+
+	raw, ok := result["summary"].(json.RawMessage)
+	if !ok {
+		t.Fatalf("expected summary to be json.RawMessage, got %T", result["summary"])
+	}
+	if string(raw) != `[{"name":"Coverage","expression":".coverage"}]` {
+		t.Errorf("summary not passed through verbatim, got %s", raw)
+	}
+
+	// Round-trip through the wire encoding to confirm it lands as a JSON array
+	encoded, err := json.Marshal(result)
+	if err != nil {
+		t.Fatalf("failed to marshal data_json: %v", err)
+	}
+	var decoded map[string]any
+	if err := json.Unmarshal(encoded, &decoded); err != nil {
+		t.Fatalf("failed to unmarshal data_json: %v", err)
+	}
+	summary, ok := decoded["summary"].([]any)
+	if !ok || len(summary) != 1 {
+		t.Fatalf("expected summary to encode as a 1-element array, got %v", decoded["summary"])
+	}
+	entry := summary[0].(map[string]any)
+	if entry["name"] != "Coverage" || entry["expression"] != ".coverage" {
+		t.Errorf("unexpected summary entry: %v", entry)
+	}
+}
+
+// TestTransformation_ToAPIFormat_NoSummary tests that the summary key is omitted
+// when no summary is set. Omitting the key is how a summary gets cleared: the API
+// stores null for the new version.
+func TestTransformation_ToAPIFormat_NoSummary(t *testing.T) {
+	req := &CreateCustomAttestationTypeRequest{
+		Name:    "test-type",
+		JqRules: []string{".age > 21"},
+	}
+
+	result := req.toAPIFormat()
+
+	if _, ok := result["summary"]; ok {
+		t.Error("expected summary to be absent when not set")
+	}
+}
+
+// TestCreateCustomAttestationType_InvalidSummary tests that malformed summary JSON
+// surfaces as an error rather than being sent to the API.
+func TestCreateCustomAttestationType_InvalidSummary(t *testing.T) {
+	req := &CreateCustomAttestationTypeRequest{
+		Name:    "test-type",
+		Summary: `[{"name": broken}]`,
+	}
+
+	if _, _, err := req.MarshalMultipart(); err == nil {
+		t.Fatal("expected an error for malformed summary JSON, got nil")
+	}
+}
+
+// TestTransformation_FromAPIFormat_Summary tests that summary is extracted from the
+// latest version and normalized to canonical compact JSON.
+func TestTransformation_FromAPIFormat_Summary(t *testing.T) {
+	at := &CustomAttestationType{
+		Name: "test-type",
+		Versions: []Version{
+			{
+				Version:    2,
+				TypeSchema: json.RawMessage(`{"type": "object"}`),
+				Summary:    json.RawMessage("[\n  { \"name\": \"Coverage\", \"expression\": \".coverage\" }\n]"),
+			},
+			{
+				Version: 1,
+				Summary: json.RawMessage(`[{"name":"Old","expression":".old"}]`),
+			},
+		},
+	}
+
+	if err := at.fromAPIFormat(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expected := `[{"expression":".coverage","name":"Coverage"}]`
+	if at.Summary != expected {
+		t.Errorf("expected normalized summary %s, got %s", expected, at.Summary)
+	}
+}
+
+// TestTransformation_FromAPIFormat_SummaryAbsent tests that a version with no summary
+// (the API returns null) yields an empty string rather than the literal "null".
+func TestTransformation_FromAPIFormat_SummaryAbsent(t *testing.T) {
+	tests := []struct {
+		name string
+		raw  json.RawMessage
+	}{
+		{"missing key", nil},
+		{"explicit null", json.RawMessage("null")},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			at := &CustomAttestationType{
+				Name:     "test-type",
+				Versions: []Version{{Version: 1, TypeSchema: json.RawMessage(`{"type":"object"}`), Summary: tt.raw}},
+			}
+
+			if err := at.fromAPIFormat(); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if at.Summary != "" {
+				t.Errorf("expected empty summary, got %q", at.Summary)
+			}
+		})
+	}
+}
+
+// TestTransformation_FromAPIFormat_SummaryEmptyList tests that an explicitly empty
+// summary is preserved as an empty JSON array, distinct from "no summary".
+func TestTransformation_FromAPIFormat_SummaryEmptyList(t *testing.T) {
+	at := &CustomAttestationType{
+		Name:     "test-type",
+		Versions: []Version{{Version: 1, Summary: json.RawMessage(`[]`)}},
+	}
+
+	if err := at.fromAPIFormat(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if at.Summary != "[]" {
+		t.Errorf("expected empty summary array to be preserved, got %q", at.Summary)
+	}
+}
+
+// TestTransformation_FromAPIFormat_InvalidSummary tests that malformed summary JSON
+// from the API surfaces as an error.
+func TestTransformation_FromAPIFormat_InvalidSummary(t *testing.T) {
+	at := &CustomAttestationType{
+		Name:     "test-type",
+		Versions: []Version{{Version: 1, Summary: json.RawMessage(`[{"name":`)}},
+	}
+
+	err := at.fromAPIFormat()
+	if err == nil {
+		t.Fatal("expected an error for malformed summary JSON, got nil")
+	}
+	if !strings.Contains(err.Error(), "summary") {
+		t.Errorf("expected error to mention summary, got %v", err)
+	}
+}

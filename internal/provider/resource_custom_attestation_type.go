@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -34,6 +35,7 @@ type customAttestationTypeResourceModel struct {
 	Description types.String         `tfsdk:"description"`
 	Schema      jsontypes.Normalized `tfsdk:"schema"`
 	JqRules     types.List           `tfsdk:"jq_rules"`
+	SummaryJSON jsontypes.Normalized `tfsdk:"summary_json"`
 }
 
 // Metadata returns the resource type name.
@@ -68,7 +70,79 @@ func (r *customAttestationTypeResource) Schema(ctx context.Context, req resource
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
+			"summary_json": schema.StringAttribute{
+				MarkdownDescription: "JSON array of ordered, labelled jq expressions rendered as rows on the attestation detail page in Kosli. Each element is an object with a `name` (the row label) and an `expression` (a jq expression evaluated against the attestation data); values that are valid URLs render as links. Can be provided inline using `jsonencode()`/heredoc syntax or loaded from a file using `file()`, so the same JSON can be shared with the Kosli CLI. Example: `jsonencode([{ name = \"Coverage\", expression = \".coverage\" }])`. If omitted, the attestation detail page falls back to showing the jq evaluation results as a pass/fail checklist; removing it from a type that had one clears the summary. Semantic JSON equality is used when reading the value back from Kosli, so your formatting is preserved rather than being rewritten to the API's compact form.",
+				Optional:            true,
+				CustomType:          jsontypes.NormalizedType{},
+			},
 		},
+	}
+}
+
+// toCreateRequest builds the API request from the model. Updates go through the
+// same request type because the API allocates a new version on every POST.
+func (data *customAttestationTypeResourceModel) toCreateRequest(ctx context.Context, diags *diag.Diagnostics) *client.CreateCustomAttestationTypeRequest {
+	// Extract jq_rules from the list if not null
+	var jqRules []string
+	if !data.JqRules.IsNull() {
+		diags.Append(data.JqRules.ElementsAs(ctx, &jqRules, false)...)
+		if diags.HasError() {
+			return nil
+		}
+	}
+
+	// Get schema value, handling null
+	var schemaValue string
+	if !data.Schema.IsNull() {
+		schemaValue = data.Schema.ValueString()
+	}
+
+	// Get summary value, handling null. An omitted summary_json sends no
+	// summary key, which clears any summary on the new version.
+	var summaryValue string
+	if !data.SummaryJSON.IsNull() {
+		summaryValue = data.SummaryJSON.ValueString()
+	}
+
+	return &client.CreateCustomAttestationTypeRequest{
+		Name:        data.Name.ValueString(),
+		Description: data.Description.ValueString(),
+		Schema:      schemaValue,
+		JqRules:     jqRules,
+		Summary:     summaryValue,
+	}
+}
+
+// applyAPIResponse maps an API response onto the model. Empty values are stored
+// as null so that attributes absent from config don't show up as diffs.
+func (data *customAttestationTypeResourceModel) applyAPIResponse(ctx context.Context, attestationType *client.CustomAttestationType, diags *diag.Diagnostics) {
+	if attestationType.Description == "" {
+		data.Description = types.StringNull()
+	} else {
+		data.Description = types.StringValue(attestationType.Description)
+	}
+
+	if attestationType.Schema == "" || attestationType.Schema == "None" {
+		data.Schema = jsontypes.NewNormalizedNull()
+	} else {
+		data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
+	}
+
+	if attestationType.Summary == "" {
+		data.SummaryJSON = jsontypes.NewNormalizedNull()
+	} else {
+		data.SummaryJSON = jsontypes.NewNormalizedValue(attestationType.Summary)
+	}
+
+	if len(attestationType.JqRules) == 0 {
+		data.JqRules = types.ListNull(types.StringType)
+	} else {
+		jqRulesList, listDiags := types.ListValueFrom(ctx, types.StringType, attestationType.JqRules)
+		diags.Append(listDiags...)
+		if diags.HasError() {
+			return
+		}
+		data.JqRules = jqRulesList
 	}
 }
 
@@ -100,27 +174,10 @@ func (r *customAttestationTypeResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	// Extract jq_rules from the list if not null
-	var jqRules []string
-	if !data.JqRules.IsNull() {
-		resp.Diagnostics.Append(data.JqRules.ElementsAs(ctx, &jqRules, false)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-	}
-
-	// Get schema value, handling null
-	var schemaValue string
-	if !data.Schema.IsNull() {
-		schemaValue = data.Schema.ValueString()
-	}
-
-	// Create API request
-	createReq := &client.CreateCustomAttestationTypeRequest{
-		Name:        data.Name.ValueString(),
-		Description: data.Description.ValueString(),
-		Schema:      schemaValue,
-		JqRules:     jqRules,
+	// Build API request
+	createReq := data.toCreateRequest(ctx, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	// Call API to create the custom attestation type
@@ -154,30 +211,9 @@ func (r *customAttestationTypeResource) Create(ctx context.Context, req resource
 	}
 
 	// Map API response to Terraform state
-	// Handle empty description as null to avoid inconsistency when not provided in config
-	if attestationType.Description == "" {
-		data.Description = types.StringNull()
-	} else {
-		data.Description = types.StringValue(attestationType.Description)
-	}
-
-	// Handle empty schema as null (similar to description handling)
-	if attestationType.Schema == "" || attestationType.Schema == "None" {
-		data.Schema = jsontypes.NewNormalizedNull()
-	} else {
-		data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
-	}
-
-	// Convert jq_rules back to list, handling empty list as null
-	if len(attestationType.JqRules) == 0 {
-		data.JqRules = types.ListNull(types.StringType)
-	} else {
-		jqRulesList, diags := types.ListValueFrom(ctx, types.StringType, attestationType.JqRules)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		data.JqRules = jqRulesList
+	data.applyAPIResponse(ctx, attestationType, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	// Save data into Terraform state
@@ -205,30 +241,9 @@ func (r *customAttestationTypeResource) Read(ctx context.Context, req resource.R
 	}
 
 	// Map API response to Terraform state
-	// Handle empty description as null to avoid inconsistency when not provided in config
-	if attestationType.Description == "" {
-		data.Description = types.StringNull()
-	} else {
-		data.Description = types.StringValue(attestationType.Description)
-	}
-
-	// Handle empty schema as null (similar to description handling)
-	if attestationType.Schema == "" || attestationType.Schema == "None" {
-		data.Schema = jsontypes.NewNormalizedNull()
-	} else {
-		data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
-	}
-
-	// Convert jq_rules back to list, handling empty list as null
-	if len(attestationType.JqRules) == 0 {
-		data.JqRules = types.ListNull(types.StringType)
-	} else {
-		jqRulesList, diags := types.ListValueFrom(ctx, types.StringType, attestationType.JqRules)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		data.JqRules = jqRulesList
+	data.applyAPIResponse(ctx, attestationType, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	// Save updated data into Terraform state
@@ -246,27 +261,10 @@ func (r *customAttestationTypeResource) Update(ctx context.Context, req resource
 		return
 	}
 
-	// Extract jq_rules from the list if not null
-	var jqRules []string
-	if !data.JqRules.IsNull() {
-		resp.Diagnostics.Append(data.JqRules.ElementsAs(ctx, &jqRules, false)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-	}
-
-	// Get schema value, handling null
-	var schemaValue string
-	if !data.Schema.IsNull() {
-		schemaValue = data.Schema.ValueString()
-	}
-
-	// Create API request (updates create a new version)
-	createReq := &client.CreateCustomAttestationTypeRequest{
-		Name:        data.Name.ValueString(),
-		Description: data.Description.ValueString(),
-		Schema:      schemaValue,
-		JqRules:     jqRules,
+	// Build API request (updates create a new version)
+	createReq := data.toCreateRequest(ctx, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	// Call API to create new version
@@ -289,30 +287,9 @@ func (r *customAttestationTypeResource) Update(ctx context.Context, req resource
 	}
 
 	// Map API response to Terraform state
-	// Handle empty description as null to avoid inconsistency when not provided in config
-	if attestationType.Description == "" {
-		data.Description = types.StringNull()
-	} else {
-		data.Description = types.StringValue(attestationType.Description)
-	}
-
-	// Handle empty schema as null (similar to description handling)
-	if attestationType.Schema == "" || attestationType.Schema == "None" {
-		data.Schema = jsontypes.NewNormalizedNull()
-	} else {
-		data.Schema = jsontypes.NewNormalizedValue(attestationType.Schema)
-	}
-
-	// Convert jq_rules back to list, handling empty list as null
-	if len(attestationType.JqRules) == 0 {
-		data.JqRules = types.ListNull(types.StringType)
-	} else {
-		jqRulesList, diags := types.ListValueFrom(ctx, types.StringType, attestationType.JqRules)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		data.JqRules = jqRulesList
+	data.applyAPIResponse(ctx, attestationType, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	// Save updated data into Terraform state

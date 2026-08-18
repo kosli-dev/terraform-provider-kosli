@@ -1,0 +1,5 @@
+[
+  { "name": "Line coverage", "expression": ".line_coverage" },
+  { "name": "Lint errors", "expression": ".lint_errors" },
+  { "name": "Report", "expression": ".report_url" }
+]
