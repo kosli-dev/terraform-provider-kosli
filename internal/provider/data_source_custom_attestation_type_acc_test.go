@@ -274,7 +274,7 @@ resource "kosli_custom_attestation_type" "derived" {
 `, sourceName, derivedName)
 }
 
-// TestAccCustomAttestationTypeDataSource_summary tests that summary_json is exposed
+// TestAccCustomAttestationTypeDataSource_summary tests that summary is exposed
 // as a computed attribute, and reports null for types that define no summary.
 func TestAccCustomAttestationTypeDataSource_summary(t *testing.T) {
 	withSummary := acctest.RandomWithPrefix("tf-acc-test-ds-summary")
@@ -287,12 +287,12 @@ func TestAccCustomAttestationTypeDataSource_summary(t *testing.T) {
 			{
 				Config: testAccCustomAttestationTypeDataSourceConfigSummary(withSummary, withoutSummary),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.kosli_custom_attestation_type.with_summary", "summary_json",
+					resource.TestCheckResourceAttr("data.kosli_custom_attestation_type.with_summary", "summary",
 						`[{"expression":".coverage","name":"Coverage"},{"expression":".report_url","name":"Report"}]`),
 					resource.TestCheckResourceAttrPair(
-						"data.kosli_custom_attestation_type.with_summary", "summary_json",
-						"kosli_custom_attestation_type.with_summary", "summary_json"),
-					resource.TestCheckNoResourceAttr("data.kosli_custom_attestation_type.without_summary", "summary_json"),
+						"data.kosli_custom_attestation_type.with_summary", "summary",
+						"kosli_custom_attestation_type.with_summary", "summary"),
+					resource.TestCheckNoResourceAttr("data.kosli_custom_attestation_type.without_summary", "summary"),
 				),
 			},
 		},
@@ -313,7 +313,7 @@ resource "kosli_custom_attestation_type" "with_summary" {
       report_url = { type = "string" }
     }
   })
-  summary_json = jsonencode([
+  summary = jsonencode([
     { name = "Coverage", expression = ".coverage" },
     { name = "Report", expression = ".report_url" },
   ])

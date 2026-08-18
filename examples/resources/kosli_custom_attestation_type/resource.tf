@@ -31,7 +31,7 @@ resource "kosli_custom_attestation_type" "security_scan" {
 
   # Ordered, labelled values shown on the attestation detail page in Kosli.
   # A value that is a valid URL renders as a clickable link.
-  summary_json = jsonencode([
+  summary = jsonencode([
     { name = "Critical", expression = ".critical_vulnerabilities" },
     { name = "High", expression = ".high_vulnerabilities" },
     { name = "Scanner", expression = ".scanner_version" },
@@ -75,8 +75,8 @@ resource "kosli_custom_attestation_type" "code_quality" {
   name        = "code-quality"
   description = "Validates code quality metrics"
 
-  schema       = file("${path.module}/schemas/code-quality.json")
-  summary_json = file("${path.module}/summaries/code-quality.json")
+  schema  = file("${path.module}/schemas/code-quality.json")
+  summary = file("${path.module}/summaries/code-quality.json")
 
   jq_rules = [
     ".line_coverage >= 80",

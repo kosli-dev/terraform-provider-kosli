@@ -348,7 +348,7 @@ resource "kosli_custom_attestation_type" "test" {
 }
 
 // TestAccCustomAttestationTypeResource_summary tests creating a resource with
-// summary_json and verifies that the row ordering round-trips.
+// summary and verifies that the row ordering round-trips.
 func TestAccCustomAttestationTypeResource_summary(t *testing.T) {
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	resourceName := "kosli_custom_attestation_type.test"
@@ -361,11 +361,11 @@ func TestAccCustomAttestationTypeResource_summary(t *testing.T) {
 				Config: testAccCustomAttestationTypeResourceConfigSummary(rName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", rName),
-					resource.TestCheckResourceAttr(resourceName, "summary_json",
+					resource.TestCheckResourceAttr(resourceName, "summary",
 						`[{"expression":".coverage","name":"Coverage"},{"expression":".report_url","name":"Report"}]`),
 				),
 			},
-			// Import verifies that summary_json is populated from the API alone
+			// Import verifies that summary is populated from the API alone
 			{
 				ResourceName:                         resourceName,
 				ImportState:                          true,
@@ -378,7 +378,7 @@ func TestAccCustomAttestationTypeResource_summary(t *testing.T) {
 }
 
 // TestAccCustomAttestationTypeResource_summaryFormatting verifies that a
-// summary_json written as pretty-printed JSON with non-alphabetical key order
+// summary written as pretty-printed JSON with non-alphabetical key order
 // does not produce a perpetual diff against the compact, key-sorted form the API
 // returns. This is what the semantic JSON equality of the attribute type buys:
 // it stops the provider-returned value from clobbering the config as written.
@@ -394,7 +394,7 @@ func TestAccCustomAttestationTypeResource_summaryFormatting(t *testing.T) {
 				Config: testAccCustomAttestationTypeResourceConfigSummaryFormatted(rName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// The config's own formatting is preserved in state
-					resource.TestMatchResourceAttr(resourceName, "summary_json",
+					resource.TestMatchResourceAttr(resourceName, "summary",
 						regexp.MustCompile(`"name":\s+"Coverage"`)),
 				),
 			},
@@ -409,7 +409,7 @@ func TestAccCustomAttestationTypeResource_summaryFormatting(t *testing.T) {
 }
 
 // TestAccCustomAttestationTypeResource_updateSummary tests adding, changing and
-// removing summary_json on an existing type. Removing it must clear the summary
+// removing summary on an existing type. Removing it must clear the summary
 // on the new version rather than inheriting the previous one.
 func TestAccCustomAttestationTypeResource_updateSummary(t *testing.T) {
 	rName := acctest.RandomWithPrefix("tf-acc-test")
@@ -423,14 +423,14 @@ func TestAccCustomAttestationTypeResource_updateSummary(t *testing.T) {
 			{
 				Config: testAccCustomAttestationTypeResourceConfig(rName),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckNoResourceAttr(resourceName, "summary_json"),
+					resource.TestCheckNoResourceAttr(resourceName, "summary"),
 				),
 			},
 			// Step 2: Add a summary
 			{
 				Config: testAccCustomAttestationTypeResourceConfigSummary(rName),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "summary_json",
+					resource.TestCheckResourceAttr(resourceName, "summary",
 						`[{"expression":".coverage","name":"Coverage"},{"expression":".report_url","name":"Report"}]`),
 				),
 			},
@@ -438,7 +438,7 @@ func TestAccCustomAttestationTypeResource_updateSummary(t *testing.T) {
 			{
 				Config: testAccCustomAttestationTypeResourceConfigSummaryUpdated(rName),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "summary_json",
+					resource.TestCheckResourceAttr(resourceName, "summary",
 						`[{"expression":".coverage","name":"Line coverage"}]`),
 				),
 			},
@@ -446,14 +446,14 @@ func TestAccCustomAttestationTypeResource_updateSummary(t *testing.T) {
 			{
 				Config: testAccCustomAttestationTypeResourceConfig(rName),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckNoResourceAttr(resourceName, "summary_json"),
+					resource.TestCheckNoResourceAttr(resourceName, "summary"),
 				),
 			},
 		},
 	})
 }
 
-// testAccCustomAttestationTypeResourceConfigSummary returns configuration with summary_json
+// testAccCustomAttestationTypeResourceConfigSummary returns configuration with summary
 func testAccCustomAttestationTypeResourceConfigSummary(name string) string {
 	return fmt.Sprintf(`
 resource "kosli_custom_attestation_type" "test" {
@@ -470,7 +470,7 @@ resource "kosli_custom_attestation_type" "test" {
     }
   })
   jq_rules = [".coverage >= 80"]
-  summary_json = jsonencode([
+  summary = jsonencode([
     { name = "Coverage", expression = ".coverage" },
     { name = "Report", expression = ".report_url" },
   ])
@@ -478,7 +478,7 @@ resource "kosli_custom_attestation_type" "test" {
 `, name)
 }
 
-// testAccCustomAttestationTypeResourceConfigSummaryFormatted writes summary_json
+// testAccCustomAttestationTypeResourceConfigSummaryFormatted writes summary
 // as a pretty-printed heredoc with "name" before "expression", i.e. neither the
 // compact spacing nor the alphabetical key order the API returns.
 func testAccCustomAttestationTypeResourceConfigSummaryFormatted(name string) string {
@@ -497,7 +497,7 @@ resource "kosli_custom_attestation_type" "test" {
     }
   })
   jq_rules = [".coverage >= 80"]
-  summary_json = <<-EOT
+  summary = <<-EOT
     [
       {
         "name": "Coverage",
@@ -531,7 +531,7 @@ resource "kosli_custom_attestation_type" "test" {
     }
   })
   jq_rules = [".coverage >= 80"]
-  summary_json = jsonencode([
+  summary = jsonencode([
     { name = "Line coverage", expression = ".coverage" },
   ])
 }

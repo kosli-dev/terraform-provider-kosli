@@ -35,7 +35,7 @@ type customAttestationTypeResourceModel struct {
 	Description types.String         `tfsdk:"description"`
 	Schema      jsontypes.Normalized `tfsdk:"schema"`
 	JqRules     types.List           `tfsdk:"jq_rules"`
-	SummaryJSON jsontypes.Normalized `tfsdk:"summary_json"`
+	Summary     jsontypes.Normalized `tfsdk:"summary"`
 }
 
 // Metadata returns the resource type name.
@@ -70,8 +70,8 @@ func (r *customAttestationTypeResource) Schema(ctx context.Context, req resource
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
-			"summary_json": schema.StringAttribute{
-				MarkdownDescription: "JSON array of ordered, labelled jq expressions rendered as rows on the attestation detail page in Kosli. Each element is an object with a `name` (the row label) and an `expression` (a jq expression evaluated against the attestation data); values that are valid URLs render as links. Can be provided inline using `jsonencode()`/heredoc syntax or loaded from a file using `file()`, so the same JSON can be shared with the Kosli CLI. Example: `jsonencode([{ name = \"Coverage\", expression = \".coverage\" }])`. If omitted, the attestation detail page falls back to showing the jq evaluation results as a pass/fail checklist; removing it from a type that had one clears the summary. Semantic JSON equality is used when reading the value back from Kosli, so your formatting is preserved rather than being rewritten to the API's compact form.",
+			"summary": schema.StringAttribute{
+				MarkdownDescription: "JSON array of ordered, labelled jq expressions rendered as rows on the attestation detail page in Kosli. Each element is an object with a `name` (the row label) and an `expression` (a jq expression evaluated against the attestation data); values that are valid URLs render as links. Can be provided inline using `jsonencode()`/heredoc syntax or loaded from a file using `file()`, so the same JSON can be kept in one place and shared with other tooling. Example: `jsonencode([{ name = \"Coverage\", expression = \".coverage\" }])`. If omitted, the attestation detail page falls back to showing the jq evaluation results as a pass/fail checklist; removing it from a type that had one clears the summary. Semantic JSON equality is used when reading the value back from Kosli, so your formatting is preserved rather than being rewritten to the API's compact form.",
 				Optional:            true,
 				CustomType:          jsontypes.NormalizedType{},
 			},
@@ -97,11 +97,11 @@ func (data *customAttestationTypeResourceModel) toCreateRequest(ctx context.Cont
 		schemaValue = data.Schema.ValueString()
 	}
 
-	// Get summary value, handling null. An omitted summary_json sends no
+	// Get summary value, handling null. When it is null the client sends no
 	// summary key, which clears any summary on the new version.
 	var summaryValue string
-	if !data.SummaryJSON.IsNull() {
-		summaryValue = data.SummaryJSON.ValueString()
+	if !data.Summary.IsNull() {
+		summaryValue = data.Summary.ValueString()
 	}
 
 	return &client.CreateCustomAttestationTypeRequest{
@@ -129,9 +129,9 @@ func (data *customAttestationTypeResourceModel) applyAPIResponse(ctx context.Con
 	}
 
 	if attestationType.Summary == "" {
-		data.SummaryJSON = jsontypes.NewNormalizedNull()
+		data.Summary = jsontypes.NewNormalizedNull()
 	} else {
-		data.SummaryJSON = jsontypes.NewNormalizedValue(attestationType.Summary)
+		data.Summary = jsontypes.NewNormalizedValue(attestationType.Summary)
 	}
 
 	if len(attestationType.JqRules) == 0 {

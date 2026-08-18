@@ -62,12 +62,12 @@ jq_rules = [
 
 ## Summary Rows
 
-The optional `summary_json` attribute is a JSON array of ordered, labelled jq expressions.
+The optional `summary` attribute is a JSON array of ordered, labelled jq expressions.
 Kosli renders them as rows on the attestation detail page, in the order given. A value that
 is a valid URL renders as a clickable link.
 
 ```hcl
-summary_json = jsonencode([
+summary = jsonencode([
   { name = "Critical", expression = ".critical_vulnerabilities" },
   { name = "Report", expression = ".report_url" },
 ])
@@ -77,11 +77,11 @@ Because it is a plain JSON blob, the same definition can be kept in a file and s
 other tooling:
 
 ```hcl
-summary_json = file("${path.module}/summaries/code-quality.json")
+summary = file("${path.module}/summaries/code-quality.json")
 ```
 
-If `summary_json` is omitted, the attestation detail page falls back to showing the jq
-evaluation results as a pass/fail checklist. Removing `summary_json` from a type that had one
+If `summary` is omitted, the attestation detail page falls back to showing the jq
+evaluation results as a pass/fail checklist. Removing `summary` from a type that had one
 clears the summary on the next apply.
 
 ## Terraform Provider Configuration

@@ -43,7 +43,7 @@ func TestCustomAttestationTypeResource_Schema(t *testing.T) {
 
 	// Verify required attributes exist
 	attrs := resp.Schema.Attributes
-	requiredAttrs := []string{"name", "description", "schema", "jq_rules", "summary_json"}
+	requiredAttrs := []string{"name", "description", "schema", "jq_rules", "summary"}
 	for _, attr := range requiredAttrs {
 		if _, exists := attrs[attr]; !exists {
 			t.Errorf("Expected attribute %q to exist in schema", attr)
@@ -74,14 +74,14 @@ func TestCustomAttestationTypeResource_Schema(t *testing.T) {
 		t.Error("Expected 'jq_rules' attribute to be optional")
 	}
 
-	// Verify summary_json is optional and uses the JSON custom type so that
+	// Verify summary is optional and uses the JSON custom type so that
 	// formatting differences don't produce perpetual diffs
-	summaryAttr := attrs["summary_json"]
+	summaryAttr := attrs["summary"]
 	if summaryAttr.IsOptional() == false {
-		t.Error("Expected 'summary_json' attribute to be optional")
+		t.Error("Expected 'summary' attribute to be optional")
 	}
 	if _, ok := summaryAttr.GetType().(jsontypes.NormalizedType); !ok {
-		t.Errorf("Expected 'summary_json' to use jsontypes.NormalizedType, got %T", summaryAttr.GetType())
+		t.Errorf("Expected 'summary' to use jsontypes.NormalizedType, got %T", summaryAttr.GetType())
 	}
 }
 
@@ -199,17 +199,17 @@ func TestCustomAttestationTypeResource_ToCreateRequest(t *testing.T) {
 				Description: types.StringValue("desc"),
 				Schema:      jsontypes.NewNormalizedValue(`{"type":"object"}`),
 				JqRules:     jqRules,
-				SummaryJSON: jsontypes.NewNormalizedValue(`[{"name":"Coverage","expression":".coverage"}]`),
+				Summary:     jsontypes.NewNormalizedValue(`[{"name":"Coverage","expression":".coverage"}]`),
 			},
 			expectedSummary: `[{"name":"Coverage","expression":".coverage"}]`,
 		},
 		{
 			name: "summary null",
 			model: customAttestationTypeResourceModel{
-				Name:        types.StringValue("test-type"),
-				JqRules:     types.ListNull(types.StringType),
-				Schema:      jsontypes.NewNormalizedNull(),
-				SummaryJSON: jsontypes.NewNormalizedNull(),
+				Name:    types.StringValue("test-type"),
+				JqRules: types.ListNull(types.StringType),
+				Schema:  jsontypes.NewNormalizedNull(),
+				Summary: jsontypes.NewNormalizedNull(),
 			},
 			expectedSummary: "",
 		},
@@ -258,16 +258,16 @@ func TestCustomAttestationTypeResource_ApplyAPIResponse_Summary(t *testing.T) {
 				t.Fatalf("unexpected diagnostics: %v", diags)
 			}
 			if tt.expectNull {
-				if !model.SummaryJSON.IsNull() {
-					t.Errorf("expected SummaryJSON to be null, got %q", model.SummaryJSON.ValueString())
+				if !model.Summary.IsNull() {
+					t.Errorf("expected Summary to be null, got %q", model.Summary.ValueString())
 				}
 				return
 			}
-			if model.SummaryJSON.IsNull() {
-				t.Fatal("expected SummaryJSON to be set, got null")
+			if model.Summary.IsNull() {
+				t.Fatal("expected Summary to be set, got null")
 			}
-			if model.SummaryJSON.ValueString() != tt.expectValue {
-				t.Errorf("expected SummaryJSON %q, got %q", tt.expectValue, model.SummaryJSON.ValueString())
+			if model.Summary.ValueString() != tt.expectValue {
+				t.Errorf("expected Summary %q, got %q", tt.expectValue, model.Summary.ValueString())
 			}
 		})
 	}

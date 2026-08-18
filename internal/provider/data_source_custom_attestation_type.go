@@ -30,7 +30,7 @@ type customAttestationTypeDataSourceModel struct {
 	Description types.String         `tfsdk:"description"`
 	Schema      jsontypes.Normalized `tfsdk:"schema"`
 	JqRules     types.List           `tfsdk:"jq_rules"`
-	SummaryJSON jsontypes.Normalized `tfsdk:"summary_json"`
+	Summary     jsontypes.Normalized `tfsdk:"summary"`
 	Archived    types.Bool           `tfsdk:"archived"`
 }
 
@@ -63,7 +63,7 @@ func (d *customAttestationTypeDataSource) Schema(ctx context.Context, req dataso
 				ElementType:         types.StringType,
 				MarkdownDescription: "List of jq expressions that define evaluation rules. All rules must evaluate to `true` for compliance.",
 			},
-			"summary_json": schema.StringAttribute{
+			"summary": schema.StringAttribute{
 				Computed:            true,
 				CustomType:          jsontypes.NormalizedType{},
 				MarkdownDescription: "JSON array of ordered, labelled jq expressions rendered as rows on the attestation detail page in Kosli. Each element is an object with a `name` and an `expression`. Null when the type defines no summary.",
@@ -130,9 +130,9 @@ func (d *customAttestationTypeDataSource) Read(ctx context.Context, req datasour
 	}
 
 	if attestationType.Summary == "" {
-		data.SummaryJSON = jsontypes.NewNormalizedNull()
+		data.Summary = jsontypes.NewNormalizedNull()
 	} else {
-		data.SummaryJSON = jsontypes.NewNormalizedValue(attestationType.Summary)
+		data.Summary = jsontypes.NewNormalizedValue(attestationType.Summary)
 	}
 
 	// Convert jq_rules (API client already transformed from evaluator format)

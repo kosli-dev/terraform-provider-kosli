@@ -17,8 +17,8 @@ resource "kosli_custom_attestation_type" "security_strict" {
   description = "Stricter security requirements"
 
   # Reuse the schema and summary rows from the existing type
-  schema       = data.kosli_custom_attestation_type.security.schema
-  summary_json = data.kosli_custom_attestation_type.security.summary_json
+  schema  = data.kosli_custom_attestation_type.security.schema
+  summary = data.kosli_custom_attestation_type.security.summary
 
   # Apply stricter validation rules
   jq_rules = [
@@ -41,7 +41,7 @@ output "security_scan_rules" {
 
 output "security_scan_summary" {
   description = "Summary rows shown on the attestation detail page, as a JSON array"
-  value       = data.kosli_custom_attestation_type.security.summary_json
+  value       = data.kosli_custom_attestation_type.security.summary
 }
 
 output "security_scan_archived" {
