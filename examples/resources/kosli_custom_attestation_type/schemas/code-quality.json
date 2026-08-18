@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "properties": {
+    "line_coverage": { "type": "number", "minimum": 0, "maximum": 100 },
+    "lint_errors": { "type": "integer" },
+    "report_url": { "type": "string" }
+  },
+  "required": ["line_coverage", "lint_errors"]
+}

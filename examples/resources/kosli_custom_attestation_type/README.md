@@ -23,6 +23,7 @@ terraform apply
 
 1. **Security Scan**: Attestation type using `jsonencode()` for schema definition
 2. **Code Coverage**: Attestation type using heredoc syntax for better readability
+3. **Code Quality**: Schema and summary loaded from standalone JSON files with `file()`
 
 ## Schema Definition Methods
 
@@ -58,6 +59,30 @@ jq_rules = [
   ".high_vulnerabilities < 5"
 ]
 ```
+
+## Summary Rows
+
+The optional `summary` attribute is a JSON array of ordered, labelled jq expressions.
+Kosli renders them as rows on the attestation detail page, in the order given. A value that
+is a valid URL renders as a clickable link.
+
+```hcl
+summary = jsonencode([
+  { name = "Critical", expression = ".critical_vulnerabilities" },
+  { name = "Report", expression = ".report_url" },
+])
+```
+
+Because it is a plain JSON blob, the same definition can be kept in a file and shared with
+other tooling:
+
+```hcl
+summary = file("${path.module}/summaries/code-quality.json")
+```
+
+If `summary` is omitted, the attestation detail page falls back to showing the jq
+evaluation results as a pass/fail checklist. Removing `summary` from a type that had one
+clears the summary on the next apply.
 
 ## Terraform Provider Configuration
 

@@ -40,6 +40,7 @@ resource "kosli_custom_attestation_type" "security_scan" {
       medium_vulnerabilities   = { type = "integer" }
       scan_date                = { type = "string" }
       scanner_version          = { type = "string" }
+      report_url               = { type = "string" }
     }
     required = ["critical_vulnerabilities", "high_vulnerabilities", "scan_date"]
   })
@@ -48,6 +49,15 @@ resource "kosli_custom_attestation_type" "security_scan" {
     ".critical_vulnerabilities == 0",
     ".high_vulnerabilities < 5"
   ]
+
+  # Ordered, labelled values shown on the attestation detail page in Kosli.
+  # A value that is a valid URL renders as a clickable link.
+  summary = jsonencode([
+    { name = "Critical", expression = ".critical_vulnerabilities" },
+    { name = "High", expression = ".high_vulnerabilities" },
+    { name = "Scanner", expression = ".scanner_version" },
+    { name = "Report", expression = ".report_url" },
+  ])
 }
 
 # Code coverage attestation type
@@ -80,6 +90,21 @@ resource "kosli_custom_attestation_type" "code_coverage" {
   ]
 }
 
+# Attestation type whose schema and summary are kept in standalone JSON files,
+# so the same definitions can be shared with the Kosli CLI
+resource "kosli_custom_attestation_type" "code_quality" {
+  name        = "code-quality"
+  description = "Validates code quality metrics"
+
+  schema  = file("${path.module}/schemas/code-quality.json")
+  summary = file("${path.module}/summaries/code-quality.json")
+
+  jq_rules = [
+    ".line_coverage >= 80",
+    ".lint_errors == 0"
+  ]
+}
+
 # Age verification attestation type with only jq rules (no schema)
 resource "kosli_custom_attestation_type" "age_verification" {
   name        = "age-verification"
@@ -98,7 +123,7 @@ resource "kosli_custom_attestation_type" "schema_validation" {
     properties = {
       timestamp = { type = "string" }
       metadata  = { type = "object" }
-      status    = {
+      status = {
         type = "string"
         enum = ["pass", "fail", "skip"]
       }
@@ -165,3 +190,4 @@ terraform import kosli_custom_attestation_type.security_scan security-scan
 - `description` (String) Description of the custom attestation type. Explains what this attestation type validates.
 - `jq_rules` (List of String) List of jq evaluation rules. Each rule is a jq expression that must evaluate to true for the attestation to be considered compliant. Example: `[".coverage >= 80"]`. If omitted, no evaluation is performed.
 - `schema` (String) JSON Schema definition that defines the structure of attestation data. Can be provided inline using heredoc syntax or loaded from a file using `file()`. If omitted, no schema validation is performed. Semantic equality is used for comparison, so formatting differences are ignored.
+- `summary` (String) JSON array of ordered, labelled jq expressions rendered as rows on the attestation detail page in Kosli. Each element is an object with a `name` (the row label) and an `expression` (a jq expression evaluated against the attestation data); values that are valid URLs render as links. Can be provided inline using `jsonencode()`/heredoc syntax or loaded from a file using `file()`, so the same JSON can be kept in one place and shared with other tooling. Example: `jsonencode([{ name = "Coverage", expression = ".coverage" }])`. If omitted, the attestation detail page falls back to showing the jq evaluation results as a pass/fail checklist; removing it from a type that had one clears the summary. Semantic JSON equality is used when reading the value back from Kosli, so your formatting is preserved rather than being rewritten to the API's compact form.

@@ -18,7 +18,8 @@ type CustomAttestationType struct {
 	Description string    `json:"description"`
 	Schema      string    `json:"-"`        // User-facing (extracted from latest version)
 	JqRules     []string  `json:"-"`        // User-facing (extracted from latest version)
-	Versions    []Version `json:"versions"` // API format (contains schema and evaluator)
+	Summary     string    `json:"-"`        // User-facing JSON array (extracted from latest version)
+	Versions    []Version `json:"versions"` // API format (contains schema, evaluator and summary)
 	Archived    bool      `json:"archived"`
 	Org         string    `json:"org"`
 }
@@ -29,6 +30,7 @@ type Version struct {
 	Timestamp  float64         `json:"timestamp"`
 	TypeSchema json.RawMessage `json:"type_schema"`
 	Evaluator  *Evaluator      `json:"evaluator"`
+	Summary    json.RawMessage `json:"summary"`
 	CreatedBy  string          `json:"created_by"`
 }
 
@@ -44,6 +46,7 @@ type CreateCustomAttestationTypeRequest struct {
 	Description string
 	Schema      string
 	JqRules     []string
+	Summary     string // JSON array of {name, expression} objects; empty means "no summary"
 }
 
 // GetCustomAttestationTypeOptions contains optional parameters for GetCustomAttestationType.
@@ -66,30 +69,52 @@ func (req *CreateCustomAttestationTypeRequest) toAPIFormat() map[string]any {
 		}
 	}
 
+	// Only include summary if provided. Omitting the key clears any summary
+	// carried by the previous version; the API stores null for that version.
+	// The raw JSON is passed through verbatim (json.Marshal validates and
+	// compacts it, and surfaces malformed input as a marshalling error).
+	if req.Summary != "" {
+		data["summary"] = json.RawMessage(req.Summary)
+	}
+
 	return data
 }
 
+// normalizeJSON re-marshals raw JSON to canonical compact form. Empty or JSON
+// null input yields an empty string, so callers can treat "absent" uniformly.
+func normalizeJSON(raw json.RawMessage, field string) (string, error) {
+	if len(raw) == 0 || string(raw) == "null" {
+		return "", nil
+	}
+
+	var obj any
+	if err := json.Unmarshal(raw, &obj); err != nil {
+		return "", fmt.Errorf("invalid JSON in %s: %w", field, err)
+	}
+	normalized, err := json.Marshal(obj)
+	if err != nil {
+		return "", fmt.Errorf("failed to normalize %s JSON: %w", field, err)
+	}
+	return string(normalized), nil
+}
+
 // fromAPIFormat converts API response to user-facing format.
-// Extracts schema and jq_rules from the latest version in the versions array.
+// Extracts schema, jq_rules and summary from the latest version in the versions array.
 func (at *CustomAttestationType) fromAPIFormat() error {
 	if len(at.Versions) > 0 {
 		latestVersion := at.Versions[0]
-		raw := latestVersion.TypeSchema
 
-		if len(raw) == 0 || string(raw) == "null" {
-			at.Schema = ""
-		} else {
-			// Re-marshal to canonical compact JSON
-			var schemaObj any
-			if err := json.Unmarshal(raw, &schemaObj); err != nil {
-				return fmt.Errorf("invalid JSON in type_schema: %w", err)
-			}
-			normalizedJSON, err := json.Marshal(schemaObj)
-			if err != nil {
-				return fmt.Errorf("failed to normalize schema JSON: %w", err)
-			}
-			at.Schema = string(normalizedJSON)
+		schema, err := normalizeJSON(latestVersion.TypeSchema, "type_schema")
+		if err != nil {
+			return err
 		}
+		at.Schema = schema
+
+		summary, err := normalizeJSON(latestVersion.Summary, "summary")
+		if err != nil {
+			return err
+		}
+		at.Summary = summary
 
 		if latestVersion.Evaluator != nil && latestVersion.Evaluator.ContentType == "jq" {
 			at.JqRules = latestVersion.Evaluator.Rules

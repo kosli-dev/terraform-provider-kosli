@@ -19,6 +19,7 @@ resource "kosli_custom_attestation_type" "security_scan" {
       medium_vulnerabilities   = { type = "integer" }
       scan_date                = { type = "string" }
       scanner_version          = { type = "string" }
+      report_url               = { type = "string" }
     }
     required = ["critical_vulnerabilities", "high_vulnerabilities", "scan_date"]
   })
@@ -27,6 +28,15 @@ resource "kosli_custom_attestation_type" "security_scan" {
     ".critical_vulnerabilities == 0",
     ".high_vulnerabilities < 5"
   ]
+
+  # Ordered, labelled values shown on the attestation detail page in Kosli.
+  # A value that is a valid URL renders as a clickable link.
+  summary = jsonencode([
+    { name = "Critical", expression = ".critical_vulnerabilities" },
+    { name = "High", expression = ".high_vulnerabilities" },
+    { name = "Scanner", expression = ".scanner_version" },
+    { name = "Report", expression = ".report_url" },
+  ])
 }
 
 # Code coverage attestation type
@@ -59,6 +69,21 @@ resource "kosli_custom_attestation_type" "code_coverage" {
   ]
 }
 
+# Attestation type whose schema and summary are kept in standalone JSON files,
+# so the same definitions can be shared with the Kosli CLI
+resource "kosli_custom_attestation_type" "code_quality" {
+  name        = "code-quality"
+  description = "Validates code quality metrics"
+
+  schema  = file("${path.module}/schemas/code-quality.json")
+  summary = file("${path.module}/summaries/code-quality.json")
+
+  jq_rules = [
+    ".line_coverage >= 80",
+    ".lint_errors == 0"
+  ]
+}
+
 # Age verification attestation type with only jq rules (no schema)
 resource "kosli_custom_attestation_type" "age_verification" {
   name        = "age-verification"
@@ -77,7 +102,7 @@ resource "kosli_custom_attestation_type" "schema_validation" {
     properties = {
       timestamp = { type = "string" }
       metadata  = { type = "object" }
-      status    = {
+      status = {
         type = "string"
         enum = ["pass", "fail", "skip"]
       }

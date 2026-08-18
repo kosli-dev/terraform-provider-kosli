@@ -273,3 +273,65 @@ resource "kosli_custom_attestation_type" "derived" {
 }
 `, sourceName, derivedName)
 }
+
+// TestAccCustomAttestationTypeDataSource_summary tests that summary is exposed
+// as a computed attribute, and reports null for types that define no summary.
+func TestAccCustomAttestationTypeDataSource_summary(t *testing.T) {
+	withSummary := acctest.RandomWithPrefix("tf-acc-test-ds-summary")
+	withoutSummary := acctest.RandomWithPrefix("tf-acc-test-ds-nosummary")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCustomAttestationTypeDataSourceConfigSummary(withSummary, withoutSummary),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.kosli_custom_attestation_type.with_summary", "summary",
+						`[{"expression":".coverage","name":"Coverage"},{"expression":".report_url","name":"Report"}]`),
+					resource.TestCheckResourceAttrPair(
+						"data.kosli_custom_attestation_type.with_summary", "summary",
+						"kosli_custom_attestation_type.with_summary", "summary"),
+					resource.TestCheckNoResourceAttr("data.kosli_custom_attestation_type.without_summary", "summary"),
+				),
+			},
+		},
+	})
+}
+
+// testAccCustomAttestationTypeDataSourceConfigSummary creates one type with a summary
+// and one without, and reads both back through the data source.
+func testAccCustomAttestationTypeDataSourceConfigSummary(withSummary, withoutSummary string) string {
+	return fmt.Sprintf(`
+resource "kosli_custom_attestation_type" "with_summary" {
+  name     = %[1]q
+  jq_rules = [".coverage >= 80"]
+  schema = jsonencode({
+    type = "object"
+    properties = {
+      coverage   = { type = "number" }
+      report_url = { type = "string" }
+    }
+  })
+  summary = jsonencode([
+    { name = "Coverage", expression = ".coverage" },
+    { name = "Report", expression = ".report_url" },
+  ])
+}
+
+resource "kosli_custom_attestation_type" "without_summary" {
+  name     = %[2]q
+  jq_rules = [".coverage >= 80"]
+}
+
+data "kosli_custom_attestation_type" "with_summary" {
+  name       = kosli_custom_attestation_type.with_summary.name
+  depends_on = [kosli_custom_attestation_type.with_summary]
+}
+
+data "kosli_custom_attestation_type" "without_summary" {
+  name       = kosli_custom_attestation_type.without_summary.name
+  depends_on = [kosli_custom_attestation_type.without_summary]
+}
+`, withSummary, withoutSummary)
+}

@@ -5,8 +5,10 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
 
 func TestCustomAttestationTypeResource_Metadata(t *testing.T) {
@@ -41,7 +43,7 @@ func TestCustomAttestationTypeResource_Schema(t *testing.T) {
 
 	// Verify required attributes exist
 	attrs := resp.Schema.Attributes
-	requiredAttrs := []string{"name", "description", "schema", "jq_rules"}
+	requiredAttrs := []string{"name", "description", "schema", "jq_rules", "summary"}
 	for _, attr := range requiredAttrs {
 		if _, exists := attrs[attr]; !exists {
 			t.Errorf("Expected attribute %q to exist in schema", attr)
@@ -70,6 +72,16 @@ func TestCustomAttestationTypeResource_Schema(t *testing.T) {
 	jqRulesAttr := attrs["jq_rules"]
 	if jqRulesAttr.IsOptional() == false {
 		t.Error("Expected 'jq_rules' attribute to be optional")
+	}
+
+	// Verify summary is optional and uses the JSON custom type so that
+	// formatting differences don't produce perpetual diffs
+	summaryAttr := attrs["summary"]
+	if summaryAttr.IsOptional() == false {
+		t.Error("Expected 'summary' attribute to be optional")
+	}
+	if _, ok := summaryAttr.GetType().(jsontypes.NormalizedType); !ok {
+		t.Errorf("Expected 'summary' to use jsontypes.NormalizedType, got %T", summaryAttr.GetType())
 	}
 }
 
@@ -168,3 +180,95 @@ func TestCustomAttestationTypeResource_Implements(t *testing.T) {
 // - Real resources are created/updated/deleted in a test Kosli organization
 // - The full Terraform lifecycle is exercised
 // - API integration is validated end-to-end
+
+func TestCustomAttestationTypeResource_ToCreateRequest(t *testing.T) {
+	jqRules, diags := types.ListValueFrom(context.TODO(), types.StringType, []string{".coverage >= 80"})
+	if diags.HasError() {
+		t.Fatalf("failed to build jq_rules list: %v", diags)
+	}
+
+	tests := []struct {
+		name            string
+		model           customAttestationTypeResourceModel
+		expectedSummary string
+	}{
+		{
+			name: "summary set",
+			model: customAttestationTypeResourceModel{
+				Name:        types.StringValue("test-type"),
+				Description: types.StringValue("desc"),
+				Schema:      jsontypes.NewNormalizedValue(`{"type":"object"}`),
+				JqRules:     jqRules,
+				Summary:     jsontypes.NewNormalizedValue(`[{"name":"Coverage","expression":".coverage"}]`),
+			},
+			expectedSummary: `[{"name":"Coverage","expression":".coverage"}]`,
+		},
+		{
+			name: "summary null",
+			model: customAttestationTypeResourceModel{
+				Name:    types.StringValue("test-type"),
+				JqRules: types.ListNull(types.StringType),
+				Schema:  jsontypes.NewNormalizedNull(),
+				Summary: jsontypes.NewNormalizedNull(),
+			},
+			expectedSummary: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var diags diag.Diagnostics
+			req := tt.model.toCreateRequest(context.TODO(), &diags)
+			if diags.HasError() {
+				t.Fatalf("unexpected diagnostics: %v", diags)
+			}
+			if req.Summary != tt.expectedSummary {
+				t.Errorf("expected Summary %q, got %q", tt.expectedSummary, req.Summary)
+			}
+			if req.Name != "test-type" {
+				t.Errorf("expected Name 'test-type', got %q", req.Name)
+			}
+		})
+	}
+}
+
+func TestCustomAttestationTypeResource_ApplyAPIResponse_Summary(t *testing.T) {
+	tests := []struct {
+		name        string
+		apiSummary  string
+		expectNull  bool
+		expectValue string
+	}{
+		{name: "summary present", apiSummary: `[{"name":"Coverage","expression":".coverage"}]`, expectValue: `[{"name":"Coverage","expression":".coverage"}]`},
+		{name: "summary absent", apiSummary: "", expectNull: true},
+		{name: "summary empty array", apiSummary: "[]", expectValue: "[]"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			model := &customAttestationTypeResourceModel{Name: types.StringValue("test-type")}
+			var diags diag.Diagnostics
+
+			model.applyAPIResponse(context.TODO(), &client.CustomAttestationType{
+				Name:    "test-type",
+				Summary: tt.apiSummary,
+			}, &diags)
+
+			if diags.HasError() {
+				t.Fatalf("unexpected diagnostics: %v", diags)
+			}
+			if tt.expectNull {
+				if !model.Summary.IsNull() {
+					t.Errorf("expected Summary to be null, got %q", model.Summary.ValueString())
+				}
+				return
+			}
+			if model.Summary.IsNull() {
+				t.Fatal("expected Summary to be set, got null")
+			}
+			if model.Summary.ValueString() != tt.expectValue {
+				t.Errorf("expected Summary %q, got %q", tt.expectValue, model.Summary.ValueString())
+			}
+		})
+	}
+}

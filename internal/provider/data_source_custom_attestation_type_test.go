@@ -41,7 +41,7 @@ func TestCustomAttestationTypeDataSource_Schema(t *testing.T) {
 
 	// Verify required attributes exist
 	attrs := resp.Schema.Attributes
-	requiredAttrs := []string{"name", "description", "schema", "jq_rules", "archived"}
+	requiredAttrs := []string{"name", "description", "schema", "jq_rules", "summary", "archived"}
 	for _, attr := range requiredAttrs {
 		if _, exists := attrs[attr]; !exists {
 			t.Errorf("Expected attribute %q to exist in schema", attr)
@@ -70,6 +70,15 @@ func TestCustomAttestationTypeDataSource_Schema(t *testing.T) {
 	jqRulesAttr := attrs["jq_rules"]
 	if jqRulesAttr.IsComputed() == false {
 		t.Error("Expected 'jq_rules' attribute to be computed")
+	}
+
+	// Verify summary is computed
+	summaryAttr := attrs["summary"]
+	if summaryAttr.IsComputed() == false {
+		t.Error("Expected 'summary' attribute to be computed")
+	}
+	if _, ok := summaryAttr.GetType().(jsontypes.NormalizedType); !ok {
+		t.Errorf("Expected 'summary' to use jsontypes.NormalizedType, got %T", summaryAttr.GetType())
 	}
 
 	// Verify archived is computed
