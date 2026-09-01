@@ -32,7 +32,7 @@ jobs:
           fetch-depth: 0
 
       - name: Claude review (dependency updates)
-        uses: anthropics/claude-code-action@v1.0.200
+        uses: anthropics/claude-code-action@v1.0.210
 
         env:
           GH_TOKEN: ${{ github.token }}
@@ -84,7 +84,7 @@ jobs:
           fetch-depth: 0
 
       - name: Claude review (general)
-        uses: anthropics/claude-code-action@v1.0.200
+        uses: anthropics/claude-code-action@v1.0.210
         env:
           GH_TOKEN: ${{ github.token }}
         with:
