@@ -31,32 +31,32 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        # Workflow files are parsed, not compiled, so no build is needed
-        - language: actions
-          build-mode: none
-        # Go needs a real compile for CodeQL to extract the database
-        - language: go
-          build-mode: autobuild
+          # Workflow files are parsed, not compiled, so no build is needed
+          - language: actions
+            build-mode: none
+          # Go needs a real compile for CodeQL to extract the database
+          - language: go
+            build-mode: autobuild
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-    - name: Set up Go
-      if: matrix.language == 'go'
-      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-      with:
-        check-latest: true
-        go-version-file: '.go-version'
+      - name: Set up Go
+        if: matrix.language == 'go'
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          check-latest: true
+          go-version-file: '.go-version'
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
-      with:
-        languages: ${{ matrix.language }}
-        build-mode: ${{ matrix.build-mode }}
-        queries: security-extended
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-extended
 
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
-      with:
-        category: "/language:${{ matrix.language }}"
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          category: "/language:${{ matrix.language }}"
