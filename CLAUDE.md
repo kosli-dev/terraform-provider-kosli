@@ -201,6 +201,18 @@ The workflow reads `ANTHROPIC_FEDERATION_RULE_ID`, `ANTHROPIC_ORGANIZATION_ID`, 
 
 The token exchange enforces a workflow-content guard: any PR that modifies `.github/workflows/pr-quality.yaml` will fail the federated auth until the change lands on `main`.
 
+### CodeQL Code Scanning
+
+`.github/workflows/codeql.yaml` runs GitHub's CodeQL analysis on the repository:
+
+- **Languages scanned:** `go` (the provider and API client, `build-mode: autobuild`) and `actions` (the workflow files themselves, `build-mode: none`)
+- **Query suite:** `security-extended` — broader than the default suite. If it produces a large batch of low-value alerts, add `.github/codeql/codeql-config.yml` with query filters rather than dropping back to the default pack.
+- **Triggers:** push to `main` (the baseline that makes PR alerts diff-scoped), `pull_request` against `main`, and a weekly schedule (Thursdays 18:16 UTC)
+- **Where alerts surface:** the repository **Security → Code scanning** tab, and as inline annotations on pull requests
+- `fail-fast: false` on the matrix, so a Go extraction failure does not hide the `actions` results
+
+This is CodeQL **advanced** setup. Repository *Settings → Code security → Code scanning* must have CodeQL default setup disabled or the workflow errors on every run.
+
 ## Release Process
 
 Releases use GoReleaser (`.goreleaser.yml`) triggered by git tags:
