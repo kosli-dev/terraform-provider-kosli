@@ -21,7 +21,6 @@ jobs:
     timeout-minutes: 20
     permissions:
       security-events: write
-      packages: read
       contents: read
       # Required by codeql-action/analyze to enumerate workflow runs if this
       # repository is ever made private
