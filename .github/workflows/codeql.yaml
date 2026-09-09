@@ -15,7 +15,9 @@ concurrency:
   # Cancel superseded PR runs, but let main/scheduled scans finish - a cancelled
   # analyze uploads no SARIF, which leaves the code scanning baseline stale.
   # Note both push-on-main and schedule share one group (pull_request is null
-  # and github.ref is refs/heads/main for both), so they serialize, not cancel.
+  # and github.ref is refs/heads/main for both). An in-flight scan always
+  # finishes; a run queued behind it may be superseded by a newer one, so the
+  # baseline tracks main's head rather than every individual commit.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
