@@ -2,9 +2,9 @@ name: "CodeQL Advanced"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
   schedule:
     # Weekly baseline re-scan, Thursdays 18:16 UTC (off-peak, avoids the
     # top-of-hour rush so scheduled runs are not queued behind everyone else's)
