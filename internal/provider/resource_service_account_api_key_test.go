@@ -139,15 +139,9 @@ func newAPIKeyCreateReqResp(t *testing.T, ctx context.Context, expiresAt tftypes
 	schemaResp := &resource.SchemaResponse{}
 	(&serviceAccountAPIKeyResource{}).Schema(ctx, resource.SchemaRequest{}, schemaResp)
 
-	objType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{
-		"service_account_name": tftypes.String,
-		"description":          tftypes.String,
-		"expires_at":           tftypes.String,
-		"id":                   tftypes.String,
-		"key":                  tftypes.String,
-		"created_at":           tftypes.String,
-		"last_used_at":         tftypes.String,
-	}}
+	// Derived from the schema rather than restated, so the helper stays valid
+	// when an attribute is added to the resource without touching this file.
+	objType := schemaResp.Schema.Type().TerraformType(ctx)
 
 	plan := tftypes.NewValue(objType, map[string]tftypes.Value{
 		"service_account_name": tftypes.NewValue(tftypes.String, "ci"),
@@ -204,8 +198,8 @@ func TestServiceAccountAPIKeyResource_Create_ExpiryShortened(t *testing.T) {
 		t.Fatal("expected an error diagnostic when the server shortens the expiry")
 	}
 	summary := resp.Diagnostics.Errors()[0].Summary()
-	if !strings.Contains(summary, "Shortened") {
-		t.Errorf("expected a summary naming the shortened expiry, got %q", summary)
+	if !strings.Contains(summary, "Not Honoured") {
+		t.Errorf("expected a summary naming the unhonoured expiry, got %q", summary)
 	}
 	detail := resp.Diagnostics.Errors()[0].Detail()
 	for _, want := range []string{"2100-01-01T00:00:00Z", "expires_at"} {
@@ -216,8 +210,8 @@ func TestServiceAccountAPIKeyResource_Create_ExpiryShortened(t *testing.T) {
 
 	// The key exists server-side, so it must be in state rather than orphaned.
 	var id *string
-	if err := resp.State.GetAttribute(ctx, path.Root("id"), &id); err != nil {
-		t.Fatalf("unexpected error reading id from state: %v", err)
+	if diags := resp.State.GetAttribute(ctx, path.Root("id"), &id); diags.HasError() {
+		t.Fatalf("unexpected error reading id from state: %v", diags)
 	}
 	if id == nil || *id != "key-1" {
 		t.Errorf("expected the issued key to be saved to state, got id %v", id)

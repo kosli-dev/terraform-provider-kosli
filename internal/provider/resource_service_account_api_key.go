@@ -189,13 +189,14 @@ func (r *serviceAccountAPIKeyResource) Create(ctx context.Context, req resource.
 	if createReq.ExpiresAt != 0 && key.ExpiresAt != float64(createReq.ExpiresAt) {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("expires_at"),
-			"API Key Expiry Shortened By Server",
+			"API Key Expiry Not Honoured By Server",
 			fmt.Sprintf(
 				"Requested an expiry of %s, but Kosli issued the key with %s. Kosli caps the "+
 					"lifetime of every API key, currently at 365 days from creation, and shortens a "+
 					"longer expiry rather than rejecting it. Set expires_at within that window.\n\n"+
-					"The key was created and saved to state rather than orphaned; correcting "+
-					"expires_at replaces it on the next apply.",
+					"The key was created and saved to state rather than orphaned, but Terraform has "+
+					"marked it tainted: the next apply revokes and recreates it. Correct expires_at "+
+					"before re-applying, or each apply will mint another key that is shortened again.",
 				unixToTime(float64(createReq.ExpiresAt)).Format(time.RFC3339),
 				unixToTime(key.ExpiresAt).Format(time.RFC3339),
 			),
