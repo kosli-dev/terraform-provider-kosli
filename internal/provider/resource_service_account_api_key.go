@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -147,7 +148,8 @@ func (r *serviceAccountAPIKeyResource) Create(ctx context.Context, req resource.
 	createReq := &client.CreateAPIKeyRequest{
 		Description: data.Description.ValueString(),
 	}
-	// The API takes expiry as unix seconds; omitted (zero) means no expiry.
+	// The API takes expiry as unix seconds; omitted (zero) lets the server
+	// apply its default, which is the maximum lifetime it allows.
 	if !data.ExpiresAt.IsNull() && !data.ExpiresAt.IsUnknown() {
 		expiresAt, diags := data.ExpiresAt.ValueRFC3339Time()
 		resp.Diagnostics.Append(diags...)
@@ -170,7 +172,35 @@ func (r *serviceAccountAPIKeyResource) Create(ctx context.Context, req resource.
 	data.Key = types.StringValue(key.Key)
 	mapAPIKeyToState(key, &data)
 
+	// State is saved before the expiry check below so that a key the server
+	// issued is tracked even when that check fails the apply. Returning early
+	// without state would leave the key alive but invisible to Terraform.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// The server caps API key lifetime and silently shortens a longer expiry
+	// instead of rejecting it. Unreported, the mismatch surfaces as
+	// Terraform's generic "inconsistent result after apply", which tells the
+	// user to report a provider bug for what is really server-side policy.
+	// Comparing requested against issued, rather than testing against a
+	// hardcoded bound, keeps this correct if the server's cap ever changes.
+	if createReq.ExpiresAt != 0 && key.ExpiresAt != float64(createReq.ExpiresAt) {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("expires_at"),
+			"API Key Expiry Shortened By Server",
+			fmt.Sprintf(
+				"Requested an expiry of %s, but Kosli issued the key with %s. Kosli caps the "+
+					"lifetime of every API key, currently at 365 days from creation, and shortens a "+
+					"longer expiry rather than rejecting it. Set expires_at within that window.\n\n"+
+					"The key was created and saved to state rather than orphaned; correcting "+
+					"expires_at replaces it on the next apply.",
+				unixToTime(float64(createReq.ExpiresAt)).Format(time.RFC3339),
+				unixToTime(key.ExpiresAt).Format(time.RFC3339),
+			),
+		)
+	}
 }
 
 // Read refreshes the Terraform state with the latest data.

@@ -30,6 +30,11 @@ func TestAccServiceAccountAPIKeyResource_basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttrSet(resourceName, "key"),
 					resource.TestCheckResourceAttrSet(resourceName, "created_at"),
+					// Omitting expires_at yields the server's maximum lifetime,
+					// not a key without an expiry. Pinned here so a regression
+					// back to a null expiry fails rather than silently making
+					// the documented behaviour wrong.
+					resource.TestCheckResourceAttrSet(resourceName, "expires_at"),
 				),
 			},
 		},
