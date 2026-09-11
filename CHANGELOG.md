@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.9.4 (September 11, 2026)
+
+BUG FIXES:
+
+* resource/kosli_service_account_api_key: Fixed `expires_at` producing an inconsistent result after apply by aligning the provider with the server's 365-day cap on API key expiry, including the "never expires" case [GH-258]
+
+NOTES:
+
+* resource/kosli_service_account_api_key: `expires_at` is now capped at 365 days by the server; omitting it yields the maximum 365-day expiry rather than a non-expiring key [GH-258]
+
 ## 0.9.3 (August 18, 2026)
 
 FEATURES:
