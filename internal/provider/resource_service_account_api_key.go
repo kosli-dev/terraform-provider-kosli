@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -72,7 +73,7 @@ func (r *serviceAccountAPIKeyResource) Schema(ctx context.Context, req resource.
 				},
 			},
 			"expires_at": schema.StringAttribute{
-				MarkdownDescription: "RFC3339 timestamp at which the key expires, e.g. `2100-01-01T00:00:00Z` (offsets allowed; whole seconds only). Omit for a key that never expires. Must not be in the past (validated server-side at apply time). Changing this forces creation of a new key. Removing a previously set value from configuration leaves the existing expiry unchanged; to get a non-expiring key again, the key must be recreated (e.g. via `terraform taint` or by changing another argument).",
+				MarkdownDescription: "RFC3339 timestamp at which the key expires, e.g. `2027-01-01T00:00:00Z` (offsets allowed; whole seconds only). Must not be in the past (validated server-side at apply time) and must be no more than 365 days out: the server caps every key's lifetime and silently shortens a longer expiry, which Terraform then reports as an inconsistent result after apply. Omit to let the server apply the maximum 365-day expiry; keys that never expire can no longer be created. Changing this forces creation of a new key. Removing a previously set value from configuration leaves the existing expiry unchanged.",
 				CustomType:          timetypes.RFC3339Type{},
 				Optional:            true,
 				Computed:            true,
@@ -147,7 +148,8 @@ func (r *serviceAccountAPIKeyResource) Create(ctx context.Context, req resource.
 	createReq := &client.CreateAPIKeyRequest{
 		Description: data.Description.ValueString(),
 	}
-	// The API takes expiry as unix seconds; omitted (zero) means no expiry.
+	// The API takes expiry as unix seconds; omitted (zero) lets the server
+	// apply its default, which is the maximum lifetime it allows.
 	if !data.ExpiresAt.IsNull() && !data.ExpiresAt.IsUnknown() {
 		expiresAt, diags := data.ExpiresAt.ValueRFC3339Time()
 		resp.Diagnostics.Append(diags...)
@@ -170,7 +172,36 @@ func (r *serviceAccountAPIKeyResource) Create(ctx context.Context, req resource.
 	data.Key = types.StringValue(key.Key)
 	mapAPIKeyToState(key, &data)
 
+	// State is saved before the expiry check below so that a key the server
+	// issued is tracked even when that check fails the apply. Returning early
+	// without state would leave the key alive but invisible to Terraform.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// The server caps API key lifetime and silently shortens a longer expiry
+	// instead of rejecting it. Unreported, the mismatch surfaces as
+	// Terraform's generic "inconsistent result after apply", which tells the
+	// user to report a provider bug for what is really server-side policy.
+	// Comparing requested against issued, rather than testing against a
+	// hardcoded bound, keeps this correct if the server's cap ever changes.
+	if createReq.ExpiresAt != 0 && key.ExpiresAt != float64(createReq.ExpiresAt) {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("expires_at"),
+			"API Key Expiry Not Honoured By Server",
+			fmt.Sprintf(
+				"Requested an expiry of %s, but Kosli issued the key with %s. Kosli caps the "+
+					"lifetime of every API key, currently at 365 days from creation, and shortens a "+
+					"longer expiry rather than rejecting it. Set expires_at within that window.\n\n"+
+					"The key was created and saved to state rather than orphaned, but Terraform has "+
+					"marked it tainted: the next apply revokes and recreates it. Correct expires_at "+
+					"before re-applying, or each apply will mint another key that is shortened again.",
+				unixToTime(float64(createReq.ExpiresAt)).Format(time.RFC3339),
+				unixToTime(key.ExpiresAt).Format(time.RFC3339),
+			),
+		)
+	}
 }
 
 // Read refreshes the Terraform state with the latest data.

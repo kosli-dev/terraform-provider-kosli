@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -29,6 +30,11 @@ func TestAccServiceAccountAPIKeyResource_basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttrSet(resourceName, "key"),
 					resource.TestCheckResourceAttrSet(resourceName, "created_at"),
+					// Omitting expires_at yields the server's maximum lifetime,
+					// not a key without an expiry. Pinned here so a regression
+					// back to a null expiry fails rather than silently making
+					// the documented behaviour wrong.
+					resource.TestCheckResourceAttrSet(resourceName, "expires_at"),
 				),
 			},
 		},
@@ -40,8 +46,11 @@ func TestAccServiceAccountAPIKeyResource_basic(t *testing.T) {
 func TestAccServiceAccountAPIKeyResource_expiry(t *testing.T) {
 	rName := acctest.RandomWithPrefix("tf-acc-test")
 	resourceName := "kosli_service_account_api_key.test"
-	// A far-future timestamp (2100-01-01) so the test never produces a past expiry.
-	expiresAt := "2100-01-01T00:00:00Z"
+	// The server caps key lifetime at 365 days and silently clamps anything
+	// beyond it, so a far-future timestamp comes back rewritten and trips
+	// Terraform's "inconsistent result after apply" check. A relative 30 days
+	// stays inside the cap and is still in the future whenever the suite runs.
+	expiresAt := time.Now().UTC().AddDate(0, 0, 30).Format(time.RFC3339)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },

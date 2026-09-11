@@ -27,8 +27,9 @@ type ServiceAccountAPIKey struct {
 // CreateAPIKeyRequest represents the request body for creating an API key via
 // POST /api/v2/service-accounts/{org}/{name}/api-keys.
 //
-// ExpiresAt is a Unix timestamp (seconds); when omitted (zero) the key never
-// expires. It must not be in the past.
+// ExpiresAt is a Unix timestamp (seconds); when omitted (zero) the server
+// applies the maximum lifetime it allows. It must not be in the past, and an
+// expiry beyond the server's cap is silently shortened to it.
 type CreateAPIKeyRequest struct {
 	Description string `json:"description"`
 	ExpiresAt   int64  `json:"expires_at,omitempty"`
