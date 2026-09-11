@@ -27,6 +27,7 @@ resource "kosli_service_account_api_key" "ci_key" {
 resource "kosli_service_account_api_key" "ci_key_expiring" {
   service_account_name = kosli_service_account.ci.name
   description          = "Temporary CI key"
+  # Pick a date within 365 days of when you apply; update it as you rotate.
   expires_at           = "2027-01-01T00:00:00Z"
 }
 
