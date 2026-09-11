@@ -36,17 +36,22 @@ resource "kosli_service_account" "ci" {
   privilege   = "member"
 }
 
-# A non-expiring API key
+# Omitting expires_at lets the server choose the expiry, which is the maximum
+# it allows: 365 days from creation. No API key can be created that never
+# expires.
 resource "kosli_service_account_api_key" "ci_key" {
   service_account_name = kosli_service_account.ci.name
   description          = "Production CI key"
 }
 
-# An API key that expires (RFC3339 timestamp)
+# An API key with an explicit expiry (RFC3339 timestamp). It must be in the
+# future and no more than 365 days out - the server silently shortens anything
+# longer, which Terraform reports as an inconsistent result after apply.
+# Set this to a date that suits your rotation schedule.
 resource "kosli_service_account_api_key" "ci_key_expiring" {
   service_account_name = kosli_service_account.ci.name
   description          = "Temporary CI key"
-  expires_at           = "2100-01-01T00:00:00Z"
+  expires_at           = "2027-01-01T00:00:00Z"
 }
 
 # The raw key is only available on creation and is sensitive
@@ -58,11 +63,13 @@ output "ci_api_key" {
 
 ## Expiry
 
-The `expires_at` attribute is an RFC3339 timestamp, e.g. `2100-01-01T00:00:00Z` (offsets such as `+01:00` are accepted and normalized to UTC). Omit it for a key that never expires. The timestamp must not be in the past.
+The `expires_at` attribute is an RFC3339 timestamp, e.g. `2027-01-01T00:00:00Z` (offsets such as `+01:00` are accepted and normalized to UTC). The timestamp must not be in the past.
 
-To derive dates dynamically, use Terraform's built-in functions, e.g. `timeadd("2026-01-01T00:00:00Z", "8760h")`.
+~> **Important:** Kosli caps the lifetime of every API key at **365 days**. An `expires_at` further out than that is silently shortened by the server, and Terraform then reports the mismatch as `Provider produced inconsistent result after apply`. Keys that never expire can no longer be created: omitting `expires_at` yields the maximum 365-day expiry rather than no expiry at all.
 
--> **Note:** All timestamps (`expires_at`, `created_at`, `last_used_at`) are RFC3339 UTC strings. `last_used_at` is null for a key that has never been used; `expires_at` is null for a key that never expires.
+To derive dates from a fixed anchor, use Terraform's built-in functions, e.g. `timeadd("2027-01-01T00:00:00Z", "720h")`. Avoid deriving `expires_at` from `timestamp()` - it changes on every plan, and because `expires_at` forces replacement that would revoke and recreate the key on each apply.
+
+-> **Note:** All timestamps (`expires_at`, `created_at`, `last_used_at`) are RFC3339 UTC strings. `last_used_at` is null for a key that has never been used; `expires_at` is null only for keys minted before the 365-day cap was introduced.
 
 ## Import
 
@@ -87,7 +94,7 @@ Because the raw key value is only returned at creation time, the `key` attribute
 
 ### Optional
 
-- `expires_at` (String) RFC3339 timestamp at which the key expires, e.g. `2100-01-01T00:00:00Z` (offsets allowed; whole seconds only). Omit for a key that never expires. Must not be in the past (validated server-side at apply time). Changing this forces creation of a new key. Removing a previously set value from configuration leaves the existing expiry unchanged; to get a non-expiring key again, the key must be recreated (e.g. via `terraform taint` or by changing another argument).
+- `expires_at` (String) RFC3339 timestamp at which the key expires, e.g. `2027-01-01T00:00:00Z` (offsets allowed; whole seconds only). Must not be in the past (validated server-side at apply time) and must be no more than 365 days out: the server caps every key's lifetime and silently shortens a longer expiry, which Terraform then reports as an inconsistent result after apply. Omit to let the server apply the maximum 365-day expiry; keys that never expire can no longer be created. Changing this forces creation of a new key. Removing a previously set value from configuration leaves the existing expiry unchanged.
 
 ### Read-Only
 
