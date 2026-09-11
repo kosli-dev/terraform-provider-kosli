@@ -23,8 +23,7 @@ resource "kosli_service_account_api_key" "ci_key" {
 
 # An API key with an explicit expiry (RFC3339 timestamp). It must be in the
 # future and no more than 365 days out - the server silently shortens anything
-# longer, which Terraform reports as an inconsistent result after apply.
-# Set this to a date that suits your rotation schedule.
+# longer.
 resource "kosli_service_account_api_key" "ci_key_expiring" {
   service_account_name = kosli_service_account.ci.name
   description          = "Temporary CI key"
