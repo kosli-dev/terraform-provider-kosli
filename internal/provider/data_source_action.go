@@ -54,9 +54,10 @@ func (d *actionDataSource) Schema(ctx context.Context, req datasource.SchemaRequ
 				MarkdownDescription: "List of environment names this action monitors.",
 			},
 			"triggers": schema.ListAttribute{
-				ElementType:         types.StringType,
-				Computed:            true,
-				MarkdownDescription: "List of trigger event types that activate this action.",
+				ElementType: types.StringType,
+				Computed:    true,
+				MarkdownDescription: "List of trigger event types that activate this action. " +
+					"See the `kosli_action` resource for what each trigger fires on.",
 			},
 			"number": schema.Int64Attribute{
 				Computed:            true,

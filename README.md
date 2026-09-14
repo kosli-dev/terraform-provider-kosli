@@ -77,7 +77,7 @@ For more details on attestation types, see the [Kosli documentation](https://doc
 - `kosli_environment` - Create and manage physical environments (K8S, ECS, S3, docker, server, lambda)
 - `kosli_flow` - Create and manage flows that represents a business or software process that requires change tracking. It allows you to monitor changes across all steps within a process or focus specifically on a subset of critical steps
 - `kosli_logical_environment` - Create and manage logical environments that aggregate physical environments
-- `kosli_action` - Create and manage actions that define webhook notifications triggered by environment compliance events
+- `kosli_action` - Create and manage actions that send webhook notifications when artifact or environment events occur in the monitored environments
 - `kosli_policy` - Create and manage policies, which define artifact compliance requirements (provenance, trail-compliance, attestations) that can be attached to environments
 - `kosli_policy_attachment` - Attach a policy to an environment (physical or logical)
 - `kosli_service_account` - Create and manage service accounts used to authenticate automation against the Kosli API
