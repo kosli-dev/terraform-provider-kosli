@@ -47,7 +47,7 @@ func (r *actionResource) Metadata(ctx context.Context, req resource.MetadataRequ
 // Schema defines the schema for the resource.
 func (r *actionResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a Kosli action. Actions define webhook notifications triggered by environment compliance events.\n\n" +
+		MarkdownDescription: "Manages a Kosli action. Actions send webhook notifications when artifact or environment events occur in the monitored environments.\n\n" +
 			"~> **Note:** Actions are identified internally by a server-assigned `number`. The `name` is used during import to look up the number.",
 
 		Attributes: map[string]schema.Attribute{
@@ -64,9 +64,15 @@ func (r *actionResource) Schema(ctx context.Context, req resource.SchemaRequest,
 				Required:            true,
 			},
 			"triggers": schema.ListAttribute{
-				ElementType:         types.StringType,
-				MarkdownDescription: "List of trigger event types that activate this action (e.g. `ON_NON_COMPLIANT_ENV`, `ON_COMPLIANT_ENV`).",
-				Required:            true,
+				ElementType: types.StringType,
+				MarkdownDescription: "List of trigger event types that activate this action. Valid values: " +
+					"`ON_STARTED_ARTIFACT` (an artifact starts running in the environment), " +
+					"`ON_EXITED_ARTIFACT` (an artifact stops running), " +
+					"`ON_SCALED_ARTIFACT` (a running artifact becomes compliant/non-compliant or gains new provenance; shown as \"Artifact changed\" in the Kosli UI), " +
+					"`ON_ALLOWED_ARTIFACT` (an artifact is added to the allow-list), " +
+					"`ON_COMPLIANT_ENV` (the environment becomes compliant), " +
+					"`ON_NON_COMPLIANT_ENV` (the environment becomes non-compliant).",
+				Required: true,
 			},
 			"webhook_url": schema.StringAttribute{
 				MarkdownDescription: "Webhook URL to send notifications to.",
