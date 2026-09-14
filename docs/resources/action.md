@@ -72,7 +72,7 @@ The `triggers` attribute must contain one or more of the following event types:
 
 - `environments` (List of String) List of environment names this action monitors.
 - `name` (String) Name of the action. Must be unique within the organization. Changing this will force recreation of the resource.
-- `triggers` (List of String) List of trigger event types that activate this action. Valid values: `ON_STARTED_ARTIFACT` (an artifact starts running in the environment), `ON_EXITED_ARTIFACT` (an artifact stops running), `ON_SCALED_ARTIFACT` (a running artifact becomes compliant/non-compliant or gains new provenance; shown as "Artifact changed" in the Kosli UI), `ON_ALLOWED_ARTIFACT` (an artifact is added to the allow-list), `ON_COMPLIANT_ENV` (the environment becomes compliant), `ON_NON_COMPLIANT_ENV` (the environment becomes non-compliant).
+- `triggers` (List of String) List of trigger event types that activate this action. One or more of `ON_STARTED_ARTIFACT`, `ON_EXITED_ARTIFACT`, `ON_SCALED_ARTIFACT`, `ON_ALLOWED_ARTIFACT`, `ON_COMPLIANT_ENV`, `ON_NON_COMPLIANT_ENV`. See the Triggers section of the `kosli_action` documentation for what each one fires on.
 - `webhook_url` (String, Sensitive) Webhook URL to send notifications to.
 
 ### Read-Only

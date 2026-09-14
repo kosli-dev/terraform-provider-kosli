@@ -63,15 +63,15 @@ func (r *actionResource) Schema(ctx context.Context, req resource.SchemaRequest,
 				MarkdownDescription: "List of environment names this action monitors.",
 				Required:            true,
 			},
+			// The list of values below is mirrored by the "## Triggers" table in
+			// templates/resources/action.md.tmpl, which owns their meanings. Keep
+			// the two value lists in sync when the API gains or drops a trigger.
 			"triggers": schema.ListAttribute{
 				ElementType: types.StringType,
-				MarkdownDescription: "List of trigger event types that activate this action. Valid values: " +
-					"`ON_STARTED_ARTIFACT` (an artifact starts running in the environment), " +
-					"`ON_EXITED_ARTIFACT` (an artifact stops running), " +
-					"`ON_SCALED_ARTIFACT` (a running artifact becomes compliant/non-compliant or gains new provenance; shown as \"Artifact changed\" in the Kosli UI), " +
-					"`ON_ALLOWED_ARTIFACT` (an artifact is added to the allow-list), " +
-					"`ON_COMPLIANT_ENV` (the environment becomes compliant), " +
-					"`ON_NON_COMPLIANT_ENV` (the environment becomes non-compliant).",
+				MarkdownDescription: "List of trigger event types that activate this action. " +
+					"One or more of `ON_STARTED_ARTIFACT`, `ON_EXITED_ARTIFACT`, `ON_SCALED_ARTIFACT`, " +
+					"`ON_ALLOWED_ARTIFACT`, `ON_COMPLIANT_ENV`, `ON_NON_COMPLIANT_ENV`. " +
+					"See the Triggers section of the `kosli_action` documentation for what each one fires on.",
 				Required: true,
 			},
 			"webhook_url": schema.StringAttribute{
