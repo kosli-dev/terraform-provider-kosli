@@ -4,7 +4,7 @@
 [![Main Pipeline](https://github.com/kosli-dev/terraform-provider-kosli/actions/workflows/main.yaml/badge.svg)](https://github.com/kosli-dev/terraform-provider-kosli/actions/workflows/main.yaml)
 
 > [!WARNING]
-> This is a provider under active development. Features and APIs might still change.
+> This is a provider under active development. Features might still change.
 > Be careful using this provider in production environments, and it's recommended to pin it to specific versions to avoid breaking changes.
 
 
