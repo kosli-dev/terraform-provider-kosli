@@ -32,7 +32,7 @@ jobs:
           fetch-depth: 0
 
       - name: Claude review (dependency updates)
-        uses: anthropics/claude-code-action@v1.0.219
+        uses: anthropics/claude-code-action@v1.0.235
 
         env:
           GH_TOKEN: ${{ github.token }}
@@ -86,7 +86,7 @@ jobs:
       # ── First review: full pass with the Anthropic-maintained skill ──────────
       - name: Full review
         if: github.event.action != 'synchronize'
-        uses: anthropics/claude-code-action@v1.0.219
+        uses: anthropics/claude-code-action@v1.0.235
         env:
           GH_TOKEN: ${{ github.token }}
         with:
@@ -143,7 +143,7 @@ jobs:
       # ── Follow-up on pushes: only the delta and existing findings ────────────
       - name: Follow-up review (new commits only)
         if: github.event.action == 'synchronize'
-        uses: anthropics/claude-code-action@v1.0.219
+        uses: anthropics/claude-code-action@v1.0.235
         env:
           GH_TOKEN: ${{ github.token }}
         with:
