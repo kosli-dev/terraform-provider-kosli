@@ -49,7 +49,7 @@ resource "kosli_notification_config" "api_key_expiry" {
 
 ## Targets
 
-Each target attribute takes one or more values, and at least one of them must be set. The provider sends every address in `emails` as a single email target, and each URL in `slack_webhooks` or `webhooks` as its own target. Kosli lowercases the host of webhook URLs and the domain of email addresses, and strips trailing slashes from URLs; the provider keeps the spelling from your configuration when Kosli stores an equivalent value, so differences in letter case or trailing slashes never show up as a diff.
+Each target attribute takes one or more values, and at least one of them must be set. The provider sends every address in `emails` as a single email target, and each URL in `slack_webhooks` or `webhooks` as its own target. Kosli lowercases the host of webhook URLs and the domain of email addresses, and strips trailing slashes from URLs; the provider keeps the spelling from your configuration when Kosli stores an equivalent value, so this normalization never shows up as a diff. URL paths and email local parts are compared exactly.
 
 ## Import
 

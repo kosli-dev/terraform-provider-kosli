@@ -18,6 +18,9 @@ const (
 	NotificationTargetTypeWebhook = "WEBHOOK"
 )
 
+// NotificationPayloadVersionV1 is the WEBHOOK target payload format version 1.0.
+const NotificationPayloadVersionV1 = "1.0"
+
 // NotificationTarget is one destination for a notification type.
 //
 // Which fields apply depends on Type: EMAIL uses Emails, SLACK uses Webhook,

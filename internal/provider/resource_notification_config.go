@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -156,6 +157,21 @@ func (r *notificationConfigResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
+	// The config is a per-type singleton, so creating one takes over whatever
+	// is already set (for example through the Kosli UI). Surface that rather
+	// than replacing it silently. A failed lookup is not fatal: the PUT below
+	// reports any real problem.
+	existing, err := r.client.GetNotificationConfig(ctx, data.NotificationType.ValueString())
+	if err == nil && len(existing.Targets) > 0 {
+		resp.Diagnostics.AddWarning(
+			"Existing Notification Config Replaced",
+			fmt.Sprintf("Kosli already had %d target(s) configured for notification type %q. "+
+				"They have been replaced by this resource's targets. To adopt an existing "+
+				"configuration without replacing it, use `terraform import` instead.",
+				len(existing.Targets), data.NotificationType.ValueString()),
+		)
+	}
+
 	config, diags := r.set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -307,7 +323,9 @@ func groupNotificationTargets(targets []client.NotificationTarget) notificationT
 }
 
 // targets builds the API's typed target list: one EMAIL target carrying every
-// address, and one SLACK or WEBHOOK target per URL.
+// address, and one SLACK or WEBHOOK target per URL. WEBHOOK targets pin the
+// payload version the schema documents, so a change of server default cannot
+// alter what existing configurations receive.
 func (v notificationTargetValues) targets() []client.NotificationTarget {
 	targets := []client.NotificationTarget{}
 	if len(v.Emails) > 0 {
@@ -324,8 +342,9 @@ func (v notificationTargetValues) targets() []client.NotificationTarget {
 	}
 	for _, webhook := range v.Webhooks {
 		targets = append(targets, client.NotificationTarget{
-			Type:    client.NotificationTargetTypeWebhook,
-			Webhook: webhook,
+			Type:           client.NotificationTargetTypeWebhook,
+			Webhook:        webhook,
+			PayloadVersion: client.NotificationPayloadVersionV1,
 		})
 	}
 	return targets
@@ -374,21 +393,42 @@ func mapNotificationConfigToModel(ctx context.Context, config *client.Notificati
 	return diags
 }
 
+// normalizeNotificationValue applies the API's normalization to a target
+// value: a URL gets a lowercase scheme and host, an email address a lowercase
+// domain, and trailing slashes are stripped. Paths, queries and email local
+// parts keep their case, since the API preserves it and Slack webhook tokens
+// depend on it.
+func normalizeNotificationValue(value string) string {
+	if u, err := url.Parse(value); err == nil && u.Scheme != "" && u.Host != "" {
+		u.Scheme = strings.ToLower(u.Scheme)
+		u.Host = strings.ToLower(u.Host)
+		return strings.TrimRight(u.String(), "/")
+	}
+	if at := strings.LastIndex(value, "@"); at >= 0 {
+		return value[:at+1] + strings.ToLower(value[at+1:])
+	}
+	return value
+}
+
 // notificationValuesEquivalent reports whether two target values differ only in
-// the ways the API normalizes them: letter case and trailing slashes.
+// the ways the API normalizes them.
 func notificationValuesEquivalent(a, b string) bool {
-	return strings.EqualFold(strings.TrimRight(a, "/"), strings.TrimRight(b, "/"))
+	return normalizeNotificationValue(a) == normalizeNotificationValue(b)
 }
 
 // preferPriorSpelling returns the API values with each one replaced by its
-// equivalent prior value, when there is one.
+// equivalent prior value, when there is one. Each prior value is used at most
+// once, so two configured values the API stores identically (such as a URL
+// with and without a trailing slash) both survive into state, matching the plan.
 func preferPriorSpelling(apiValues, priorValues []string) []string {
+	used := make([]bool, len(priorValues))
 	result := make([]string, 0, len(apiValues))
 	for _, apiValue := range apiValues {
 		value := apiValue
-		for _, priorValue := range priorValues {
-			if notificationValuesEquivalent(apiValue, priorValue) {
+		for i, priorValue := range priorValues {
+			if !used[i] && notificationValuesEquivalent(apiValue, priorValue) {
 				value = priorValue
+				used[i] = true
 				break
 			}
 		}

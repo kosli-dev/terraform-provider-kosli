@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -157,10 +158,13 @@ func TestNotificationTargetValues_Targets(t *testing.T) {
 	if targets[1].Type != "SLACK" || targets[1].Webhook != "https://hooks.slack.com/services/T0/B0/x" {
 		t.Errorf("unexpected slack target: %+v", targets[1])
 	}
-	if targets[2].Type != "WEBHOOK" || targets[2].Webhook != "https://ops.example.com/one" {
+	if targets[1].PayloadVersion != "" {
+		t.Errorf("expected slack target to omit payload_version, got %q", targets[1].PayloadVersion)
+	}
+	if targets[2].Type != "WEBHOOK" || targets[2].Webhook != "https://ops.example.com/one" || targets[2].PayloadVersion != "1.0" {
 		t.Errorf("unexpected webhook target: %+v", targets[2])
 	}
-	if targets[3].Type != "WEBHOOK" || targets[3].Webhook != "https://ops.example.com/two" {
+	if targets[3].Type != "WEBHOOK" || targets[3].Webhook != "https://ops.example.com/two" || targets[3].PayloadVersion != "1.0" {
 		t.Errorf("unexpected webhook target: %+v", targets[3])
 	}
 }
@@ -180,8 +184,13 @@ func TestNotificationValuesEquivalent(t *testing.T) {
 		{"https://hooks.example.com/x", "https://hooks.example.com/x", true},
 		{"https://Hooks.Example.com/x/", "https://hooks.example.com/x", true},
 		{"Platform@Example.COM", "Platform@example.com", true},
+		{"HTTPS://hooks.example.com/x", "https://hooks.example.com/x", true},
 		{"https://hooks.example.com/x", "https://hooks.example.com/y", false},
 		{"a@example.com", "b@example.com", false},
+		// Paths, queries and email local parts are case-sensitive: the API keeps them as sent.
+		{"https://hooks.slack.com/services/T0/B0/AbC", "https://hooks.slack.com/services/T0/B0/abc", false},
+		{"https://ops.example.com/hook?Token=X", "https://ops.example.com/hook?token=x", false},
+		{"Platform@example.com", "platform@example.com", false},
 	}
 	for _, tc := range cases {
 		if got := notificationValuesEquivalent(tc.a, tc.b); got != tc.want {
@@ -196,6 +205,18 @@ func TestPreferPriorSpelling(t *testing.T) {
 		[]string{"https://Hooks.Example.com/x/"},
 	)
 	if len(got) != 2 || got[0] != "https://Hooks.Example.com/x/" || got[1] != "https://new.example.com/y" {
+		t.Errorf("unexpected result: %v", got)
+	}
+}
+
+// TestPreferPriorSpelling_UsesEachPriorOnce verifies two configured values the
+// API stores identically each keep their own spelling instead of collapsing.
+func TestPreferPriorSpelling_UsesEachPriorOnce(t *testing.T) {
+	got := preferPriorSpelling(
+		[]string{"https://a.example.com/x", "https://a.example.com/x"},
+		[]string{"https://a.example.com/x", "https://a.example.com/x/"},
+	)
+	if len(got) != 2 || got[0] != "https://a.example.com/x" || got[1] != "https://a.example.com/x/" {
 		t.Errorf("unexpected result: %v", got)
 	}
 }
@@ -278,6 +299,69 @@ func TestMapNotificationConfigToModel_KeepsConfiguredSpelling(t *testing.T) {
 	}
 	if !data.Webhooks.Equal(webhooks) {
 		t.Errorf("expected webhooks %v to be kept, got %v", webhooks, data.Webhooks)
+	}
+}
+
+// TestMapNotificationConfigToModel_EquivalentConfiguredValues verifies a set
+// holding two values the API normalizes to the same string keeps both, so the
+// state matches the plan instead of failing with an inconsistent result.
+func TestMapNotificationConfigToModel_EquivalentConfiguredValues(t *testing.T) {
+	ctx := context.TODO()
+	webhooks, _ := types.SetValueFrom(ctx, types.StringType, []string{"https://a.example.com/x", "https://a.example.com/x/"})
+	emails, _ := types.SetValueFrom(ctx, types.StringType, []string{"ops@Example.com", "ops@example.com"})
+	data := notificationConfigResourceModel{
+		Emails:        emails,
+		SlackWebhooks: types.SetNull(types.StringType),
+		Webhooks:      webhooks,
+	}
+
+	config := &client.NotificationConfigResponse{
+		NotificationType: "api_key_expiry",
+		Targets: []client.NotificationTarget{
+			{Type: "EMAIL", Emails: []string{"ops@example.com", "ops@example.com"}},
+			{Type: "WEBHOOK", Webhook: "https://a.example.com/x", PayloadVersion: "1.0"},
+			{Type: "WEBHOOK", Webhook: "https://a.example.com/x", PayloadVersion: "1.0"},
+		},
+	}
+
+	if diags := mapNotificationConfigToModel(ctx, config, &data); diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	if !data.Webhooks.Equal(webhooks) {
+		t.Errorf("expected webhooks %v, got %v", webhooks, data.Webhooks)
+	}
+	if !data.Emails.Equal(emails) {
+		t.Errorf("expected emails %v, got %v", emails, data.Emails)
+	}
+}
+
+// TestMapNotificationConfigToModel_DetectsCaseDriftInPath verifies a webhook
+// whose case-sensitive path changed outside Terraform shows up as drift.
+func TestMapNotificationConfigToModel_DetectsCaseDriftInPath(t *testing.T) {
+	ctx := context.TODO()
+	slack, _ := types.SetValueFrom(ctx, types.StringType, []string{"https://hooks.slack.com/services/T0/B0/abc"})
+	data := notificationConfigResourceModel{
+		Emails:        types.SetNull(types.StringType),
+		SlackWebhooks: slack,
+		Webhooks:      types.SetNull(types.StringType),
+	}
+
+	config := &client.NotificationConfigResponse{
+		NotificationType: "api_key_expiry",
+		Targets: []client.NotificationTarget{
+			{Type: "SLACK", Webhook: "https://hooks.slack.com/services/T0/B0/ABC"},
+		},
+	}
+
+	if diags := mapNotificationConfigToModel(ctx, config, &data); diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	var got []string
+	data.SlackWebhooks.ElementsAs(ctx, &got, false)
+	if len(got) != 1 || got[0] != "https://hooks.slack.com/services/T0/B0/ABC" {
+		t.Errorf("expected the API's spelling to replace state, got %v", got)
 	}
 }
 
@@ -412,5 +496,83 @@ func TestNotificationConfigResource_Read_RefreshesTargets(t *testing.T) {
 	data.Emails.ElementsAs(ctx, &emails, false)
 	if len(emails) != 2 {
 		t.Errorf("expected 2 emails in state, got %v", emails)
+	}
+}
+
+// notificationConfigCreateServer answers the pre-create GET with existingTargets
+// and echoes the PUT payload back as the stored config.
+func notificationConfigCreateServer(t *testing.T, existingTargets string) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method {
+		case http.MethodGet:
+			w.Write([]byte(`{"notification_type": "api_key_expiry", "scope": null, "targets": ` + existingTargets + `,
+				"detection": {}, "last_notified_at": null, "last_failure": null}`))
+		case http.MethodPut:
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{"notification_type": "api_key_expiry", "scope": null,
+				"targets": [{"type": "EMAIL", "emails": ["platform@example.com"]}],
+				"detection": {}, "last_notified_at": null, "last_failure": null}`))
+		default:
+			t.Errorf("unexpected method %s", r.Method)
+		}
+	}))
+}
+
+func runNotificationConfigCreate(t *testing.T, existingTargets string) *resource.CreateResponse {
+	t.Helper()
+	ctx := context.TODO()
+
+	server := notificationConfigCreateServer(t, existingTargets)
+	t.Cleanup(server.Close)
+
+	c, err := client.NewClient("test-token", "test-org", client.WithBaseURL(server.URL))
+	if err != nil {
+		t.Fatalf("unexpected error creating client: %v", err)
+	}
+
+	r := &notificationConfigResource{client: c}
+	schemaResp := &resource.SchemaResponse{}
+	r.Schema(ctx, resource.SchemaRequest{}, schemaResp)
+
+	req := resource.CreateRequest{Plan: tfsdk.Plan{
+		Schema: schemaResp.Schema,
+		Raw:    notificationConfigRaw(t, ctx, schemaResp.Schema, []string{"platform@example.com"}),
+	}}
+	resp := &resource.CreateResponse{State: tfsdk.State{
+		Schema: schemaResp.Schema,
+		Raw:    tftypes.NewValue(schemaResp.Schema.Type().TerraformType(ctx), nil),
+	}}
+
+	r.Create(ctx, req, resp)
+
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("unexpected error diagnostics: %v", resp.Diagnostics.Errors())
+	}
+	return resp
+}
+
+// TestNotificationConfigResource_Create_WarnsWhenReplacingExisting verifies
+// taking over a config set outside Terraform raises a warning naming import.
+func TestNotificationConfigResource_Create_WarnsWhenReplacingExisting(t *testing.T) {
+	resp := runNotificationConfigCreate(t, `[{"type": "SLACK", "webhook": "https://hooks.slack.com/services/T0/B0/x"}]`)
+
+	warnings := resp.Diagnostics.Warnings()
+	if len(warnings) != 1 {
+		t.Fatalf("expected 1 warning, got %d: %v", len(warnings), warnings)
+	}
+	if !strings.Contains(warnings[0].Detail(), "terraform import") {
+		t.Errorf("expected the warning to point at terraform import, got %q", warnings[0].Detail())
+	}
+}
+
+// TestNotificationConfigResource_Create_NoWarningWhenUnconfigured verifies a
+// type with nothing configured is created without a warning.
+func TestNotificationConfigResource_Create_NoWarningWhenUnconfigured(t *testing.T) {
+	resp := runNotificationConfigCreate(t, `[]`)
+
+	if warnings := resp.Diagnostics.Warnings(); len(warnings) != 0 {
+		t.Errorf("expected no warnings, got %v", warnings)
 	}
 }
