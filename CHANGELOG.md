@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.10.0 (October 1, 2026)
+
+FEATURES:
+
+* **New Resource**: `kosli_notification_config` for managing where Kosli sends the notifications it raises itself (currently `api_key_expiry`)
+* **New Data Source**: `kosli_notification_config` for querying notification configuration targets and delivery status
+
+IMPROVEMENTS:
+
+* client: Added support for getting, setting, and deleting notification configuration targets (email addresses, Slack webhooks, and webhooks)
+
+BUG FIXES:
+
+* resource/kosli_action: Corrected the `triggers` attribute documentation to describe all six valid values and fixed the incorrect `ON_SCALED_ARTIFACT` description, which fires on artifact compliance or provenance changes rather than scaling [GH-267]
+
 ## v0.9.4 (September 11, 2026)
 
 BUG FIXES:
