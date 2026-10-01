@@ -24,7 +24,7 @@ INSTALL_DIR=~/.terraform.d/plugins/registry.terraform.io/kosli-dev/kosli/dev/$(O
 # Coverage output
 COVERAGE_OUT=coverage.out
 
-.PHONY: all build clean test test-coverage testacc testacc-action testacc-action-datasource testacc-control testacc-control-datasource testacc-control-list testacc-custom-attestation-type testacc-custom-attestation-type-datasource testacc-environment testacc-environment-datasource testacc-flow testacc-flow-datasource testacc-logical-environment testacc-logical-environment-datasource testacc-policy testacc-policy-datasource testacc-policy-attachment check-testacc-env fmt vet lint install docs help default
+.PHONY: all build clean test test-coverage testacc testacc-action testacc-action-datasource testacc-control testacc-control-datasource testacc-control-list testacc-custom-attestation-type testacc-custom-attestation-type-datasource testacc-environment testacc-environment-datasource testacc-flow testacc-flow-datasource testacc-logical-environment testacc-logical-environment-datasource testacc-notification-config testacc-notification-config-datasource testacc-policy testacc-policy-datasource testacc-policy-attachment check-testacc-env fmt vet lint install docs help default
 
 # Default target
 default: build
@@ -145,6 +145,16 @@ testacc-logical-environment-datasource: check-testacc-env
 	@echo "Running acceptance tests for logical environment data source..."
 	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccLogicalEnvironmentDataSource' -timeout 30m
 
+# Run acceptance tests for notification config resource
+testacc-notification-config: check-testacc-env
+	@echo "Running acceptance tests for notification_config resource..."
+	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccNotificationConfigResource' -timeout 30m
+
+# Run acceptance tests for notification config data source
+testacc-notification-config-datasource: check-testacc-env
+	@echo "Running acceptance tests for notification_config data source..."
+	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccNotificationConfigDataSource' -timeout 30m
+
 # Run acceptance tests for policy resource
 testacc-policy: check-testacc-env
 	@echo "Running acceptance tests for policy resource..."
@@ -264,6 +274,10 @@ help:
 	@echo "                Run acceptance tests for logical environment resource"
 	@echo "  testacc-logical-environment-datasource"
 	@echo "                Run acceptance tests for logical environment data source"
+	@echo "  testacc-notification-config"
+	@echo "                Run acceptance tests for notification config resource"
+	@echo "  testacc-notification-config-datasource"
+	@echo "                Run acceptance tests for notification config data source"
 	@echo "  testacc-policy"
 	@echo "                Run acceptance tests for policy resource"
 	@echo "  testacc-policy-datasource"
