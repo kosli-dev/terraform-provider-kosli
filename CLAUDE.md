@@ -91,11 +91,13 @@ The client supports:
 - `kosli_custom_attestation_type` - Manage custom attestation types (JSON schema + jq rules)
 - `kosli_environment` - Manage physical environments (K8S, ECS, S3, docker, server, lambda)
 - `kosli_logical_environment` - Manage logical environments that aggregate physical environments
+- `kosli_notification_config` - Manage where Kosli-raised notifications (e.g. `api_key_expiry`) are sent; one org-wide config per notification type
 
 **Data Sources:**
 - `kosli_custom_attestation_type` - Reference existing attestation types
 - `kosli_environment` - Reference existing physical environments
 - `kosli_logical_environment` - Reference existing logical environments
+- `kosli_notification_config` - Read a notification type's targets and delivery status
 
 **List Resources (`terraform query`, requires Terraform >= 1.14):**
 - `kosli_control` - Discover existing controls and generate import/config blocks (`internal/provider/list_resource_control.go`). List resources require the managed resource to implement `resource.ResourceWithIdentity`; `kosli_control` sets the pattern. Files follow `list_resource_<name>.go`, examples live in `examples/list-resources/<full name>/list-resource.tfquery.hcl`, templates in `templates/list-resources/`.

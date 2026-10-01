@@ -83,6 +83,7 @@ For more details on attestation types, see the [Kosli documentation](https://doc
 - `kosli_service_account` - Create and manage service accounts used to authenticate automation against the Kosli API
 - `kosli_service_account_api_key` - Mint and revoke API keys for a service account
 - `kosli_control` - Create and manage controls, org-level definitions of SDLC requirements evaluated from attestations and enforced through environment policies (beta feature)
+- `kosli_notification_config` - Set where Kosli sends notifications it raises itself, such as API key expiry warnings (email, Slack, or webhook targets)
 
 ### Data Sources
 - `kosli_custom_attestation_type` - Reference existing attestation types
@@ -94,6 +95,7 @@ For more details on attestation types, see the [Kosli documentation](https://doc
 - `kosli_service_account` - Reference existing service accounts
 - `kosli_service_account_api_keys` - List the API keys (metadata only) for a service account
 - `kosli_control` - Reference existing controls
+- `kosli_notification_config` - Read where a notification type is sent and when it was last delivered
 
 ### List Resources (`terraform query`, Terraform >= 1.14)
 - `kosli_control` - Discover existing (unmanaged) controls and generate `import`/config blocks for them (beta feature)

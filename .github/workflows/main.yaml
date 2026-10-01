@@ -234,6 +234,7 @@ jobs:
           - examples/resources/kosli_environment
           - examples/resources/kosli_flow
           - examples/resources/kosli_logical_environment
+          - examples/resources/kosli_notification_config
           - examples/resources/kosli_policy
           - examples/resources/kosli_policy_attachment
           - examples/resources/kosli_service_account
@@ -244,6 +245,7 @@ jobs:
           - examples/data-sources/kosli_environment
           - examples/data-sources/kosli_flow
           - examples/data-sources/kosli_logical_environment
+          - examples/data-sources/kosli_notification_config
           - examples/data-sources/kosli_policy
           - examples/data-sources/kosli_service_account
           - examples/data-sources/kosli_service_account_api_keys
