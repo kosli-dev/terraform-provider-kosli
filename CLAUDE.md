@@ -21,10 +21,12 @@ make clean              # Remove build artifacts
 ```bash
 # Unit tests
 make test               # Run unit tests with coverage (coverage.out)
+make test-junit         # Same, plus JUnit XML in test-results/unit (used by CI)
 make test-coverage      # Generate HTML coverage report
 
 # Acceptance tests (requires KOSLI_API_TOKEN and KOSLI_ORG)
 make testacc            # Run all acceptance tests
+make testacc-junit      # Same, plus JUnit XML in test-results/acceptance (used by CI)
 make testacc-custom-attestation-type          # Specific resource tests
 make testacc-custom-attestation-type-datasource
 make testacc-environment
@@ -172,12 +174,16 @@ The main pipeline (`.github/workflows/main.yml`) implements Kosli CD flows:
 **Pipeline Stages:**
 1. Setup - Creates Kosli flow and begins trail
 2. Attest PR - Records PR approval
-3. Test - Runs unit tests, acceptance tests, linting (all attested to Kosli)
-4. Build - Builds binary, generates SBOM, attests artifacts
-5. Validate Examples - Tests all Terraform examples
+3. Test - Runs unit tests, acceptance tests, linting (tests attested to Kosli as JUnit)
+4. Security Scan - Trivy filesystem scan (vuln, secret, misconfig; HIGH/CRITICAL), attested to Kosli as `trivy-scan`. Runs in parallel with Test and does not block Build: findings make the attestation non-compliant
+5. Build - Builds binary, generates SBOM, attests artifacts
+6. Validate Examples - Tests all Terraform examples
 
 **Kosli Integration:**
-- Artifacts attested: binary, SBOM, test results, PR approval
+- Artifacts attested: binary, SBOM, JUnit test results (unit + acceptance), Trivy scan, PR approval
+- JUnit reports come from gotestsum, pinned as a Go `tool` dependency in `go.mod`
+- Trivy is installed with `aquasecurity/setup-trivy` pinned by commit SHA plus an explicit `TRIVY_VERSION` (the aquasecurity action tags were hijacked in March 2026, so never reference them by tag)
+- The PR workflow (`ci.yaml`) runs the same Trivy scan without attesting and uploads SARIF to GitHub code scanning (category `trivy`)
 - Flow template: `kosli/template.yml`
 - All attestations linked to git commit SHA
 
