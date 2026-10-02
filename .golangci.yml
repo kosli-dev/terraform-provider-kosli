@@ -36,9 +36,7 @@ linters:
 
   exclusions:
     rules:
-      # Exclude errcheck for test files entirely. gosec is excluded too: its
-      # test findings are unchecked errors (errcheck duplicates) and request
-      # handling in mock HTTP servers
+      # Exclude errcheck and gosec for test files entirely
       - path: '.*_test\.go$'
         linters:
           - errcheck

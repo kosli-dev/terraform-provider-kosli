@@ -15,8 +15,7 @@ GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 GOFMT=$(GOCMD) fmt
 GOVET=$(GOCMD) vet
-# gotestsum is pinned in the separate tools module (tools/go.mod) so it
-# stays out of the provider's dependency graph
+# Pinned in tools/go.mod, outside the provider's dependency graph
 GOTESTSUM=$(GOCMD) tool -modfile=tools/go.mod gotestsum
 
 # Terraform provider installation directory
@@ -27,7 +26,7 @@ INSTALL_DIR=~/.terraform.d/plugins/registry.terraform.io/kosli-dev/kosli/dev/$(O
 # Coverage output
 COVERAGE_OUT=coverage.out
 
-# JUnit XML output (consumed by `kosli attest junit` in CI)
+# JUnit XML output for `kosli attest junit`
 JUNIT_DIR=test-results
 
 .PHONY: all build clean test test-junit test-coverage testacc testacc-junit testacc-action testacc-action-datasource testacc-control testacc-control-datasource testacc-control-list testacc-custom-attestation-type testacc-custom-attestation-type-datasource testacc-environment testacc-environment-datasource testacc-flow testacc-flow-datasource testacc-logical-environment testacc-logical-environment-datasource testacc-notification-config testacc-notification-config-datasource testacc-policy testacc-policy-datasource testacc-policy-attachment check-testacc-env fmt vet lint install docs help default

@@ -18,8 +18,60 @@ jobs:
           slack-channel-id: ${{ vars.SLACK_CHANNEL_ID }}
           stage: start
 
+  # Gate: the tagged commit's trail must be compliant. GoReleaser rebuilds the
+  # binaries, so assert the one main attested (fingerprint read from the trail).
+  compliance:
+    name: Kosli compliance gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      ARTIFACT_NAME: ${{ github.event.repository.name }}
+      KOSLI_API_TOKEN: ${{ secrets.KOSLI_API_TOKEN }}
+      KOSLI_FLOW_NAME: ${{ github.event.repository.name }}
+      KOSLI_ORG: ${{ vars.KOSLI_ORG }}
+      KOSLI_VERSION: 'latest'
+    steps:
+      - name: Setup Kosli CLI
+        uses: kosli-dev/setup-cli-action@15b43acd0374a4b5311978d7ea59269edd131dfc # v5.2.2
+        with:
+          version: ${{ env.KOSLI_VERSION }}
+
+      # Capture first so a missing trail or API error fails the step
+      - name: Find attested artifact
+        id: artifact
+        run: |
+          trail=$(kosli get trail "${GITHUB_SHA}" --flow "${KOSLI_FLOW_NAME}" --output json)
+          fingerprint=$(jq -r --arg a "${ARTIFACT_NAME}" \
+            '.compliance_status.artifacts_statuses[$a].artifact_fingerprint // empty' <<< "${trail}")
+          if [ -z "${fingerprint}" ]; then
+            jq '.compliance_status' <<< "${trail}"
+            echo "::error::No attested ${ARTIFACT_NAME} binary on Kosli trail ${GITHUB_SHA}; tag only after the Main Pipeline has built it"
+            exit 1
+          fi
+          echo "Artifact fingerprint: ${fingerprint}"
+          echo "fingerprint=${fingerprint}" >> "$GITHUB_OUTPUT"
+          echo "trail-compliant=$(jq -r '.compliance_status.is_compliant' <<< "${trail}")" >> "$GITHUB_OUTPUT"
+
+      - name: Assert trail compliance
+        env:
+          FINGERPRINT: ${{ steps.artifact.outputs.fingerprint }}
+        run: |
+          kosli assert artifact \
+            --fingerprint "${FINGERPRINT}" \
+            --flow "${KOSLI_FLOW_NAME}"
+
+      # assert artifact matches by fingerprint across the flow; this pins the verdict to this trail
+      - name: Check trail is compliant
+        if: steps.artifact.outputs.trail-compliant != 'true'
+        run: |
+          echo "::error::Kosli trail ${GITHUB_SHA} is not compliant"
+          exit 1
+
   release:
     name: Release
+    needs: compliance
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -54,7 +106,8 @@ jobs:
       # support tag-push events, so it cannot run in this workflow).
 
   notify-finish:
-    needs: [notify-start, release]
+    # A failed gate skips release, which would otherwise report success
+    needs: [notify-start, compliance, release]
     if: always() && needs.notify-start.result == 'success'
     runs-on: ubuntu-latest
     permissions:
