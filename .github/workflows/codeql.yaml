@@ -151,3 +151,10 @@ jobs:
             --compliant=${{ steps.alerts.outputs.count == '0' }} \
             --attachments sarif-results \
             --description "CodeQL security-extended (Go, Actions); open high/critical alerts on main at attestation time: ${{ steps.alerts.outputs.count }}"
+
+      # Attest first, then turn the run red so open alerts don't go unnoticed
+      - name: Fail on open CodeQL alerts
+        if: steps.alerts.outputs.count != '0'
+        run: |
+          echo "::error::${{ steps.alerts.outputs.count }} open high/critical CodeQL alert(s) on main; fix or dismiss them in Security > Code scanning"
+          exit 1

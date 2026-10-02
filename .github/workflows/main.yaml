@@ -159,13 +159,17 @@ jobs:
           exit 1
 
   # Security scan - Trivy filesystem scan (dependencies, secrets, IaC misconfig).
-  # Findings make the attestation non-compliant but do not block the build;
-  # the Kosli trail carries the signal.
+  # Findings make the attestation non-compliant and then fail this job, so the
+  # run goes red; Build does not depend on it, so a newly published CVE never
+  # stops the artifact from being built and attested.
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: setup
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: Checkout code
@@ -212,6 +216,20 @@ jobs:
             --compliant=${{ steps.trivy.outputs.count == '0' }} \
             --attachments trivy-results.json,trivy-results.sarif \
             --description "Trivy filesystem scan (vuln, secret, misconfig; HIGH and CRITICAL): ${{ steps.trivy.outputs.count }} findings"
+
+      # Baseline for the PR "Trivy" code scanning check, and the Security tab.
+      # Runs after the attestation so an upload failure can't block the evidence
+      - name: Upload Trivy results to code scanning
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy
+
+      - name: Fail on Trivy findings
+        if: steps.trivy.outputs.count != '0'
+        run: |
+          echo "::error::Trivy found ${{ steps.trivy.outputs.count }} HIGH/CRITICAL issue(s); see the scan table above and Security > Code scanning"
+          exit 1
 
   # Build job - builds artifacts and attests them
   build:

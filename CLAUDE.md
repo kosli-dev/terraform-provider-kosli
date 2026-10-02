@@ -175,7 +175,7 @@ The main pipeline (`.github/workflows/main.yml`) implements Kosli CD flows:
 1. Setup - Creates Kosli flow and begins trail
 2. Attest PR - Records PR approval
 3. Test - Runs unit tests, acceptance tests, linting (tests attested to Kosli as JUnit)
-4. Security Scan - Trivy filesystem scan (vuln, secret, misconfig; HIGH/CRITICAL), attested to Kosli as `trivy-scan`. Runs in parallel with Test and does not block Build: findings make the attestation non-compliant
+4. Security Scan - Trivy filesystem scan (vuln, secret, misconfig; HIGH/CRITICAL), attested to Kosli as `trivy-scan`, and SARIF uploaded to code scanning (category `trivy`, the baseline for PR checks). Runs in parallel with Test. Findings make the attestation non-compliant and then fail the job, so the run goes red, but Build does not depend on it
 5. Build - Builds binary, generates SBOM, attests artifacts
 6. Validate Examples - Tests all Terraform examples
 
@@ -184,6 +184,7 @@ The main pipeline (`.github/workflows/main.yml`) implements Kosli CD flows:
 - JUnit reports come from gotestsum, pinned as a Go `tool` in the separate `tools/go.mod` module (run with `go tool -modfile=tools/go.mod`), so dev tooling stays out of the provider's `go.mod`
 - Trivy is installed with `aquasecurity/setup-trivy` pinned by commit SHA plus an explicit `TRIVY_VERSION` (the aquasecurity action tags were hijacked in March 2026, so never reference them by tag)
 - The PR workflow (`ci.yaml`) runs the same Trivy scan without attesting and uploads SARIF to GitHub code scanning (category `trivy`)
+- **PR gating:** the GitHub "Trivy" and "CodeQL" code scanning check runs fail when a PR introduces new High+ alerts compared with `main`. They block merges only when marked as required in branch protection
 - Flow template: `kosli/template.yml`
 - All attestations linked to git commit SHA
 
@@ -218,7 +219,7 @@ The token exchange enforces a workflow-content guard: any PR that modifies `.git
 - **Triggers:** push to `main` (the baseline that makes PR alerts diff-scoped; each commit gets its own concurrency group so none is skipped), `pull_request` against `main`, and a weekly schedule (Thursdays 18:16 UTC)
 - **Where alerts surface:** the repository **Security → Code scanning** tab, and as inline annotations on pull requests
 - `fail-fast: false` on the matrix, so a Go extraction failure does not hide the `actions` results
-- **Kosli attestation:** on push to `main`, an `attest` job records `codeql-scan` on the commit's trail (SARIF attached). It is compliant when GitHub shows no open high/critical CodeQL alerts on `main` at attestation time (the latest processed analysis on `main`, not strictly that commit's), so dismissing a false positive in the Security tab clears it. The job waits up to 5 minutes for the Main Pipeline to create the trail
+- **Kosli attestation:** on push to `main`, an `attest` job records `codeql-scan` on the commit's trail (SARIF attached). It is compliant when GitHub shows no open high/critical CodeQL alerts on `main` at attestation time (the latest processed analysis on `main`, not strictly that commit's), so dismissing a false positive in the Security tab clears it. After attesting, the job fails if any such alerts are open, so the run goes red. It waits up to 5 minutes for the Main Pipeline to create the trail
 - **gosec** (in `.golangci.yml`) complements CodeQL as a fast Go SAST check in the lint step; test files are excluded
 
 This is CodeQL **advanced** setup. Repository *Settings → Code security → Code scanning* must have CodeQL default setup disabled or the workflow errors on every run.
