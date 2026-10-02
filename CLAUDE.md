@@ -181,7 +181,7 @@ The main pipeline (`.github/workflows/main.yml`) implements Kosli CD flows:
 
 **Kosli Integration:**
 - Artifacts attested: binary, SBOM, JUnit test results (unit + acceptance), Trivy scan, PR approval
-- JUnit reports come from gotestsum, pinned as a Go `tool` dependency in `go.mod`
+- JUnit reports come from gotestsum, pinned as a Go `tool` in the separate `tools/go.mod` module (run with `go tool -modfile=tools/go.mod`), so dev tooling stays out of the provider's `go.mod`
 - Trivy is installed with `aquasecurity/setup-trivy` pinned by commit SHA plus an explicit `TRIVY_VERSION` (the aquasecurity action tags were hijacked in March 2026, so never reference them by tag)
 - The PR workflow (`ci.yaml`) runs the same Trivy scan without attesting and uploads SARIF to GitHub code scanning (category `trivy`)
 - Flow template: `kosli/template.yml`

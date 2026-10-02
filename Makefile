@@ -15,8 +15,9 @@ GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 GOFMT=$(GOCMD) fmt
 GOVET=$(GOCMD) vet
-# gotestsum is pinned as a Go tool dependency in go.mod
-GOTESTSUM=$(GOCMD) tool gotestsum
+# gotestsum is pinned in the separate tools module (tools/go.mod) so it
+# stays out of the provider's dependency graph
+GOTESTSUM=$(GOCMD) tool -modfile=tools/go.mod gotestsum
 
 # Terraform provider installation directory
 # This follows the terraform provider plugin directory structure
