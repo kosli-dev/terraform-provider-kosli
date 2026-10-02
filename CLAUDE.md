@@ -180,7 +180,7 @@ The main pipeline (`.github/workflows/main.yml`) implements Kosli CD flows:
 6. Validate Examples - Tests all Terraform examples
 
 **Kosli Integration:**
-- Artifacts attested: binary, SBOM, JUnit test results (unit + acceptance), Trivy scan, PR approval
+- Artifacts attested: binary, SBOM, JUnit test results (unit + acceptance), Trivy scan, CodeQL scan, PR approval
 - JUnit reports come from gotestsum, pinned as a Go `tool` in the separate `tools/go.mod` module (run with `go tool -modfile=tools/go.mod`), so dev tooling stays out of the provider's `go.mod`
 - Trivy is installed with `aquasecurity/setup-trivy` pinned by commit SHA plus an explicit `TRIVY_VERSION` (the aquasecurity action tags were hijacked in March 2026, so never reference them by tag)
 - The PR workflow (`ci.yaml`) runs the same Trivy scan without attesting and uploads SARIF to GitHub code scanning (category `trivy`)
@@ -218,6 +218,8 @@ The token exchange enforces a workflow-content guard: any PR that modifies `.git
 - **Triggers:** push to `main` (the baseline that makes PR alerts diff-scoped), `pull_request` against `main`, and a weekly schedule (Thursdays 18:16 UTC)
 - **Where alerts surface:** the repository **Security → Code scanning** tab, and as inline annotations on pull requests
 - `fail-fast: false` on the matrix, so a Go extraction failure does not hide the `actions` results
+- **Kosli attestation:** on push to `main`, an `attest` job records `codeql-scan` on the commit's trail (SARIF attached). It is compliant when GitHub shows no open high/critical CodeQL alerts on `main`, so dismissing a false positive in the Security tab clears it. The job waits up to 5 minutes for the Main Pipeline to create the trail
+- **gosec** (in `.golangci.yml`) complements CodeQL as a fast Go SAST check in the lint step; test files are excluded
 
 This is CodeQL **advanced** setup. Repository *Settings → Code security → Code scanning* must have CodeQL default setup disabled or the workflow errors on every run.
 

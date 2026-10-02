@@ -9,6 +9,8 @@ trail:
     type: junit
   - name: trivy-scan
     type: generic
+  - name: codeql-scan
+    type: generic
   artifacts:
   - name: terraform-provider-kosli
     attestations:
