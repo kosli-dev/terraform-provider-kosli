@@ -11,10 +11,7 @@ on:
     - cron: '16 18 * * 4'
 
 concurrency:
-  # PRs group by PR number; pushes to main group by commit SHA, so every main
-  # commit gets its own scan and its codeql-scan Kosli attestation (a shared
-  # group would let a newer push supersede a queued run, leaving that commit's
-  # trail without the attestation); the weekly schedule groups by ref.
+  # Pushes group per commit so every main commit gets its codeql-scan attestation
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || (github.event_name == 'push' && github.sha) || github.ref }}
   # Cancel superseded PR runs, but let main/scheduled scans finish - a cancelled
   # analyze uploads no SARIF, which leaves the code scanning baseline stale.
@@ -65,7 +62,7 @@ jobs:
         uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           category: "/language:${{ matrix.language }}"
-          # Also keep the SARIF locally so main runs can attest it to Kosli
+          # Keep SARIF for the Kosli attestation
           output: sarif-results
 
       - name: Upload SARIF for Kosli attestation
@@ -76,11 +73,8 @@ jobs:
           path: sarif-results
           retention-days: 7
 
-  # Attest CodeQL results to the Kosli trail for this commit (main only).
-  # Compliance comes from GitHub's alert state rather than the raw SARIF, so
-  # alerts dismissed as false positives in the Security tab do not count.
-  # If either analyze leg fails this job is skipped, so codeql-scan is missing
-  # from the trail and Kosli reports it as non-compliant; that is intended.
+  # Uses GitHub alert state, so dismissed false positives don't count.
+  # A failed analyze skips this job, leaving codeql-scan missing (non-compliant).
   attest:
     name: Attest CodeQL to Kosli
     if: github.event_name == 'push'
@@ -110,8 +104,7 @@ jobs:
           path: sarif-results
           merge-multiple: true
 
-      # The trail is created by the Main Pipeline's setup job, which runs in
-      # parallel with this workflow; it almost always exists by now
+      # The trail is created by the Main Pipeline, which runs in parallel
       - name: Wait for Kosli trail
         run: |
           for _ in $(seq 1 30); do
@@ -120,8 +113,7 @@ jobs:
             fi
             sleep 10
           done
-          # Show the last error: a bad token or org fails the same way as a
-          # trail that does not exist yet
+          # A bad token or org fails like a missing trail, so show the error
           echo "${out}"
           echo "::error::Kosli trail ${GIT_COMMIT} not found in flow ${KOSLI_FLOW_NAME} after 5 minutes"
           exit 1
@@ -130,10 +122,8 @@ jobs:
         id: alerts
         env:
           GH_TOKEN: ${{ github.token }}
-        # Alerts are read for the main branch, i.e. the latest processed
-        # analysis on main at attestation time, not strictly this commit's.
-        # Capture first, then count: a failed API call must fail the step,
-        # never read as zero alerts
+        # Counts open alerts on main (latest analysis), not strictly this commit's.
+        # Capture first so an API failure can't read as zero alerts.
         run: |
           alerts=$(gh api --paginate \
             "repos/${{ github.repository }}/code-scanning/alerts?ref=${{ github.ref }}&state=open&tool_name=CodeQL&per_page=100" \
@@ -152,7 +142,6 @@ jobs:
             --attachments sarif-results \
             --description "CodeQL security-extended (Go, Actions); open high/critical alerts on main at attestation time: ${{ steps.alerts.outputs.count }}"
 
-      # Attest first, then turn the run red so open alerts don't go unnoticed
       - name: Fail on open CodeQL alerts
         if: steps.alerts.outputs.count != '0'
         run: |

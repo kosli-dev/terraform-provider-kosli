@@ -79,8 +79,7 @@ jobs:
       - name: Run acceptance tests
         run: make testacc
 
-  # Trivy scan (dependencies, secrets, IaC misconfig) - informational on PRs,
-  # findings surface in GitHub code scanning instead of failing the check
+  # Informational on PRs: findings show in code scanning, not as a failed check
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
@@ -93,8 +92,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # Pinned by SHA with an explicit Trivy version: aquasecurity action tags
-      # were hijacked in the March 2026 supply-chain incident
+      # Pinned by SHA: aquasecurity action tags were hijacked in March 2026
       - name: Setup Trivy
         uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
         with:

@@ -18,14 +18,8 @@ jobs:
           slack-channel-id: ${{ vars.SLACK_CHANNEL_ID }}
           stage: start
 
-  # Release gate: the tagged commit's Kosli trail must be compliant with the
-  # flow template (kosli/template.yml) before anything is published.
-  # GoReleaser rebuilds the binaries, so their fingerprints never match the one
-  # the Main Pipeline attested; the gate looks that fingerprint up on the trail
-  # and asserts it, which evaluates every trail and artifact attestation.
-  # Fails fast: tag only after the Main Pipeline and CodeQL are green for the
-  # commit, and re-run this workflow if the gate failed while evidence was
-  # still arriving.
+  # Gate: the tagged commit's trail must be compliant. GoReleaser rebuilds the
+  # binaries, so assert the one main attested (fingerprint read from the trail).
   compliance:
     name: Kosli compliance gate
     runs-on: ubuntu-latest
@@ -43,7 +37,7 @@ jobs:
         with:
           version: latest
 
-      # Capture first, then parse: a missing trail or API error fails the step
+      # Capture first so a missing trail or API error fails the step
       - name: Find attested artifact
         id: artifact
         run: |
@@ -102,7 +96,7 @@ jobs:
       # support tag-push events, so it cannot run in this workflow).
 
   notify-finish:
-    # compliance is listed so a failed gate (which skips release) reports failure
+    # A failed gate skips release, which would otherwise report success
     needs: [notify-start, compliance, release]
     if: always() && needs.notify-start.result == 'success'
     runs-on: ubuntu-latest
