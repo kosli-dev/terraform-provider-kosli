@@ -4,8 +4,12 @@ trail:
   - name: pull-request
     type: pull_request
   - name: unit-tests
-    type: generic
+    type: junit
   - name: acceptance-tests
+    type: junit
+  - name: trivy-scan
+    type: generic
+  - name: codeql-scan
     type: generic
   artifacts:
   - name: terraform-provider-kosli

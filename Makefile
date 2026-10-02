@@ -15,6 +15,9 @@ GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 GOFMT=$(GOCMD) fmt
 GOVET=$(GOCMD) vet
+# gotestsum is pinned in the separate tools module (tools/go.mod) so it
+# stays out of the provider's dependency graph
+GOTESTSUM=$(GOCMD) tool -modfile=tools/go.mod gotestsum
 
 # Terraform provider installation directory
 # This follows the terraform provider plugin directory structure
@@ -24,7 +27,10 @@ INSTALL_DIR=~/.terraform.d/plugins/registry.terraform.io/kosli-dev/kosli/dev/$(O
 # Coverage output
 COVERAGE_OUT=coverage.out
 
-.PHONY: all build clean test test-coverage testacc testacc-action testacc-action-datasource testacc-control testacc-control-datasource testacc-control-list testacc-custom-attestation-type testacc-custom-attestation-type-datasource testacc-environment testacc-environment-datasource testacc-flow testacc-flow-datasource testacc-logical-environment testacc-logical-environment-datasource testacc-notification-config testacc-notification-config-datasource testacc-policy testacc-policy-datasource testacc-policy-attachment check-testacc-env fmt vet lint install docs help default
+# JUnit XML output (consumed by `kosli attest junit` in CI)
+JUNIT_DIR=test-results
+
+.PHONY: all build clean test test-junit test-coverage testacc testacc-junit testacc-action testacc-action-datasource testacc-control testacc-control-datasource testacc-control-list testacc-custom-attestation-type testacc-custom-attestation-type-datasource testacc-environment testacc-environment-datasource testacc-flow testacc-flow-datasource testacc-logical-environment testacc-logical-environment-datasource testacc-notification-config testacc-notification-config-datasource testacc-policy testacc-policy-datasource testacc-policy-attachment check-testacc-env fmt vet lint install docs help default
 
 # Default target
 default: build
@@ -60,12 +66,19 @@ clean:
 	$(GOCLEAN)
 	@rm -f $(BINARY)
 	@rm -f $(COVERAGE_OUT)
+	@rm -rf $(JUNIT_DIR)
 	@echo "Clean complete"
 
 # Run unit tests with coverage
 test:
 	@echo "Running tests with coverage..."
 	$(GOTEST) -cover -coverprofile=$(COVERAGE_OUT) ./...
+
+# Run unit tests with coverage and write a JUnit XML report
+test-junit:
+	@echo "Running tests with coverage (JUnit report in $(JUNIT_DIR)/unit)..."
+	@mkdir -p $(JUNIT_DIR)/unit
+	$(GOTESTSUM) --junitfile $(JUNIT_DIR)/unit/junit.xml -- -cover -coverprofile=$(COVERAGE_OUT) ./...
 
 # Generate and display coverage report
 test-coverage: test
@@ -89,6 +102,12 @@ check-testacc-env:
 testacc: check-testacc-env
 	@echo "Running acceptance tests..."
 	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAcc' -timeout 30m
+
+# Run acceptance tests and write a JUnit XML report
+testacc-junit: check-testacc-env
+	@echo "Running acceptance tests (JUnit report in $(JUNIT_DIR)/acceptance)..."
+	@mkdir -p $(JUNIT_DIR)/acceptance
+	TF_ACC=1 $(GOTESTSUM) --format standard-verbose --junitfile $(JUNIT_DIR)/acceptance/junit.xml -- ./internal/provider/... -run='TestAcc' -timeout 30m
 
 # Run acceptance tests for action resource
 testacc-action: check-testacc-env
@@ -246,8 +265,10 @@ help:
 	@echo ""
 	@echo "Test targets:"
 	@echo "  test          Run unit tests with coverage enabled"
+	@echo "  test-junit    Run unit tests with coverage and a JUnit report in $(JUNIT_DIR)/unit"
 	@echo "  test-coverage Generate and display coverage report"
 	@echo "  testacc       Run acceptance tests (with TF_ACC=1)"
+	@echo "  testacc-junit Run acceptance tests with a JUnit report in $(JUNIT_DIR)/acceptance"
 	@echo "  testacc-action"
 	@echo "                Run acceptance tests for action resource"
 	@echo "  testacc-action-datasource"

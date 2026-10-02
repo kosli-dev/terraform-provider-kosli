@@ -22,6 +22,24 @@ updates:
     labels:
       - "dependencies"
       - "go"
+  # Dev tool dependencies (tools/go.mod, e.g. gotestsum)
+  - package-ecosystem: "gomod"
+    open-pull-requests-limit: 10
+    directory: "/tools"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "11:00"
+    groups:
+      tools-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    labels:
+      - "dependencies"
+      - "go"
   # GitHub Actions
   - package-ecosystem: "github-actions"
     open-pull-requests-limit: 10

@@ -8,7 +8,7 @@ import (
 // Notification types Kosli raises itself and lets an organization configure.
 const (
 	// NotificationTypeAPIKeyExpiry is raised when a service account API key is about to expire.
-	NotificationTypeAPIKeyExpiry = "api_key_expiry"
+	NotificationTypeAPIKeyExpiry = "api_key_expiry" //nolint:gosec // G101: notification type identifier, not a credential
 )
 
 // Notification target types accepted by the notification config API.

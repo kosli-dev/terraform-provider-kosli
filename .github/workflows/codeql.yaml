@@ -11,13 +11,13 @@ on:
     - cron: '16 18 * * 4'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # PRs group by PR number; pushes to main group by commit SHA, so every main
+  # commit gets its own scan and its codeql-scan Kosli attestation (a shared
+  # group would let a newer push supersede a queued run, leaving that commit's
+  # trail without the attestation); the weekly schedule groups by ref.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || (github.event_name == 'push' && github.sha) || github.ref }}
   # Cancel superseded PR runs, but let main/scheduled scans finish - a cancelled
   # analyze uploads no SARIF, which leaves the code scanning baseline stale.
-  # Note both push-on-main and schedule share one group (pull_request is null
-  # and github.ref is refs/heads/main for both). An in-flight scan always
-  # finishes; a run queued behind it may be superseded by a newer one, so the
-  # baseline tracks main's head rather than every individual commit.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -65,3 +65,89 @@ jobs:
         uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           category: "/language:${{ matrix.language }}"
+          # Also keep the SARIF locally so main runs can attest it to Kosli
+          output: sarif-results
+
+      - name: Upload SARIF for Kosli attestation
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: codeql-sarif-${{ matrix.language }}
+          path: sarif-results
+          retention-days: 7
+
+  # Attest CodeQL results to the Kosli trail for this commit (main only).
+  # Compliance comes from GitHub's alert state rather than the raw SARIF, so
+  # alerts dismissed as false positives in the Security tab do not count.
+  # If either analyze leg fails this job is skipped, so codeql-scan is missing
+  # from the trail and Kosli reports it as non-compliant; that is intended.
+  attest:
+    name: Attest CodeQL to Kosli
+    if: github.event_name == 'push'
+    needs: analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: read
+
+    env:
+      GIT_COMMIT: ${{ github.sha }}
+      KOSLI_API_TOKEN: ${{ secrets.KOSLI_API_TOKEN }}
+      KOSLI_FLOW_NAME: ${{ github.event.repository.name }}
+      KOSLI_ORG: ${{ vars.KOSLI_ORG }}
+
+    steps:
+      - name: Setup Kosli CLI
+        uses: kosli-dev/setup-cli-action@15b43acd0374a4b5311978d7ea59269edd131dfc # v5.2.2
+        with:
+          version: latest
+
+      - name: Download SARIF results
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: codeql-sarif-*
+          path: sarif-results
+          merge-multiple: true
+
+      # The trail is created by the Main Pipeline's setup job, which runs in
+      # parallel with this workflow; it almost always exists by now
+      - name: Wait for Kosli trail
+        run: |
+          for _ in $(seq 1 30); do
+            if out=$(kosli get trail "${GIT_COMMIT}" --flow "${KOSLI_FLOW_NAME}" 2>&1); then
+              exit 0
+            fi
+            sleep 10
+          done
+          # Show the last error: a bad token or org fails the same way as a
+          # trail that does not exist yet
+          echo "${out}"
+          echo "::error::Kosli trail ${GIT_COMMIT} not found in flow ${KOSLI_FLOW_NAME} after 5 minutes"
+          exit 1
+
+      - name: Count open high/critical CodeQL alerts
+        id: alerts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Alerts are read for the main branch, i.e. the latest processed
+        # analysis on main at attestation time, not strictly this commit's.
+        # Capture first, then count: a failed API call must fail the step,
+        # never read as zero alerts
+        run: |
+          alerts=$(gh api --paginate \
+            "repos/${{ github.repository }}/code-scanning/alerts?ref=${{ github.ref }}&state=open&tool_name=CodeQL&per_page=100" \
+            --jq '.[] | select(.rule.security_severity_level == "high" or .rule.security_severity_level == "critical") | .number')
+          count=$(printf '%s' "${alerts}" | grep -c . || true)
+          echo "Open high/critical CodeQL alerts: ${count}"
+          echo "count=${count}" >> "$GITHUB_OUTPUT"
+
+      - name: Attest CodeQL scan
+        run: |
+          kosli attest generic \
+            --flow ${KOSLI_FLOW_NAME} \
+            --trail ${GIT_COMMIT} \
+            --name codeql-scan \
+            --compliant=${{ steps.alerts.outputs.count == '0' }} \
+            --attachments sarif-results \
+            --description "CodeQL security-extended (Go, Actions); open high/critical alerts on main at attestation time: ${{ steps.alerts.outputs.count }}"

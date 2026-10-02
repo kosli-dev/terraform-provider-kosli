@@ -14,6 +14,10 @@ dist/
 *.out
 coverage.html
 
+# JUnit test reports and security scan results
+test-results/
+trivy-results.*
+
 # Go workspace file
 go.work
 

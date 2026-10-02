@@ -20,6 +20,7 @@ env:
   KOSLI_ORG: ${{ vars.KOSLI_ORG }}
   REPO_NAME: ${{ github.event.repository.name }}
   KOSLI_VERSION: 'latest'
+  TRIVY_VERSION: 'v0.75.0'
 
 permissions:
   contents: read
@@ -118,17 +119,17 @@ jobs:
       - name: Run unit tests
         id: unit_tests
         continue-on-error: true
-        run: make test
+        run: make test-junit
 
+      # Kosli derives compliance from the JUnit failures/errors
       - name: Attest unit tests
         if: always()
         run: |
-          kosli attest generic \
+          kosli attest junit \
             --flow ${KOSLI_FLOW_NAME} \
             --trail ${GIT_COMMIT} \
             --name unit-tests \
-            --compliant=${{ steps.unit_tests.outcome == 'success' }} \
-            --description "Unit tests"
+            --results-dir test-results/unit
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
@@ -139,24 +140,78 @@ jobs:
       - name: Run acceptance tests
         id: acceptance_tests
         continue-on-error: true
-        run: make testacc
+        run: make testacc-junit
         timeout-minutes: 30
 
       - name: Attest acceptance tests
         if: always()
         run: |
-          kosli attest generic \
+          kosli attest junit \
             --flow ${KOSLI_FLOW_NAME} \
             --trail ${GIT_COMMIT} \
             --name acceptance-tests \
-            --compliant=${{ steps.acceptance_tests.outcome == 'success' }} \
-            --description "Acceptance tests"
+            --results-dir test-results/acceptance
 
       - name: Fail if tests failed
         if: steps.unit_tests.outcome != 'success' || steps.acceptance_tests.outcome != 'success'
         run: |
           echo "❌ Tests failed - blocking build"
           exit 1
+
+  # Security scan - Trivy filesystem scan (dependencies, secrets, IaC misconfig).
+  # Findings make the attestation non-compliant but do not block the build;
+  # the Kosli trail carries the signal.
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: setup
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Kosli CLI
+        uses: kosli-dev/setup-cli-action@15b43acd0374a4b5311978d7ea59269edd131dfc # v5.2.2
+        with:
+          version: ${{ env.KOSLI_VERSION }}
+
+      # Pinned by SHA with an explicit Trivy version: aquasecurity action tags
+      # were hijacked in the March 2026 supply-chain incident
+      - name: Setup Trivy
+        uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
+        with:
+          version: ${{ env.TRIVY_VERSION }}
+
+      # --exit-code 0: a non-zero exit always means Trivy itself failed (e.g. DB
+      # download), which fails the job instead of reading as findings
+      - name: Run Trivy scan
+        run: |
+          trivy fs . \
+            --scanners vuln,secret,misconfig \
+            --severity HIGH,CRITICAL \
+            --format json \
+            --output trivy-results.json \
+            --exit-code 0
+          trivy convert --format sarif --output trivy-results.sarif trivy-results.json
+          trivy convert --format table trivy-results.json
+
+      - name: Count Trivy findings
+        id: trivy
+        run: |
+          count=$(jq '[.Results[]? | (.Vulnerabilities // []) + (.Secrets // []) + ((.Misconfigurations // []) | map(select(.Status == "FAIL")))] | flatten | length' trivy-results.json)
+          echo "HIGH/CRITICAL findings: ${count}"
+          echo "count=${count}" >> "$GITHUB_OUTPUT"
+
+      - name: Attest Trivy scan
+        run: |
+          kosli attest generic \
+            --flow ${KOSLI_FLOW_NAME} \
+            --trail ${GIT_COMMIT} \
+            --name trivy-scan \
+            --compliant=${{ steps.trivy.outputs.count == '0' }} \
+            --attachments trivy-results.json,trivy-results.sarif \
+            --description "Trivy filesystem scan (vuln, secret, misconfig; HIGH and CRITICAL): ${{ steps.trivy.outputs.count }} findings"
 
   # Build job - builds artifacts and attests them
   build:
