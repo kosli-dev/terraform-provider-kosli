@@ -218,8 +218,10 @@ jobs:
             --description "Trivy filesystem scan (vuln, secret, misconfig; HIGH and CRITICAL): ${{ steps.trivy.outputs.count }} findings"
 
       # Baseline for the PR "Trivy" code scanning check, and the Security tab.
-      # Runs after the attestation so an upload failure can't block the evidence
+      # Runs after the attestation so an upload failure can't block the evidence,
+      # and still runs if the attestation failed (the job is red either way)
       - name: Upload Trivy results to code scanning
+        if: ${{ !cancelled() && steps.trivy.outcome == 'success' }}
         uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           sarif_file: trivy-results.sarif
