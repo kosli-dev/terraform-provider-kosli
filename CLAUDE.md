@@ -234,6 +234,7 @@ git push origin v0.1.0
 ```
 
 **Automated steps:**
+- Kosli compliance gate (runs first, fails fast): looks up the binary the Main Pipeline attested on the tagged commit's trail and runs `kosli assert artifact --fingerprint … --flow terraform-provider-kosli` against the flow template, so every trail attestation (PR, JUnit tests, Trivy, CodeQL) and the `sbom` must be present and compliant. GoReleaser only runs if it passes. Tag only after the Main Pipeline and CodeQL are green for that commit; if the gate failed because evidence was still arriving, re-run the Release workflow
 - Multi-platform builds (macOS, Linux, Windows for amd64/arm64)
 - GPG signing of artifacts
 - SBOM generation
