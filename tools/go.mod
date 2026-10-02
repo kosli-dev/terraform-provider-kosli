@@ -1,5 +1,6 @@
 module github.com/kosli-dev/terraform-provider-kosli/tools
 
+// Keep the go directive in step with ../go.mod (Dependabot does not bump it)
 go 1.26.0
 
 tool gotest.tools/gotestsum

@@ -11,13 +11,13 @@ on:
     - cron: '16 18 * * 4'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # PRs group by PR number; pushes to main group by commit SHA, so every main
+  # commit gets its own scan and its codeql-scan Kosli attestation (a shared
+  # group would let a newer push supersede a queued run, leaving that commit's
+  # trail without the attestation); the weekly schedule groups by ref.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || (github.event_name == 'push' && github.sha) || github.ref }}
   # Cancel superseded PR runs, but let main/scheduled scans finish - a cancelled
   # analyze uploads no SARIF, which leaves the code scanning baseline stale.
-  # Note both push-on-main and schedule share one group (pull_request is null
-  # and github.ref is refs/heads/main for both). An in-flight scan always
-  # finishes; a run queued behind it may be superseded by a newer one, so the
-  # baseline tracks main's head rather than every individual commit.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -79,6 +79,8 @@ jobs:
   # Attest CodeQL results to the Kosli trail for this commit (main only).
   # Compliance comes from GitHub's alert state rather than the raw SARIF, so
   # alerts dismissed as false positives in the Security tab do not count.
+  # If either analyze leg fails this job is skipped, so codeql-scan is missing
+  # from the trail and Kosli reports it as non-compliant; that is intended.
   attest:
     name: Attest CodeQL to Kosli
     if: github.event_name == 'push'
@@ -113,11 +115,14 @@ jobs:
       - name: Wait for Kosli trail
         run: |
           for _ in $(seq 1 30); do
-            if kosli get trail "${GIT_COMMIT}" --flow "${KOSLI_FLOW_NAME}" > /dev/null 2>&1; then
+            if out=$(kosli get trail "${GIT_COMMIT}" --flow "${KOSLI_FLOW_NAME}" 2>&1); then
               exit 0
             fi
             sleep 10
           done
+          # Show the last error: a bad token or org fails the same way as a
+          # trail that does not exist yet
+          echo "${out}"
           echo "::error::Kosli trail ${GIT_COMMIT} not found in flow ${KOSLI_FLOW_NAME} after 5 minutes"
           exit 1
 
@@ -125,6 +130,8 @@ jobs:
         id: alerts
         env:
           GH_TOKEN: ${{ github.token }}
+        # Alerts are read for the main branch, i.e. the latest processed
+        # analysis on main at attestation time, not strictly this commit's.
         # Capture first, then count: a failed API call must fail the step,
         # never read as zero alerts
         run: |
@@ -143,4 +150,4 @@ jobs:
             --name codeql-scan \
             --compliant=${{ steps.alerts.outputs.count == '0' }} \
             --attachments sarif-results \
-            --description "CodeQL security-extended (Go, Actions); open high/critical alerts: ${{ steps.alerts.outputs.count }}"
+            --description "CodeQL security-extended (Go, Actions); open high/critical alerts on main at attestation time: ${{ steps.alerts.outputs.count }}"

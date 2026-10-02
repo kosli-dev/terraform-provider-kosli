@@ -183,33 +183,35 @@ jobs:
         with:
           version: ${{ env.TRIVY_VERSION }}
 
+      # --exit-code 0: a non-zero exit always means Trivy itself failed (e.g. DB
+      # download), which fails the job instead of reading as findings
       - name: Run Trivy scan
-        id: trivy
-        continue-on-error: true
         run: |
           trivy fs . \
             --scanners vuln,secret,misconfig \
             --severity HIGH,CRITICAL \
             --format json \
             --output trivy-results.json \
-            --exit-code 1
-
-      - name: Convert Trivy results
-        if: always()
-        run: |
+            --exit-code 0
           trivy convert --format sarif --output trivy-results.sarif trivy-results.json
           trivy convert --format table trivy-results.json
 
+      - name: Count Trivy findings
+        id: trivy
+        run: |
+          count=$(jq '[.Results[]? | (.Vulnerabilities // []) + (.Secrets // []) + ((.Misconfigurations // []) | map(select(.Status == "FAIL")))] | flatten | length' trivy-results.json)
+          echo "HIGH/CRITICAL findings: ${count}"
+          echo "count=${count}" >> "$GITHUB_OUTPUT"
+
       - name: Attest Trivy scan
-        if: always()
         run: |
           kosli attest generic \
             --flow ${KOSLI_FLOW_NAME} \
             --trail ${GIT_COMMIT} \
             --name trivy-scan \
-            --compliant=${{ steps.trivy.outcome == 'success' }} \
+            --compliant=${{ steps.trivy.outputs.count == '0' }} \
             --attachments trivy-results.json,trivy-results.sarif \
-            --description "Trivy filesystem scan (vuln, secret, misconfig; HIGH and CRITICAL)"
+            --description "Trivy filesystem scan (vuln, secret, misconfig; HIGH and CRITICAL): ${{ steps.trivy.outputs.count }} findings"
 
   # Build job - builds artifacts and attests them
   build:

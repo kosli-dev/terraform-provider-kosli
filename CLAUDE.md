@@ -215,10 +215,10 @@ The token exchange enforces a workflow-content guard: any PR that modifies `.git
 
 - **Languages scanned:** `go` (the provider and API client, `build-mode: autobuild`) and `actions` (the workflow files themselves, `build-mode: none`)
 - **Query suite:** `security-extended` — broader than the default suite. If it produces a large batch of low-value alerts, add `.github/codeql/codeql-config.yml` with query filters rather than dropping back to the default pack.
-- **Triggers:** push to `main` (the baseline that makes PR alerts diff-scoped), `pull_request` against `main`, and a weekly schedule (Thursdays 18:16 UTC)
+- **Triggers:** push to `main` (the baseline that makes PR alerts diff-scoped; each commit gets its own concurrency group so none is skipped), `pull_request` against `main`, and a weekly schedule (Thursdays 18:16 UTC)
 - **Where alerts surface:** the repository **Security → Code scanning** tab, and as inline annotations on pull requests
 - `fail-fast: false` on the matrix, so a Go extraction failure does not hide the `actions` results
-- **Kosli attestation:** on push to `main`, an `attest` job records `codeql-scan` on the commit's trail (SARIF attached). It is compliant when GitHub shows no open high/critical CodeQL alerts on `main`, so dismissing a false positive in the Security tab clears it. The job waits up to 5 minutes for the Main Pipeline to create the trail
+- **Kosli attestation:** on push to `main`, an `attest` job records `codeql-scan` on the commit's trail (SARIF attached). It is compliant when GitHub shows no open high/critical CodeQL alerts on `main` at attestation time (the latest processed analysis on `main`, not strictly that commit's), so dismissing a false positive in the Security tab clears it. The job waits up to 5 minutes for the Main Pipeline to create the trail
 - **gosec** (in `.golangci.yml`) complements CodeQL as a fast Go SAST check in the lint step; test files are excluded
 
 This is CodeQL **advanced** setup. Repository *Settings → Code security → Code scanning* must have CodeQL default setup disabled or the workflow errors on every run.

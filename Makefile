@@ -107,7 +107,7 @@ testacc: check-testacc-env
 testacc-junit: check-testacc-env
 	@echo "Running acceptance tests (JUnit report in $(JUNIT_DIR)/acceptance)..."
 	@mkdir -p $(JUNIT_DIR)/acceptance
-	TF_ACC=1 $(GOTESTSUM) --junitfile $(JUNIT_DIR)/acceptance/junit.xml -- ./internal/provider/... -run='TestAcc' -timeout 30m
+	TF_ACC=1 $(GOTESTSUM) --format standard-verbose --junitfile $(JUNIT_DIR)/acceptance/junit.xml -- ./internal/provider/... -run='TestAcc' -timeout 30m
 
 # Run acceptance tests for action resource
 testacc-action: check-testacc-env
