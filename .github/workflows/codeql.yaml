@@ -20,7 +20,7 @@ concurrency:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     permissions:
       security-events: write
@@ -79,7 +79,7 @@ jobs:
     name: Attest CodeQL to Kosli
     if: github.event_name == 'push'
     needs: analyze
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: read

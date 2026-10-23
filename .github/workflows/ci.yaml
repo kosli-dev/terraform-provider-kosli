@@ -23,7 +23,7 @@ jobs:
   # Quality checks on PR branch
   test:
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
 
     steps:
@@ -82,7 +82,7 @@ jobs:
   # Informational on PRs: findings show in code scanning, not as a failed check
   security-scan:
     name: Security Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -118,7 +118,7 @@ jobs:
   # Build verification (but don't attest to Kosli)
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
 
     steps:
@@ -144,7 +144,7 @@ jobs:
   # Validate examples
   validate-examples:
     name: Validate ${{ matrix.example }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     needs: build
     strategy:
