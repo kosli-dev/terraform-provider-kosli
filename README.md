@@ -174,7 +174,7 @@ Service accounts provide secure, programmatic access to Kosli without tying cred
 2. Navigate to **Settings → Service Accounts**
 3. Click **Add New Service Account**
 4. Give it a descriptive name (e.g., "Terraform Automation")
-5. **Assign Admin permissions** to the service account (required to archive environments on `terraform destroy`; see below)
+5. **Assign Admin permissions** to the service account (required for managing Kosli resources, including archiving environments on `terraform destroy`; see below)
 6. Click the **"..."** menu on the service account
 7. Select **Add API Key**
 8. Copy the API key and store it securely

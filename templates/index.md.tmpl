@@ -36,7 +36,7 @@ Use a token that belongs to a user or service account with the **Admin** role.
 
 Some operations the provider performs are restricted to admins. In particular, destroying a `kosli_environment` or `kosli_logical_environment` archives the environment in Kosli, and archiving requires the Admin role. With a Member token, `terraform apply` can create and update environments, but `terraform destroy` (or removing the resource from your configuration) fails with `403 Forbidden` and the resource stays in state.
 
-The recommended setup is a dedicated service account with the `admin` privilege and an API key minted for it. You can create both with this provider using the `kosli_service_account` and `kosli_service_account_api_key` resources, or in the Kosli UI under **Settings** → **Service Accounts**.
+The recommended setup is a dedicated service account with the `admin` privilege and an API key minted for it. You can create both with this provider using the `kosli_service_account` and `kosli_service_account_api_key` resources (this initial bootstrap must itself run with an Admin token, since a service account cannot be granted a higher privilege than the caller's), or in the Kosli UI under **Settings** → **Service Accounts**.
 
 ## Regional Endpoints
 
