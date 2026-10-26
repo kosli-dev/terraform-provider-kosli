@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -52,6 +53,15 @@ const (
 
 	// DefaultRetryWaitMax is the default maximum wait time between retries.
 	DefaultRetryWaitMax = 30 * time.Second
+
+	// MaxResponseBodySize is the largest response body ParseResponse accepts.
+	// It bounds memory use when a misbehaving or spoofed server streams an
+	// oversized response.
+	MaxResponseBodySize = 10 << 20 // 10 MiB
+
+	// maxErrorBodySize bounds how much of an error response is read when
+	// extracting the API error message.
+	maxErrorBodySize = 64 << 10 // 64 KiB
 )
 
 // Client represents a Kosli API client.
@@ -116,11 +126,13 @@ func WithUserAgent(userAgent string) ClientOption {
 	}
 }
 
-// WithBaseURL sets a custom base URL for the API.
+// WithBaseURL sets a custom base URL for the API. The URL must use https so
+// the API token is never sent in cleartext; plain http is accepted only for
+// loopback hosts, which allows local test servers.
 func WithBaseURL(baseURL string) ClientOption {
 	return func(c *Client) error {
-		if baseURL == "" {
-			return fmt.Errorf("base URL cannot be empty")
+		if err := ValidateBaseURL(baseURL); err != nil {
+			return err
 		}
 		// Trim trailing slash
 		c.baseURL = strings.TrimRight(baseURL, "/")
@@ -129,9 +141,45 @@ func WithBaseURL(baseURL string) ClientOption {
 	}
 }
 
+// ValidateBaseURL reports whether baseURL is acceptable for WithBaseURL: it
+// must be an absolute URL with an https scheme, or http for a loopback host.
+func ValidateBaseURL(baseURL string) error {
+	if baseURL == "" {
+		return fmt.Errorf("base URL cannot be empty")
+	}
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return fmt.Errorf("base URL %q is not a valid URL: %w", baseURL, err)
+	}
+	if u.Scheme == "" || u.Host == "" {
+		return fmt.Errorf("base URL %q must include a scheme and host, for example https://app.kosli.com", baseURL)
+	}
+	switch u.Scheme {
+	case "https":
+		return nil
+	case "http":
+		if isLoopbackHost(u.Hostname()) {
+			return nil
+		}
+		return fmt.Errorf("base URL %q must use https; plain http is only allowed for localhost", baseURL)
+	default:
+		return fmt.Errorf("base URL %q must use https, got scheme %q", baseURL, u.Scheme)
+	}
+}
+
+// isLoopbackHost reports whether host names the local machine.
+func isLoopbackHost(host string) bool {
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
 // WithAPIPath sets a custom API path.
 // An empty string is allowed and results in requests going directly to the base URL.
 func WithAPIPath(apiPath string) ClientOption {
+
 	return func(c *Client) error {
 		// Allow empty API path for direct access to base URL
 		if apiPath != "" {
@@ -343,7 +391,8 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any) (
 
 // ParseResponse reads and unmarshals a JSON response body into the provided interface.
 //
-// The response body is closed after reading.
+// The response body is closed after reading. Bodies larger than
+// MaxResponseBodySize are rejected rather than buffered.
 //
 // Example:
 //
@@ -352,7 +401,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any) (
 func ParseResponse(resp *http.Response, v any) error {
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBody(resp.Body, MaxResponseBodySize)
 	if err != nil {
 		return fmt.Errorf("failed to read response body: %w", err)
 	}
@@ -362,6 +411,18 @@ func ParseResponse(resp *http.Response, v any) error {
 	}
 
 	return nil
+}
+
+// readBody reads at most limit bytes from r and fails if the body is larger.
+func readBody(r io.Reader, limit int64) ([]byte, error) {
+	body, err := io.ReadAll(io.LimitReader(r, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(body)) > limit {
+		return nil, fmt.Errorf("response body exceeds %d bytes", limit)
+	}
+	return body, nil
 }
 
 // apiPath builds a request path from individual segments, percent-encoding

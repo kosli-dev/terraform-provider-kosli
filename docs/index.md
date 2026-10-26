@@ -67,6 +67,6 @@ Kosli operates in multiple regions. Configure the `api_url` to match your organi
 ### Optional
 
 - `api_token` (String, Sensitive) Kosli API token for authentication. Can also be set via KOSLI_API_TOKEN environment variable.
-- `api_url` (String) Kosli API endpoint URL. Defaults to https://app.kosli.com (EU region). Use https://app.us.kosli.com for US region. Can also be set via KOSLI_API_URL environment variable.
+- `api_url` (String) Kosli API endpoint URL. Defaults to https://app.kosli.com (EU region). Use https://app.us.kosli.com for US region. Must use https; plain http is only accepted for localhost. Can also be set via KOSLI_API_URL environment variable.
 - `org` (String) Kosli organization name. Can also be set via KOSLI_ORG environment variable.
 - `timeout` (Number) HTTP client timeout in seconds. Defaults to 30 seconds.
