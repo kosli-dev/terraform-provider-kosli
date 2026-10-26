@@ -76,7 +76,7 @@ func (req *CreateFlowRequest) MarshalMultipart() (io.Reader, string, error) {
 // The request always includes a data_json field with flow metadata (name, description, visibility).
 // The template_file field is conditionally included when a YAML template is provided.
 func (c *Client) CreateFlow(ctx context.Context, req *CreateFlowRequest) error {
-	path := fmt.Sprintf("/flows/%s/template_file", c.Organization())
+	path := apiPath("flows", c.Organization(), "template_file")
 
 	// doRequest dispatches to MarshalMultipart for the multipart body
 	resp, err := c.Put(ctx, path, req)
@@ -90,7 +90,7 @@ func (c *Client) CreateFlow(ctx context.Context, req *CreateFlowRequest) error {
 
 // GetFlow retrieves a specific flow by name.
 func (c *Client) GetFlow(ctx context.Context, name string) (*Flow, error) {
-	path := fmt.Sprintf("/flows/%s/%s", c.Organization(), name)
+	path := apiPath("flows", c.Organization(), name)
 
 	resp, err := c.Get(ctx, path)
 	if err != nil {
@@ -107,7 +107,7 @@ func (c *Client) GetFlow(ctx context.Context, name string) (*Flow, error) {
 
 // ListFlows retrieves all flows for the organization.
 func (c *Client) ListFlows(ctx context.Context) ([]Flow, error) {
-	path := fmt.Sprintf("/flows/%s", c.Organization())
+	path := apiPath("flows", c.Organization())
 
 	resp, err := c.Get(ctx, path)
 	if err != nil {
@@ -124,7 +124,7 @@ func (c *Client) ListFlows(ctx context.Context) ([]Flow, error) {
 
 // ArchiveFlow archives a flow (soft delete).
 func (c *Client) ArchiveFlow(ctx context.Context, name string) error {
-	path := fmt.Sprintf("/flows/%s/%s/archive", c.Organization(), name)
+	path := apiPath("flows", c.Organization(), name, "archive")
 
 	resp, err := c.Put(ctx, path, nil)
 	if err != nil {

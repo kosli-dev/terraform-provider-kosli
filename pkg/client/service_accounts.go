@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 )
 
 // ServiceAccount represents a Kosli service account as returned by the API.
@@ -46,7 +45,7 @@ type UpdateServiceAccountRequest struct {
 // ListServiceAccounts retrieves all service accounts for the organization.
 func (c *Client) ListServiceAccounts(ctx context.Context) ([]ServiceAccount, error) {
 	// Build path: GET /api/v2/service-accounts/{org}
-	path := fmt.Sprintf("/service-accounts/%s", c.Organization())
+	path := apiPath("service-accounts", c.Organization())
 
 	resp, err := c.Get(ctx, path)
 	if err != nil {
@@ -64,7 +63,7 @@ func (c *Client) ListServiceAccounts(ctx context.Context) ([]ServiceAccount, err
 // GetServiceAccount retrieves a specific service account by name.
 func (c *Client) GetServiceAccount(ctx context.Context, name string) (*ServiceAccount, error) {
 	// Build path: GET /api/v2/service-accounts/{org}/{name}
-	path := fmt.Sprintf("/service-accounts/%s/%s", c.Organization(), name)
+	path := apiPath("service-accounts", c.Organization(), name)
 
 	resp, err := c.Get(ctx, path)
 	if err != nil {
@@ -83,7 +82,7 @@ func (c *Client) GetServiceAccount(ctx context.Context, name string) (*ServiceAc
 // The POST endpoint responds with the full service account (HTTP 201).
 func (c *Client) CreateServiceAccount(ctx context.Context, req *CreateServiceAccountRequest) (*ServiceAccount, error) {
 	// Build path: POST /api/v2/service-accounts/{org}
-	path := fmt.Sprintf("/service-accounts/%s", c.Organization())
+	path := apiPath("service-accounts", c.Organization())
 
 	resp, err := c.Post(ctx, path, req)
 	if err != nil {
@@ -102,7 +101,7 @@ func (c *Client) CreateServiceAccount(ctx context.Context, req *CreateServiceAcc
 // using PATCH and returns the updated object.
 func (c *Client) UpdateServiceAccount(ctx context.Context, name string, req *UpdateServiceAccountRequest) (*ServiceAccount, error) {
 	// Build path: PATCH /api/v2/service-accounts/{org}/{name}
-	path := fmt.Sprintf("/service-accounts/%s/%s", c.Organization(), name)
+	path := apiPath("service-accounts", c.Organization(), name)
 
 	resp, err := c.Patch(ctx, path, req)
 	if err != nil {
@@ -121,7 +120,7 @@ func (c *Client) UpdateServiceAccount(ctx context.Context, name string, req *Upd
 // The endpoint returns a bare JSON string on success, which is ignored.
 func (c *Client) DeleteServiceAccount(ctx context.Context, name string) error {
 	// Build path: DELETE /api/v2/service-accounts/{org}/{name}
-	path := fmt.Sprintf("/service-accounts/%s/%s", c.Organization(), name)
+	path := apiPath("service-accounts", c.Organization(), name)
 
 	resp, err := c.Delete(ctx, path)
 	if err != nil {

@@ -85,7 +85,7 @@ func (req *CreatePolicyRequest) MarshalMultipart() (io.Reader, string, error) {
 // Per ADR 002, this method is a thin wrapper; call GetPolicy to read state after.
 func (c *Client) CreatePolicy(ctx context.Context, req *CreatePolicyRequest) error {
 	// Build path: PUT /api/v2/policies/{org}
-	path := fmt.Sprintf("/policies/%s", c.Organization())
+	path := apiPath("policies", c.Organization())
 
 	// doRequest dispatches to MarshalMultipart for the multipart body
 	resp, err := c.Put(ctx, path, req)
@@ -99,7 +99,7 @@ func (c *Client) CreatePolicy(ctx context.Context, req *CreatePolicyRequest) err
 
 // GetPolicy retrieves a specific policy by name.
 func (c *Client) GetPolicy(ctx context.Context, name string) (*Policy, error) {
-	path := fmt.Sprintf("/policies/%s/%s", c.Organization(), name)
+	path := apiPath("policies", c.Organization(), name)
 
 	resp, err := c.Get(ctx, path)
 	if err != nil {
@@ -116,7 +116,7 @@ func (c *Client) GetPolicy(ctx context.Context, name string) (*Policy, error) {
 
 // ListPolicies retrieves all policies for the organization.
 func (c *Client) ListPolicies(ctx context.Context) ([]Policy, error) {
-	path := fmt.Sprintf("/policies/%s", c.Organization())
+	path := apiPath("policies", c.Organization())
 
 	resp, err := c.Get(ctx, path)
 	if err != nil {
