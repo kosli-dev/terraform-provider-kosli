@@ -45,6 +45,12 @@ Environments can be imported using their name:
 
 {{codefile "shell" "examples/resources/kosli_environment/import.sh"}}
 
+## Destroying Environments
+
+Kosli never hard-deletes environments. When you run `terraform destroy` or remove a `kosli_environment` from your configuration, the provider archives the environment: it disappears from the environment list in Kosli, but its snapshot history is kept.
+
+~> **Note:** Archiving an environment requires a Kosli API token with the **Admin** role. A token with the Member role can create and update environments but cannot archive them, so `terraform destroy` fails with `403 Forbidden` and the resource stays in state. If you cannot use an Admin token and only want Terraform to stop managing the environment, run `terraform state rm kosli_environment.<name>` instead; the environment then remains active in Kosli. See the [provider documentation](https://registry.terraform.io/providers/kosli-dev/kosli/latest/docs#required-permissions) for how to set up a service account with the right permissions.
+
 ## Monitoring Environments
 
 For querying environment metadata such as `last_modified_at` and `last_reported_at` timestamps, use the `kosli_environment` data source. This is useful for monitoring and creating conditional logic based on environment state.

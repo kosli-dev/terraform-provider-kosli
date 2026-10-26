@@ -4,6 +4,7 @@ subcategory: ""
 description: |-
   Manages a Kosli environment. Environments represent deployment targets where artifacts are deployed. Supports physical environment types: K8S, ECS, S3, docker, server, and lambda.
   ~> Note: Environment policies will be available in a future release. For querying environment metadata such as last_modified_at, last_reported_at, and archived status, use the kosli_environment data source.
+  ~> Note: Destroying this resource archives the environment in Kosli. Archiving requires an API token with the Admin role; a Member token can create and update environments but terraform destroy fails with 403 Forbidden.
 ---
 
 # Resource: kosli_environment
@@ -11,6 +12,8 @@ description: |-
 Manages a Kosli environment. Environments represent deployment targets where artifacts are deployed. Supports physical environment types: K8S, ECS, S3, docker, server, and lambda.
 
 ~> **Note:** Environment policies will be available in a future release. For querying environment metadata such as `last_modified_at`, `last_reported_at`, and `archived` status, use the `kosli_environment` data source.
+
+~> **Note:** Destroying this resource archives the environment in Kosli. Archiving requires an API token with the **Admin** role; a Member token can create and update environments but `terraform destroy` fails with `403 Forbidden`.
 
 Kosli environments track deployments and provide visibility into what's running in your infrastructure. Physical environments represent actual runtime locations such as:
 
@@ -117,6 +120,12 @@ terraform import kosli_environment.production_k8s production-k8s
 terraform import kosli_environment.staging_ecs staging-ecs
 terraform import kosli_environment.data_lake data-lake-s3
 ```
+
+## Destroying Environments
+
+Kosli never hard-deletes environments. When you run `terraform destroy` or remove a `kosli_environment` from your configuration, the provider archives the environment: it disappears from the environment list in Kosli, but its snapshot history is kept.
+
+~> **Note:** Archiving an environment requires a Kosli API token with the **Admin** role. A token with the Member role can create and update environments but cannot archive them, so `terraform destroy` fails with `403 Forbidden` and the resource stays in state. If you cannot use an Admin token and only want Terraform to stop managing the environment, run `terraform state rm kosli_environment.<name>` instead; the environment then remains active in Kosli. See the [provider documentation](https://registry.terraform.io/providers/kosli-dev/kosli/latest/docs#required-permissions) for how to set up a service account with the right permissions.
 
 ## Monitoring Environments
 
