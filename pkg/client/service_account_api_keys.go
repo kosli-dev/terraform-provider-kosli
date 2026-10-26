@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 )
 
 // ServiceAccountAPIKey represents an API key for a service account.
@@ -38,7 +37,7 @@ type CreateAPIKeyRequest struct {
 // ListServiceAccountAPIKeys retrieves all active API keys for a service account.
 func (c *Client) ListServiceAccountAPIKeys(ctx context.Context, serviceAccountName string) ([]ServiceAccountAPIKey, error) {
 	// Build path: GET /api/v2/service-accounts/{org}/{name}/api-keys
-	path := fmt.Sprintf("/service-accounts/%s/%s/api-keys", c.Organization(), serviceAccountName)
+	path := apiPath("service-accounts", c.Organization(), serviceAccountName, "api-keys")
 
 	resp, err := c.Get(ctx, path)
 	if err != nil {
@@ -58,7 +57,7 @@ func (c *Client) ListServiceAccountAPIKeys(ctx context.Context, serviceAccountNa
 // value is never included (it is only returned once, at creation).
 func (c *Client) GetServiceAccountAPIKey(ctx context.Context, serviceAccountName, keyID string) (*ServiceAccountAPIKey, error) {
 	// Build path: GET /api/v2/service-accounts/{org}/{name}/api-keys/{key_id}
-	path := fmt.Sprintf("/service-accounts/%s/%s/api-keys/%s", c.Organization(), serviceAccountName, keyID)
+	path := apiPath("service-accounts", c.Organization(), serviceAccountName, "api-keys", keyID)
 
 	resp, err := c.Get(ctx, path)
 	if err != nil {
@@ -77,7 +76,7 @@ func (c *Client) GetServiceAccountAPIKey(ctx context.Context, serviceAccountName
 // The response includes the raw key value, which is only returned once.
 func (c *Client) CreateServiceAccountAPIKey(ctx context.Context, serviceAccountName string, req *CreateAPIKeyRequest) (*ServiceAccountAPIKey, error) {
 	// Build path: POST /api/v2/service-accounts/{org}/{name}/api-keys
-	path := fmt.Sprintf("/service-accounts/%s/%s/api-keys", c.Organization(), serviceAccountName)
+	path := apiPath("service-accounts", c.Organization(), serviceAccountName, "api-keys")
 
 	resp, err := c.Post(ctx, path, req)
 	if err != nil {
@@ -96,7 +95,7 @@ func (c *Client) CreateServiceAccountAPIKey(ctx context.Context, serviceAccountN
 // The endpoint returns a bare JSON string on success, which is ignored.
 func (c *Client) RevokeServiceAccountAPIKey(ctx context.Context, serviceAccountName, keyID string) error {
 	// Build path: DELETE /api/v2/service-accounts/{org}/{name}/api-keys/{key_id}
-	path := fmt.Sprintf("/service-accounts/%s/%s/api-keys/%s", c.Organization(), serviceAccountName, keyID)
+	path := apiPath("service-accounts", c.Organization(), serviceAccountName, "api-keys", keyID)
 
 	resp, err := c.Delete(ctx, path)
 	if err != nil {

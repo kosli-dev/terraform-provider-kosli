@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 )
 
 // ActionTarget represents a notification target for a Kosli action.
@@ -39,7 +40,7 @@ type ActionResponse struct {
 
 // ListActions retrieves all actions for the organization.
 func (c *Client) ListActions(ctx context.Context) ([]ActionResponse, error) {
-	path := fmt.Sprintf("/organizations/%s/environments_notifications", c.Organization())
+	path := apiPath("organizations", c.Organization(), "environments_notifications")
 
 	resp, err := c.Get(ctx, path)
 	if err != nil {
@@ -56,7 +57,7 @@ func (c *Client) ListActions(ctx context.Context) ([]ActionResponse, error) {
 
 // GetActionByNumber retrieves a specific action by its server-assigned number.
 func (c *Client) GetActionByNumber(ctx context.Context, number int) (*ActionResponse, error) {
-	path := fmt.Sprintf("/organizations/%s/environments_notifications/%d", c.Organization(), number)
+	path := apiPath("organizations", c.Organization(), "environments_notifications", strconv.Itoa(number))
 
 	resp, err := c.Get(ctx, path)
 	if err != nil {
@@ -91,7 +92,7 @@ func (c *Client) GetActionByName(ctx context.Context, name string) (*ActionRespo
 // CreateOrUpdateAction creates or updates an action.
 // The API returns "OK" on success — must GET to read state.
 func (c *Client) CreateOrUpdateAction(ctx context.Context, req *ActionRequest) error {
-	path := fmt.Sprintf("/organizations/%s/environments_notifications", c.Organization())
+	path := apiPath("organizations", c.Organization(), "environments_notifications")
 
 	resp, err := c.Put(ctx, path, req)
 	if err != nil {
@@ -106,7 +107,7 @@ func (c *Client) CreateOrUpdateAction(ctx context.Context, req *ActionRequest) e
 // Uses PUT /environments_notifications/:number — this updates without changing the number,
 // unlike PUT /environments_notifications which creates a new action for non-Slack actions.
 func (c *Client) UpdateAction(ctx context.Context, number int, req *ActionRequest) error {
-	path := fmt.Sprintf("/organizations/%s/environments_notifications/%d", c.Organization(), number)
+	path := apiPath("organizations", c.Organization(), "environments_notifications", strconv.Itoa(number))
 
 	resp, err := c.Put(ctx, path, req)
 	if err != nil {
@@ -119,7 +120,7 @@ func (c *Client) UpdateAction(ctx context.Context, number int, req *ActionReques
 
 // DeleteAction deletes an action by its server-assigned number.
 func (c *Client) DeleteAction(ctx context.Context, number int) error {
-	path := fmt.Sprintf("/organizations/%s/environments_notifications/%d", c.Organization(), number)
+	path := apiPath("organizations", c.Organization(), "environments_notifications", strconv.Itoa(number))
 
 	resp, err := c.Delete(ctx, path)
 	if err != nil {

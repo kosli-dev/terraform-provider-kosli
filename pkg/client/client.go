@@ -23,7 +23,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -51,6 +53,12 @@ const (
 
 	// DefaultRetryWaitMax is the default maximum wait time between retries.
 	DefaultRetryWaitMax = 30 * time.Second
+
+	// MaxResponseBodySize caps the bodies ParseResponse reads into memory.
+	MaxResponseBodySize = 10 << 20 // 10 MiB
+
+	// maxErrorBodySize caps how much of an error response is read.
+	maxErrorBodySize = 64 << 10 // 64 KiB
 )
 
 // Client represents a Kosli API client.
@@ -75,6 +83,9 @@ type Client struct {
 
 	// userAgent is the User-Agent header value.
 	userAgent string
+
+	// logger is nil when diagnostics are disabled.
+	logger Logger
 }
 
 // ClientOption is a function that configures a Client.
@@ -115,17 +126,51 @@ func WithUserAgent(userAgent string) ClientOption {
 	}
 }
 
-// WithBaseURL sets a custom base URL for the API.
+// WithBaseURL sets a custom base URL for the API. See ValidateBaseURL.
 func WithBaseURL(baseURL string) ClientOption {
 	return func(c *Client) error {
-		if baseURL == "" {
-			return fmt.Errorf("base URL cannot be empty")
+		if err := ValidateBaseURL(baseURL); err != nil {
+			return err
 		}
 		// Trim trailing slash
 		c.baseURL = strings.TrimRight(baseURL, "/")
 		c.apiURL = c.baseURL + c.apiPath
 		return nil
 	}
+}
+
+// ValidateBaseURL requires an https URL, so the API token is never sent in
+// cleartext. Plain http is allowed for loopback hosts, e.g. test servers.
+func ValidateBaseURL(baseURL string) error {
+	if baseURL == "" {
+		return fmt.Errorf("base URL cannot be empty")
+	}
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return fmt.Errorf("base URL %q is not a valid URL: %w", baseURL, err)
+	}
+	if u.Scheme == "" || u.Host == "" {
+		return fmt.Errorf("base URL %q must include a scheme and host, for example https://app.kosli.com", baseURL)
+	}
+	switch u.Scheme {
+	case "https":
+		return nil
+	case "http":
+		if isLoopbackHost(u.Hostname()) {
+			return nil
+		}
+		return fmt.Errorf("base URL %q must use https; plain http is only allowed for localhost", baseURL)
+	default:
+		return fmt.Errorf("base URL %q must use https, got scheme %q", baseURL, u.Scheme)
+	}
+}
+
+func isLoopbackHost(host string) bool {
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
 
 // WithAPIPath sets a custom API path.
@@ -172,6 +217,32 @@ func WithRetryPolicy(retryMax int, retryWaitMin, retryWaitMax time.Duration) Cli
 		retryClient.Backoff = retryablehttp.DefaultBackoff
 		retryClient.HTTPClient = &http.Client{
 			Timeout: c.httpClient.Timeout,
+		}
+
+		// Replace the library's stderr logger with c.logger, read per call so
+		// option order does not matter.
+		retryClient.Logger = nil
+		retryClient.RequestLogHook = func(_ retryablehttp.Logger, req *http.Request, attempt int) {
+			if c.logger == nil {
+				return
+			}
+			fields := map[string]any{"method": req.Method, "url": sanitizeLogValue(req.URL.String())}
+			if attempt > 0 {
+				fields["attempt"] = attempt + 1
+				c.logger.Debug(req.Context(), "retrying kosli api request", fields)
+				return
+			}
+			c.logger.Debug(req.Context(), "sending kosli api request", fields)
+		}
+		retryClient.ResponseLogHook = func(_ retryablehttp.Logger, resp *http.Response) {
+			if c.logger == nil || resp.Request == nil {
+				return
+			}
+			c.logger.Debug(resp.Request.Context(), "received kosli api response", map[string]any{
+				"method": resp.Request.Method,
+				"url":    sanitizeLogValue(resp.Request.URL.String()),
+				"status": resp.StatusCode,
+			})
 		}
 
 		// Replace the standard client with the retryable client's standard client
@@ -289,7 +360,7 @@ type MultipartMarshaler interface {
 // doRequest performs an HTTP request with authentication and error handling.
 func (c *Client) doRequest(ctx context.Context, method, path string, body any) (*http.Response, error) {
 	// Build full URL
-	url := c.apiURL + path
+	reqURL := c.apiURL + path
 
 	// Encode the body: multipart if the request type opts in, JSON otherwise
 	var bodyReader io.Reader
@@ -313,7 +384,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any) (
 	}
 
 	// Create HTTP request
-	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
+	req, err := http.NewRequestWithContext(ctx, method, reqURL, bodyReader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -328,6 +399,13 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any) (
 	// Execute request
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		if c.logger != nil {
+			c.logger.Warn(ctx, "kosli api request failed", map[string]any{
+				"method": method,
+				"url":    sanitizeLogValue(reqURL),
+				"error":  sanitizeLogValue(err.Error()),
+			})
+		}
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 
@@ -342,7 +420,8 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any) (
 
 // ParseResponse reads and unmarshals a JSON response body into the provided interface.
 //
-// The response body is closed after reading.
+// The response body is closed after reading. Bodies over
+// MaxResponseBodySize are rejected.
 //
 // Example:
 //
@@ -351,7 +430,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any) (
 func ParseResponse(resp *http.Response, v any) error {
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBody(resp.Body, MaxResponseBodySize)
 	if err != nil {
 		return fmt.Errorf("failed to read response body: %w", err)
 	}
@@ -361,6 +440,34 @@ func ParseResponse(resp *http.Response, v any) error {
 	}
 
 	return nil
+}
+
+// readBody fails, rather than truncating, when the body exceeds limit.
+func readBody(r io.Reader, limit int64) ([]byte, error) {
+	body, err := io.ReadAll(io.LimitReader(r, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(body)) > limit {
+		return nil, fmt.Errorf("response body exceeds %d bytes", limit)
+	}
+	return body, nil
+}
+
+// apiPath joins percent-encoded segments, so user-supplied names such as
+// "prod/archive" or ".." cannot change the path. Callers append any query.
+func apiPath(segments ...string) string {
+	escaped := make([]string, len(segments))
+	for i, segment := range segments {
+		switch segment {
+		case ".", "..":
+			// PathEscape keeps dot segments, which proxies would resolve.
+			escaped[i] = strings.ReplaceAll(segment, ".", "%2E")
+		default:
+			escaped[i] = url.PathEscape(segment)
+		}
+	}
+	return "/" + strings.Join(escaped, "/")
 }
 
 // Organization returns the organization name configured for this client.

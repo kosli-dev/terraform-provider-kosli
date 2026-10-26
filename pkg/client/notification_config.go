@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 )
 
 // Notification types Kosli raises itself and lets an organization configure.
@@ -65,7 +64,7 @@ type NotificationConfigResponse struct {
 // The API answers 200 for every known notification type, configured or not:
 // an unconfigured type comes back with an empty Targets list.
 func (c *Client) GetNotificationConfig(ctx context.Context, notificationType string) (*NotificationConfigResponse, error) {
-	path := fmt.Sprintf("/notification-config/%s/%s", c.Organization(), notificationType)
+	path := apiPath("notification-config", c.Organization(), notificationType)
 
 	resp, err := c.Get(ctx, path)
 	if err != nil {
@@ -83,7 +82,7 @@ func (c *Client) GetNotificationConfig(ctx context.Context, notificationType str
 // SetNotificationConfig creates or replaces the organization's config for one
 // notification type and returns the stored config. Requires admin permissions.
 func (c *Client) SetNotificationConfig(ctx context.Context, notificationType string, req *NotificationConfigRequest) (*NotificationConfigResponse, error) {
-	path := fmt.Sprintf("/notification-config/%s/%s", c.Organization(), notificationType)
+	path := apiPath("notification-config", c.Organization(), notificationType)
 
 	resp, err := c.Put(ctx, path, req)
 	if err != nil {
@@ -101,7 +100,7 @@ func (c *Client) SetNotificationConfig(ctx context.Context, notificationType str
 // DeleteNotificationConfig removes the organization's config for one
 // notification type, so Kosli derives the recipients again. Requires admin permissions.
 func (c *Client) DeleteNotificationConfig(ctx context.Context, notificationType string) error {
-	path := fmt.Sprintf("/notification-config/%s/%s", c.Organization(), notificationType)
+	path := apiPath("notification-config", c.Organization(), notificationType)
 
 	resp, err := c.Delete(ctx, path)
 	if err != nil {

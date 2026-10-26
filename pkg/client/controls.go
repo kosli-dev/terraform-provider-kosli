@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"strconv"
 )
@@ -87,7 +86,7 @@ func (c *Client) ListControls(ctx context.Context, opts *ListControlsOptions) ([
 				query.Set("archived", "true")
 			}
 		}
-		path := fmt.Sprintf("/controls/%s?%s", c.Organization(), query.Encode())
+		path := apiPath("controls", c.Organization()) + "?" + query.Encode()
 
 		resp, err := c.Get(ctx, path)
 		if err != nil {
@@ -109,7 +108,7 @@ func (c *Client) ListControls(ctx context.Context, opts *ListControlsOptions) ([
 // GetControl retrieves a specific control by identifier.
 func (c *Client) GetControl(ctx context.Context, identifier string) (*Control, error) {
 	// Build path: GET /api/v2/controls/{org}/{identifier}
-	path := fmt.Sprintf("/controls/%s/%s", c.Organization(), identifier)
+	path := apiPath("controls", c.Organization(), identifier)
 
 	resp, err := c.Get(ctx, path)
 	if err != nil {
@@ -129,7 +128,7 @@ func (c *Client) GetControl(ctx context.Context, identifier string) (*Control, e
 // 409 Conflict if a control with the same identifier already exists.
 func (c *Client) CreateControl(ctx context.Context, req *CreateControlRequest) (*Control, error) {
 	// Build path: POST /api/v2/controls/{org}
-	path := fmt.Sprintf("/controls/%s", c.Organization())
+	path := apiPath("controls", c.Organization())
 
 	resp, err := c.Post(ctx, path, req)
 	if err != nil {
@@ -149,7 +148,7 @@ func (c *Client) CreateControl(ctx context.Context, req *CreateControlRequest) (
 // version.
 func (c *Client) UpdateControl(ctx context.Context, identifier string, req *UpdateControlRequest) (*Control, error) {
 	// Build path: PUT /api/v2/controls/{org}/{identifier}
-	path := fmt.Sprintf("/controls/%s/%s", c.Organization(), identifier)
+	path := apiPath("controls", c.Organization(), identifier)
 
 	resp, err := c.Put(ctx, path, req)
 	if err != nil {
@@ -183,7 +182,7 @@ type ControlVersion struct {
 // GetControlVersion retrieves a specific version of a control.
 func (c *Client) GetControlVersion(ctx context.Context, identifier string, version int64) (*ControlVersion, error) {
 	// Build path: GET /api/v2/controls/{org}/{identifier}/versions/{version_number}
-	path := fmt.Sprintf("/controls/%s/%s/versions/%d", c.Organization(), identifier, version)
+	path := apiPath("controls", c.Organization(), identifier, "versions", strconv.FormatInt(version, 10))
 
 	resp, err := c.Get(ctx, path)
 	if err != nil {
@@ -202,7 +201,7 @@ func (c *Client) GetControlVersion(ctx context.Context, identifier string, versi
 // object. Controls cannot be hard-deleted via the API.
 func (c *Client) ArchiveControl(ctx context.Context, identifier string) (*Control, error) {
 	// Build path: POST /api/v2/controls/{org}/{identifier}/archive
-	path := fmt.Sprintf("/controls/%s/%s/archive", c.Organization(), identifier)
+	path := apiPath("controls", c.Organization(), identifier, "archive")
 
 	resp, err := c.Post(ctx, path, nil)
 	if err != nil {

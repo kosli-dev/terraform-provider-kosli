@@ -63,7 +63,7 @@ func (p *KosliProvider) Schema(ctx context.Context, req provider.SchemaRequest, 
 				Optional:    true,
 			},
 			"api_url": schema.StringAttribute{
-				Description: "Kosli API endpoint URL. Defaults to https://app.kosli.com (EU region). Use https://app.us.kosli.com for US region. Can also be set via KOSLI_API_URL environment variable.",
+				Description: "Kosli API endpoint URL. Defaults to https://app.kosli.com (EU region). Use https://app.us.kosli.com for US region. Must use https; plain http is only accepted for localhost. Can also be set via KOSLI_API_URL environment variable.",
 				Optional:    true,
 			},
 			"timeout": schema.Int64Attribute{
@@ -108,6 +108,14 @@ func (p *KosliProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		)
 	}
 
+	// Validate before any request carries the token
+	if err := client.ValidateBaseURL(apiURL); err != nil {
+		resp.Diagnostics.AddError(
+			"Invalid API URL",
+			fmt.Sprintf("The api_url attribute (or KOSLI_API_URL environment variable) is not usable: %s", err.Error()),
+		)
+	}
+
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -132,6 +140,8 @@ func (p *KosliProvider) Configure(ctx context.Context, req provider.ConfigureReq
 	// Set user agent with provider version
 	userAgent := fmt.Sprintf("terraform-provider-kosli/%s", p.version)
 	opts = append(opts, client.WithUserAgent(userAgent))
+
+	opts = append(opts, client.WithLogger(tflogClientLogger{}))
 
 	kosliClient, err := client.NewClient(apiToken, org, opts...)
 	if err != nil {
