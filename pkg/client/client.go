@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -361,6 +362,18 @@ func ParseResponse(resp *http.Response, v any) error {
 	}
 
 	return nil
+}
+
+// apiPath builds a request path from individual segments, percent-encoding
+// each one so that user-supplied values such as resource names or import IDs
+// cannot change the path structure (for example "prod/archive" or "../x").
+// Query strings must be appended by the caller after the path is built.
+func apiPath(segments ...string) string {
+	escaped := make([]string, len(segments))
+	for i, segment := range segments {
+		escaped[i] = url.PathEscape(segment)
+	}
+	return "/" + strings.Join(escaped, "/")
 }
 
 // Organization returns the organization name configured for this client.

@@ -15,7 +15,7 @@ type AttachedPolicy struct {
 // AttachPolicy attaches a policy to an environment.
 // POST /api/v2/environments/{org}/{env}/policies
 func (c *Client) AttachPolicy(ctx context.Context, environmentName, policyName string) error {
-	path := fmt.Sprintf("/environments/%s/%s/policies", c.Organization(), environmentName)
+	path := apiPath("environments", c.Organization(), environmentName, "policies")
 	body := map[string]any{"policy_names": []string{policyName}}
 
 	resp, err := c.Post(ctx, path, body)
@@ -30,7 +30,7 @@ func (c *Client) AttachPolicy(ctx context.Context, environmentName, policyName s
 // DetachPolicy detaches a policy from an environment.
 // DELETE /api/v2/environments/{org}/{env}/policies (with JSON body)
 func (c *Client) DetachPolicy(ctx context.Context, environmentName, policyName string) error {
-	path := fmt.Sprintf("/environments/%s/%s/policies", c.Organization(), environmentName)
+	path := apiPath("environments", c.Organization(), environmentName, "policies")
 	body := map[string]any{"policy_names": []string{policyName}}
 
 	// Use doRequest directly (same package) because Delete() doesn't support a body.

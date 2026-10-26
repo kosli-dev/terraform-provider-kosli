@@ -167,7 +167,7 @@ func (req *CreateCustomAttestationTypeRequest) MarshalMultipart() (io.Reader, st
 // The API returns "OK" (201 Created), not the created object.
 func (c *Client) CreateCustomAttestationType(ctx context.Context, req *CreateCustomAttestationTypeRequest) error {
 	// Build path
-	path := fmt.Sprintf("/custom-attestation-types/%s", c.Organization())
+	path := apiPath("custom-attestation-types", c.Organization())
 
 	// doRequest dispatches to MarshalMultipart for the multipart body
 	resp, err := c.Post(ctx, path, req)
@@ -190,7 +190,7 @@ func (c *Client) CreateCustomAttestationType(ctx context.Context, req *CreateCus
 // GetCustomAttestationType retrieves a specific custom attestation type.
 func (c *Client) GetCustomAttestationType(ctx context.Context, name string, opts *GetCustomAttestationTypeOptions) (*CustomAttestationType, error) {
 	// Build path
-	path := fmt.Sprintf("/custom-attestation-types/%s/%s", c.Organization(), name)
+	path := apiPath("custom-attestation-types", c.Organization(), name)
 
 	// Add optional version query parameter
 	if opts != nil && opts.Version != "" {
@@ -222,7 +222,7 @@ func (c *Client) GetCustomAttestationType(ctx context.Context, name string, opts
 // ListCustomAttestationTypes retrieves all custom attestation types for the organization.
 func (c *Client) ListCustomAttestationTypes(ctx context.Context) ([]CustomAttestationType, error) {
 	// Build path
-	path := fmt.Sprintf("/custom-attestation-types/%s", c.Organization())
+	path := apiPath("custom-attestation-types", c.Organization())
 
 	// Call API
 	resp, err := c.Get(ctx, path)
@@ -249,7 +249,7 @@ func (c *Client) ListCustomAttestationTypes(ctx context.Context) ([]CustomAttest
 // ArchiveCustomAttestationType archives a custom attestation type.
 func (c *Client) ArchiveCustomAttestationType(ctx context.Context, name string) error {
 	// Build path
-	path := fmt.Sprintf("/custom-attestation-types/%s/%s/archive", c.Organization(), name)
+	path := apiPath("custom-attestation-types", c.Organization(), name, "archive")
 
 	// Call API with no body
 	resp, err := c.Put(ctx, path, nil)

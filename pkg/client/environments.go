@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 )
 
 // Environment represents a Kosli environment as returned by the API
@@ -46,7 +45,7 @@ type UpdateEnvironmentRequest struct {
 // ListEnvironments retrieves all environments for the organization.
 func (c *Client) ListEnvironments(ctx context.Context) ([]Environment, error) {
 	// Build path: GET /api/v2/environments/{org}
-	path := fmt.Sprintf("/environments/%s", c.Organization())
+	path := apiPath("environments", c.Organization())
 
 	// Call API
 	resp, err := c.Get(ctx, path)
@@ -66,7 +65,7 @@ func (c *Client) ListEnvironments(ctx context.Context) ([]Environment, error) {
 // GetEnvironment retrieves a specific environment by name.
 func (c *Client) GetEnvironment(ctx context.Context, name string) (*Environment, error) {
 	// Build path: GET /api/v2/environments/{org}/{name}
-	path := fmt.Sprintf("/environments/%s/%s", c.Organization(), name)
+	path := apiPath("environments", c.Organization(), name)
 
 	// Call API
 	resp, err := c.Get(ctx, path)
@@ -88,7 +87,7 @@ func (c *Client) GetEnvironment(ctx context.Context, name string) (*Environment,
 // The API returns "OK" (200 OK), not the created object.
 func (c *Client) CreateEnvironment(ctx context.Context, req *CreateEnvironmentRequest) error {
 	// Build path
-	path := fmt.Sprintf("/environments/%s", c.Organization())
+	path := apiPath("environments", c.Organization())
 
 	// Build request body with proper JSON structure
 	body := map[string]any{
@@ -117,7 +116,7 @@ func (c *Client) CreateEnvironment(ctx context.Context, req *CreateEnvironmentRe
 // clear the field. See issue #122 for context.
 func (c *Client) UpdateEnvironment(ctx context.Context, name string, req *UpdateEnvironmentRequest) error {
 	// Build path: PATCH /api/v2/environments/{org}/{env_name}
-	path := fmt.Sprintf("/environments/%s/%s", c.Organization(), name)
+	path := apiPath("environments", c.Organization(), name)
 
 	// Build request body. Only include optional fields when the caller
 	// provided them, so fields that don't apply to a given environment
@@ -143,7 +142,7 @@ func (c *Client) UpdateEnvironment(ctx context.Context, name string, req *Update
 // ArchiveEnvironment archives an environment (soft delete).
 func (c *Client) ArchiveEnvironment(ctx context.Context, name string) error {
 	// Build path
-	path := fmt.Sprintf("/environments/%s/%s/archive", c.Organization(), name)
+	path := apiPath("environments", c.Organization(), name, "archive")
 
 	// Call API with no body
 	resp, err := c.Put(ctx, path, nil)
