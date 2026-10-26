@@ -114,3 +114,10 @@ func TestClient_LogsTransportFailure(t *testing.T) {
 		t.Error("warn event missing error field")
 	}
 }
+
+func TestSanitizeLogValue(t *testing.T) {
+	got := sanitizeLogValue("GET /x\r\nforged: entry\n")
+	if got != "GET /xforged: entry" {
+		t.Errorf("sanitizeLogValue = %q", got)
+	}
+}

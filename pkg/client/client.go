@@ -233,7 +233,7 @@ func WithRetryPolicy(retryMax int, retryWaitMin, retryWaitMax time.Duration) Cli
 			if c.logger == nil {
 				return
 			}
-			fields := map[string]any{"method": req.Method, "url": req.URL.String()}
+			fields := map[string]any{"method": req.Method, "url": sanitizeLogValue(req.URL.String())}
 			if attempt > 0 {
 				fields["attempt"] = attempt + 1
 				c.logger.Debug(req.Context(), "retrying kosli api request", fields)
@@ -247,7 +247,7 @@ func WithRetryPolicy(retryMax int, retryWaitMin, retryWaitMax time.Duration) Cli
 			}
 			c.logger.Debug(resp.Request.Context(), "received kosli api response", map[string]any{
 				"method": resp.Request.Method,
-				"url":    resp.Request.URL.String(),
+				"url":    sanitizeLogValue(resp.Request.URL.String()),
 				"status": resp.StatusCode,
 			})
 		}
@@ -409,8 +409,8 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any) (
 		if c.logger != nil {
 			c.logger.Warn(ctx, "kosli api request failed", map[string]any{
 				"method": method,
-				"url":    reqURL,
-				"error":  err.Error(),
+				"url":    sanitizeLogValue(reqURL),
+				"error":  sanitizeLogValue(err.Error()),
 			})
 		}
 		return nil, fmt.Errorf("failed to execute request: %w", err)

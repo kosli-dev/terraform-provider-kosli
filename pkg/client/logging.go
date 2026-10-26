@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"strings"
 )
 
 // Logger receives diagnostic events from the client. The context is the one
@@ -29,4 +30,11 @@ func WithLogger(logger Logger) ClientOption {
 		c.logger = logger
 		return nil
 	}
+}
+
+// sanitizeLogValue strips CR and LF so a logged value cannot forge extra log
+// lines when the logger writes plain text.
+func sanitizeLogValue(s string) string {
+	s = strings.ReplaceAll(s, "\n", "")
+	return strings.ReplaceAll(s, "\r", "")
 }
