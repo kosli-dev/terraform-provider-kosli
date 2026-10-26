@@ -17,6 +17,10 @@ type Logger interface {
 // attempt and response is logged at debug level and transport failures at
 // warn level. Without a logger the client is silent; the retry library's own
 // stderr logger is never used.
+//
+// Attempt and response events come from the retry layer, so a client built
+// with WithHTTPClient (which bypasses retries) only reports transport
+// failures.
 func WithLogger(logger Logger) ClientOption {
 	return func(c *Client) error {
 		if logger == nil {

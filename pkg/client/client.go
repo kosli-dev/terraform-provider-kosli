@@ -182,7 +182,6 @@ func isLoopbackHost(host string) bool {
 // WithAPIPath sets a custom API path.
 // An empty string is allowed and results in requests going directly to the base URL.
 func WithAPIPath(apiPath string) ClientOption {
-
 	return func(c *Client) error {
 		// Allow empty API path for direct access to base URL
 		if apiPath != "" {
@@ -368,7 +367,7 @@ type MultipartMarshaler interface {
 // doRequest performs an HTTP request with authentication and error handling.
 func (c *Client) doRequest(ctx context.Context, method, path string, body any) (*http.Response, error) {
 	// Build full URL
-	url := c.apiURL + path
+	reqURL := c.apiURL + path
 
 	// Encode the body: multipart if the request type opts in, JSON otherwise
 	var bodyReader io.Reader
@@ -392,7 +391,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any) (
 	}
 
 	// Create HTTP request
-	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
+	req, err := http.NewRequestWithContext(ctx, method, reqURL, bodyReader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -410,7 +409,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any) (
 		if c.logger != nil {
 			c.logger.Warn(ctx, "kosli api request failed", map[string]any{
 				"method": method,
-				"url":    url,
+				"url":    reqURL,
 				"error":  err.Error(),
 			})
 		}
@@ -469,7 +468,14 @@ func readBody(r io.Reader, limit int64) ([]byte, error) {
 func apiPath(segments ...string) string {
 	escaped := make([]string, len(segments))
 	for i, segment := range segments {
-		escaped[i] = url.PathEscape(segment)
+		switch segment {
+		case ".", "..":
+			// PathEscape leaves dot segments intact; encode them so a
+			// normalising proxy cannot resolve them against the parent path.
+			escaped[i] = strings.ReplaceAll(segment, ".", "%2E")
+		default:
+			escaped[i] = url.PathEscape(segment)
+		}
 	}
 	return "/" + strings.Join(escaped, "/")
 }

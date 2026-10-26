@@ -22,11 +22,13 @@ func TestValidateBaseURL(t *testing.T) {
 		{"http localhost subdomain", "http://api.localhost:8080", ""},
 		{"http ipv4 loopback", "http://127.0.0.1:9999", ""},
 		{"http ipv6 loopback", "http://[::1]:9999", ""},
+		{"http other loopback ipv4", "http://127.0.0.2", ""},
 		{"empty", "", "base URL cannot be empty"},
 		{"http remote", "http://app.kosli.com", "must use https"},
 		{"http private ip", "http://10.0.0.5", "must use https"},
 		{"ftp", "ftp://app.kosli.com", "must use https"},
 		{"no scheme", "app.kosli.com", "must include a scheme and host"},
+		{"scheme-relative", "//app.kosli.com", "must include a scheme and host"},
 		{"scheme only", "https://", "must include a scheme and host"},
 		{"unparseable", "https://app.kosli.com/%zz", "not a valid URL"},
 	}
