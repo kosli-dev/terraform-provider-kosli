@@ -31,11 +31,15 @@ Kosli runs a paid bug bounty for its production platform, **app.kosli.com** and 
 
 https://www.kosli.com/vulnerability-disclosure
 
-This provider is not part of that programme, so reports against it do not qualify for payment. They are still welcome. We will acknowledge your report, assess it, tell you our determination and reasoning, fix what needs fixing, and credit you in the release notes if you would like.
+This provider is not part of that programme, so reports against it do not qualify for payment. They are still welcome. We will acknowledge your report, assess it, tell you our determination and reasoning, fix what needs fixing, and credit you publicly, for example in the release notes, if you would like.
 
 ## Verifying Releases
 
-Each release publishes a `terraform-provider-kosli_<version>_SHA256SUMS` file and a detached GPG signature of it. Terraform verifies both when it installs the provider from the registry. To check a downloaded archive by hand, verify the signature on the checksum file, then verify the archive's checksum against it.
+Each release publishes a `terraform-provider-kosli_<version>_SHA256SUMS` file and a detached GPG signature of it. Terraform verifies both when it installs the provider from the registry. To check a downloaded archive by hand:
+
+1. Fetch the Kosli public key from the `signing_keys` field of the registry download API, for example `https://registry.terraform.io/v1/providers/kosli-dev/kosli/<version>/download/linux/amd64`.
+2. Verify the signature on the checksum file with that key.
+3. Verify the archive's checksum against the checksum file.
 
 ## Our Commitment
 
