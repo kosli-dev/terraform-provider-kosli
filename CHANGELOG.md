@@ -10,7 +10,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * provider: Rejected non-`https` `api_url` and `KOSLI_API_URL` values, except loopback addresses used for local testing, instead of sending the API token in cleartext [GH-286]
-* client: Percent-encoded resource names, identifiers, and import IDs in API request paths so values containing `/` could no longer redirect a request to a different endpoint [GH-286]
+* client: Percent-encoded resource names, identifiers, and import IDs in API request paths so values containing `/` no longer redirect a request to a different endpoint [GH-286]
 * client: Capped API response bodies to prevent unbounded memory use when reading responses [GH-286]
 * client: Updated the `golang.org/x/net` dependency to fix CVE-2026-78669, a HIGH severity HTTP/2 denial-of-service vulnerability [GH-281]
 
