@@ -11,8 +11,7 @@ import (
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
 
-// configureWithEnv runs Configure with an all-null config so every value is
-// resolved from the environment variables set on t.
+// configureWithEnv runs Configure with a null config, so values come from env.
 func configureWithEnv(t *testing.T, token, org, apiURL string) *provider.ConfigureResponse {
 	t.Helper()
 	t.Setenv("KOSLI_API_TOKEN", token)

@@ -34,8 +34,7 @@ func TestAPIPath(t *testing.T) {
 	}
 }
 
-// A name containing path metacharacters must stay inside its own segment
-// instead of reaching a different endpoint.
+// Path metacharacters in a name must not reach a different endpoint.
 func TestClient_PathSegmentsAreEscaped(t *testing.T) {
 	var got []string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -54,13 +54,10 @@ const (
 	// DefaultRetryWaitMax is the default maximum wait time between retries.
 	DefaultRetryWaitMax = 30 * time.Second
 
-	// MaxResponseBodySize is the largest response body ParseResponse accepts.
-	// It bounds memory use when a misbehaving or spoofed server streams an
-	// oversized response.
+	// MaxResponseBodySize caps the bodies ParseResponse reads into memory.
 	MaxResponseBodySize = 10 << 20 // 10 MiB
 
-	// maxErrorBodySize bounds how much of an error response is read when
-	// extracting the API error message.
+	// maxErrorBodySize caps how much of an error response is read.
 	maxErrorBodySize = 64 << 10 // 64 KiB
 )
 
@@ -87,7 +84,7 @@ type Client struct {
 	// userAgent is the User-Agent header value.
 	userAgent string
 
-	// logger receives request diagnostics; nil disables client logging.
+	// logger is nil when diagnostics are disabled.
 	logger Logger
 }
 
@@ -129,9 +126,7 @@ func WithUserAgent(userAgent string) ClientOption {
 	}
 }
 
-// WithBaseURL sets a custom base URL for the API. The URL must use https so
-// the API token is never sent in cleartext; plain http is accepted only for
-// loopback hosts, which allows local test servers.
+// WithBaseURL sets a custom base URL for the API. See ValidateBaseURL.
 func WithBaseURL(baseURL string) ClientOption {
 	return func(c *Client) error {
 		if err := ValidateBaseURL(baseURL); err != nil {
@@ -144,8 +139,8 @@ func WithBaseURL(baseURL string) ClientOption {
 	}
 }
 
-// ValidateBaseURL reports whether baseURL is acceptable for WithBaseURL: it
-// must be an absolute URL with an https scheme, or http for a loopback host.
+// ValidateBaseURL requires an https URL, so the API token is never sent in
+// cleartext. Plain http is allowed for loopback hosts, e.g. test servers.
 func ValidateBaseURL(baseURL string) error {
 	if baseURL == "" {
 		return fmt.Errorf("base URL cannot be empty")
@@ -170,7 +165,6 @@ func ValidateBaseURL(baseURL string) error {
 	}
 }
 
-// isLoopbackHost reports whether host names the local machine.
 func isLoopbackHost(host string) bool {
 	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
 		return true
@@ -225,9 +219,8 @@ func WithRetryPolicy(retryMax int, retryWaitMin, retryWaitMax time.Duration) Cli
 			Timeout: c.httpClient.Timeout,
 		}
 
-		// Silence the library's default stderr logger; attempts are reported
-		// through c.logger instead, which is read at call time so WithLogger
-		// works regardless of option order.
+		// Replace the library's stderr logger with c.logger, read per call so
+		// option order does not matter.
 		retryClient.Logger = nil
 		retryClient.RequestLogHook = func(_ retryablehttp.Logger, req *http.Request, attempt int) {
 			if c.logger == nil {
@@ -427,8 +420,8 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any) (
 
 // ParseResponse reads and unmarshals a JSON response body into the provided interface.
 //
-// The response body is closed after reading. Bodies larger than
-// MaxResponseBodySize are rejected rather than buffered.
+// The response body is closed after reading. Bodies over
+// MaxResponseBodySize are rejected.
 //
 // Example:
 //
@@ -449,7 +442,7 @@ func ParseResponse(resp *http.Response, v any) error {
 	return nil
 }
 
-// readBody reads at most limit bytes from r and fails if the body is larger.
+// readBody fails, rather than truncating, when the body exceeds limit.
 func readBody(r io.Reader, limit int64) ([]byte, error) {
 	body, err := io.ReadAll(io.LimitReader(r, limit+1))
 	if err != nil {
@@ -461,17 +454,14 @@ func readBody(r io.Reader, limit int64) ([]byte, error) {
 	return body, nil
 }
 
-// apiPath builds a request path from individual segments, percent-encoding
-// each one so that user-supplied values such as resource names or import IDs
-// cannot change the path structure (for example "prod/archive" or "../x").
-// Query strings must be appended by the caller after the path is built.
+// apiPath joins percent-encoded segments, so user-supplied names such as
+// "prod/archive" or ".." cannot change the path. Callers append any query.
 func apiPath(segments ...string) string {
 	escaped := make([]string, len(segments))
 	for i, segment := range segments {
 		switch segment {
 		case ".", "..":
-			// PathEscape leaves dot segments intact; encode them so a
-			// normalising proxy cannot resolve them against the parent path.
+			// PathEscape keeps dot segments, which proxies would resolve.
 			escaped[i] = strings.ReplaceAll(segment, ".", "%2E")
 		default:
 			escaped[i] = url.PathEscape(segment)

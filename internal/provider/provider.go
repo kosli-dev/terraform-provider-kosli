@@ -108,7 +108,7 @@ func (p *KosliProvider) Configure(ctx context.Context, req provider.ConfigureReq
 		)
 	}
 
-	// Reject plaintext or malformed endpoints before any request carries the token
+	// Validate before any request carries the token
 	if err := client.ValidateBaseURL(apiURL); err != nil {
 		resp.Diagnostics.AddError(
 			"Invalid API URL",
@@ -141,7 +141,6 @@ func (p *KosliProvider) Configure(ctx context.Context, req provider.ConfigureReq
 	userAgent := fmt.Sprintf("terraform-provider-kosli/%s", p.version)
 	opts = append(opts, client.WithUserAgent(userAgent))
 
-	// Route client request diagnostics through terraform-plugin-log
 	opts = append(opts, client.WithLogger(tflogClientLogger{}))
 
 	kosliClient, err := client.NewClient(apiToken, org, opts...)

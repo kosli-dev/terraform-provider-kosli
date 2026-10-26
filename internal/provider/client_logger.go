@@ -6,9 +6,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-// tflogClientLogger forwards Kosli API client diagnostics to
-// terraform-plugin-log, so they honour TF_LOG and carry the request-scoped
-// fields (RPC name, request ID) of the Terraform operation that made the call.
+// tflogClientLogger forwards client diagnostics to tflog, so they honour
+// TF_LOG and carry the calling operation's request fields.
 type tflogClientLogger struct{}
 
 func (tflogClientLogger) Debug(ctx context.Context, msg string, fields map[string]any) {

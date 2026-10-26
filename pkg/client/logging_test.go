@@ -11,7 +11,6 @@ import (
 	"time"
 )
 
-// recordingLogger captures client log events for assertions.
 type recordingLogger struct {
 	mu     sync.Mutex
 	events []string

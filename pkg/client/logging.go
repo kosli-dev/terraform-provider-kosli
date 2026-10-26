@@ -6,22 +6,17 @@ import (
 	"strings"
 )
 
-// Logger receives diagnostic events from the client. The context is the one
-// passed to the originating client call, so implementations can use
-// request-scoped loggers such as terraform-plugin-log.
+// Logger receives client diagnostics. ctx is the caller's context, so
+// request-scoped loggers such as tflog work.
 type Logger interface {
 	Debug(ctx context.Context, msg string, fields map[string]any)
 	Warn(ctx context.Context, msg string, fields map[string]any)
 }
 
-// WithLogger sets the logger that receives request diagnostics. Each request
-// attempt and response is logged at debug level and transport failures at
-// warn level. Without a logger the client is silent; the retry library's own
-// stderr logger is never used.
-//
-// Attempt and response events come from the retry layer, so a client built
-// with WithHTTPClient (which bypasses retries) only reports transport
-// failures.
+// WithLogger sets the diagnostics logger; without one the client is silent.
+// Attempts and responses log at debug, transport failures at warn. Attempt
+// events come from the retry layer, so WithHTTPClient clients only log
+// transport failures.
 func WithLogger(logger Logger) ClientOption {
 	return func(c *Client) error {
 		if logger == nil {
@@ -32,8 +27,7 @@ func WithLogger(logger Logger) ClientOption {
 	}
 }
 
-// sanitizeLogValue strips CR and LF so a logged value cannot forge extra log
-// lines when the logger writes plain text.
+// sanitizeLogValue strips CR and LF to prevent forged log lines.
 func sanitizeLogValue(s string) string {
 	s = strings.ReplaceAll(s, "\n", "")
 	return strings.ReplaceAll(s, "\r", "")
