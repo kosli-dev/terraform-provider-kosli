@@ -49,7 +49,8 @@ func (r *logicalEnvironmentResource) Schema(ctx context.Context, req resource.Sc
 		MarkdownDescription: "Manages a Kosli logical environment. Logical environments aggregate multiple physical environments for organizational purposes.\n\n" +
 			"~> **Important:** Logical environments can ONLY contain physical environments (K8S, ECS, S3, docker, server, lambda), not other logical environments. " +
 			"Attempting to include a logical environment will result in an error from the Kosli API. See [ADR-004](https://github.com/kosli-dev/terraform-provider-kosli/blob/main/adrs/004-logical-environment-validation.md) for validation strategy.\n\n" +
-			"~> **Note:** This resource manages logical environment configuration only. For querying environment metadata such as `last_modified_at` and `archived` status, use the `kosli_logical_environment` data source.",
+			"~> **Note:** This resource manages logical environment configuration only. For querying environment metadata such as `last_modified_at` and `archived` status, use the `kosli_logical_environment` data source.\n\n" +
+			"~> **Note:** Destroying this resource archives the logical environment in Kosli. Archiving requires an API token with the **Admin** role; a Member token can create and update logical environments but `terraform destroy` fails with `403 Forbidden`.",
 
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{

@@ -5,6 +5,7 @@ description: |-
   Manages a Kosli logical environment. Logical environments aggregate multiple physical environments for organizational purposes.
   ~> Important: Logical environments can ONLY contain physical environments (K8S, ECS, S3, docker, server, lambda), not other logical environments. Attempting to include a logical environment will result in an error from the Kosli API. See ADR-004 https://github.com/kosli-dev/terraform-provider-kosli/blob/main/adrs/004-logical-environment-validation.md for validation strategy.
   ~> Note: This resource manages logical environment configuration only. For querying environment metadata such as last_modified_at and archived status, use the kosli_logical_environment data source.
+  ~> Note: Destroying this resource archives the logical environment in Kosli. Archiving requires an API token with the Admin role; a Member token can create and update logical environments but terraform destroy fails with 403 Forbidden.
 ---
 
 # Resource: kosli_logical_environment
@@ -14,6 +15,8 @@ Manages a Kosli logical environment. Logical environments aggregate multiple phy
 ~> **Important:** Logical environments can ONLY contain physical environments (K8S, ECS, S3, docker, server, lambda), not other logical environments. Attempting to include a logical environment will result in an error from the Kosli API. See [ADR-004](https://github.com/kosli-dev/terraform-provider-kosli/blob/main/adrs/004-logical-environment-validation.md) for validation strategy.
 
 ~> **Note:** This resource manages logical environment configuration only. For querying environment metadata such as `last_modified_at` and `archived` status, use the `kosli_logical_environment` data source.
+
+~> **Note:** Destroying this resource archives the logical environment in Kosli. Archiving requires an API token with the **Admin** role; a Member token can create and update logical environments but `terraform destroy` fails with `403 Forbidden`.
 
 Logical environments in Kosli aggregate multiple physical environments for organizational purposes, providing:
 
@@ -194,6 +197,12 @@ terraform import kosli_logical_environment.production_all production-aggregate
 terraform import kosli_logical_environment.cloud_services cloud-services
 terraform import kosli_logical_environment.future_environments future-environments
 ```
+
+## Destroying Logical Environments
+
+Kosli never hard-deletes environments. When you run `terraform destroy` or remove a `kosli_logical_environment` from your configuration, the provider archives the logical environment. The physical environments it included are not affected.
+
+~> **Note:** Archiving an environment requires a Kosli API token with the **Admin** role. A token with the Member role can create and update logical environments but cannot archive them, so `terraform destroy` fails with `403 Forbidden` and the resource stays in state. If you cannot use an Admin token and only want Terraform to stop managing the logical environment, run `terraform state rm kosli_logical_environment.<name>` instead; the logical environment then remains active in Kosli. See the [provider documentation](https://registry.terraform.io/providers/kosli-dev/kosli/latest/docs#required-permissions) for how to set up a service account with the right permissions.
 
 ## Querying Metadata
 

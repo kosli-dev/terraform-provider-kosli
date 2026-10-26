@@ -46,7 +46,8 @@ func (r *environmentResource) Schema(ctx context.Context, req resource.SchemaReq
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Kosli environment. Environments represent deployment targets where artifacts are deployed. Supports physical environment types: K8S, ECS, S3, docker, server, and lambda.\n\n" +
 			"~> **Note:** Environment policies will be available in a future release. " +
-			"For querying environment metadata such as `last_modified_at`, `last_reported_at`, and `archived` status, use the `kosli_environment` data source.",
+			"For querying environment metadata such as `last_modified_at`, `last_reported_at`, and `archived` status, use the `kosli_environment` data source.\n\n" +
+			"~> **Note:** Destroying this resource archives the environment in Kosli. Archiving requires an API token with the **Admin** role; a Member token can create and update environments but `terraform destroy` fails with `403 Forbidden`.",
 
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{

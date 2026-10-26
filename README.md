@@ -174,13 +174,14 @@ Service accounts provide secure, programmatic access to Kosli without tying cred
 2. Navigate to **Settings → Service Accounts**
 3. Click **Add New Service Account**
 4. Give it a descriptive name (e.g., "Terraform Automation")
-5. **Assign Admin permissions** to the service account (required for managing environments and attestation types)
+5. **Assign Admin permissions** to the service account (required for managing Kosli resources, including archiving environments on `terraform destroy`; see below)
 6. Click the **"..."** menu on the service account
 7. Select **Add API Key**
 8. Copy the API key and store it securely
 
 > [!IMPORTANT]
 > The Terraform provider requires a Service Account with **Admin permissions** to manage Kosli resources.
+> Destroying a `kosli_environment` or `kosli_logical_environment` archives the environment in Kosli, and archiving is restricted to the Admin role. With a Member token, `terraform apply` can create and update environments, but `terraform destroy` fails with `403 Forbidden` and the resource stays in state.
 
 **Store credentials securely:**
 - Use environment variables (see Configuration above)
