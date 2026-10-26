@@ -141,6 +141,9 @@ func (p *KosliProvider) Configure(ctx context.Context, req provider.ConfigureReq
 	userAgent := fmt.Sprintf("terraform-provider-kosli/%s", p.version)
 	opts = append(opts, client.WithUserAgent(userAgent))
 
+	// Route client request diagnostics through terraform-plugin-log
+	opts = append(opts, client.WithLogger(tflogClientLogger{}))
+
 	kosliClient, err := client.NewClient(apiToken, org, opts...)
 	if err != nil {
 		resp.Diagnostics.AddError(

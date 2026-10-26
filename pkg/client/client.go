@@ -86,6 +86,9 @@ type Client struct {
 
 	// userAgent is the User-Agent header value.
 	userAgent string
+
+	// logger receives request diagnostics; nil disables client logging.
+	logger Logger
 }
 
 // ClientOption is a function that configures a Client.
@@ -221,6 +224,33 @@ func WithRetryPolicy(retryMax int, retryWaitMin, retryWaitMax time.Duration) Cli
 		retryClient.Backoff = retryablehttp.DefaultBackoff
 		retryClient.HTTPClient = &http.Client{
 			Timeout: c.httpClient.Timeout,
+		}
+
+		// Silence the library's default stderr logger; attempts are reported
+		// through c.logger instead, which is read at call time so WithLogger
+		// works regardless of option order.
+		retryClient.Logger = nil
+		retryClient.RequestLogHook = func(_ retryablehttp.Logger, req *http.Request, attempt int) {
+			if c.logger == nil {
+				return
+			}
+			fields := map[string]any{"method": req.Method, "url": req.URL.String()}
+			if attempt > 0 {
+				fields["attempt"] = attempt + 1
+				c.logger.Debug(req.Context(), "retrying kosli api request", fields)
+				return
+			}
+			c.logger.Debug(req.Context(), "sending kosli api request", fields)
+		}
+		retryClient.ResponseLogHook = func(_ retryablehttp.Logger, resp *http.Response) {
+			if c.logger == nil || resp.Request == nil {
+				return
+			}
+			c.logger.Debug(resp.Request.Context(), "received kosli api response", map[string]any{
+				"method": resp.Request.Method,
+				"url":    resp.Request.URL.String(),
+				"status": resp.StatusCode,
+			})
 		}
 
 		// Replace the standard client with the retryable client's standard client
@@ -377,6 +407,13 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any) (
 	// Execute request
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		if c.logger != nil {
+			c.logger.Warn(ctx, "kosli api request failed", map[string]any{
+				"method": method,
+				"url":    url,
+				"error":  err.Error(),
+			})
+		}
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 
