@@ -92,8 +92,9 @@ func parseErrorResponse(resp *http.Response) error {
 		RequestID:  resp.Header.Get("X-Request-ID"),
 	}
 
-	// Read response body
-	body, err := io.ReadAll(resp.Body)
+	// Read a bounded prefix of the body; error messages are short and an
+	// oversized body must not be buffered in full.
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxErrorBodySize))
 	if err != nil {
 		// If we can't read the body, just use the status text
 		apiErr.Message = http.StatusText(resp.StatusCode)
