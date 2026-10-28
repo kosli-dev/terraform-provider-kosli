@@ -87,6 +87,7 @@ func (d *policyDataSource) Configure(ctx context.Context, req datasource.Configu
 
 // Read refreshes the Terraform state with the latest data.
 func (d *policyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	ctx = dataSourceOperation(ctx, d)
 	var data policyDataSourceModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)

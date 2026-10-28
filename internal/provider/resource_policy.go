@@ -127,6 +127,7 @@ func (r *policyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlan
 
 // Create creates the resource and sets the initial Terraform state.
 func (r *policyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	ctx = resourceOperation(ctx, r, "create")
 	var data policyResourceModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -164,6 +165,7 @@ func (r *policyResource) Create(ctx context.Context, req resource.CreateRequest,
 
 // Read refreshes the Terraform state with the latest data.
 func (r *policyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	ctx = resourceOperation(ctx, r, "read")
 	var data policyResourceModel
 
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -190,6 +192,7 @@ func (r *policyResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 // Update updates the resource. Updating a policy creates a new immutable version.
 func (r *policyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	ctx = resourceOperation(ctx, r, "update")
 	var data policyResourceModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)

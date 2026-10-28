@@ -172,6 +172,7 @@ func (r *controlResource) Configure(ctx context.Context, req resource.ConfigureR
 
 // Create creates the resource and sets the initial Terraform state.
 func (r *controlResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	ctx = resourceOperation(ctx, r, "create")
 	var data controlResourceModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -235,6 +236,7 @@ func (r *controlResource) Create(ctx context.Context, req resource.CreateRequest
 
 // Read refreshes the Terraform state with the latest data.
 func (r *controlResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	ctx = resourceOperation(ctx, r, "read")
 	var data controlResourceModel
 
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -279,6 +281,7 @@ func (r *controlResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *controlResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	ctx = resourceOperation(ctx, r, "update")
 	var data controlResourceModel
 	var oldData controlResourceModel
 
@@ -352,6 +355,7 @@ func (r *controlResource) Update(ctx context.Context, req resource.UpdateRequest
 // Delete archives the control and removes the Terraform state on success.
 // The API has no hard delete; archiving is the delete mechanism.
 func (r *controlResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	ctx = resourceOperation(ctx, r, "delete")
 	var data controlResourceModel
 
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)

@@ -84,6 +84,10 @@ type Client struct {
 	// userAgent is the User-Agent header value.
 	userAgent string
 
+	// clientName and invocationID are omitted from requests when empty.
+	clientName   string
+	invocationID string
+
 	// logger is nil when diagnostics are disabled.
 	logger Logger
 }
@@ -392,6 +396,15 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any) (
 	// Add headers
 	req.Header.Set("Authorization", "Bearer "+c.apiToken)
 	req.Header.Set("User-Agent", c.userAgent)
+	if c.clientName != "" {
+		req.Header.Set(HeaderClient, c.clientName)
+	}
+	if c.invocationID != "" {
+		req.Header.Set(HeaderInvocationID, c.invocationID)
+	}
+	if operation := operationFromContext(ctx); operation != "" {
+		req.Header.Set(HeaderOperation, operation)
+	}
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
 	}

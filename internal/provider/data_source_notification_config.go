@@ -115,6 +115,7 @@ func (d *notificationConfigDataSource) Configure(ctx context.Context, req dataso
 
 // Read refreshes the Terraform state with the latest data.
 func (d *notificationConfigDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	ctx = dataSourceOperation(ctx, d)
 	var data notificationConfigDataSourceModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)

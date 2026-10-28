@@ -95,6 +95,7 @@ func (d *environmentDataSource) Configure(ctx context.Context, req datasource.Co
 
 // Read refreshes the Terraform state with the latest data.
 func (d *environmentDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	ctx = dataSourceOperation(ctx, d)
 	var data environmentDataSourceModel
 
 	// Read Terraform configuration data into the model

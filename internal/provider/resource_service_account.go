@@ -132,6 +132,7 @@ func (r *serviceAccountResource) Configure(ctx context.Context, req resource.Con
 
 // Create creates the resource and sets the initial Terraform state.
 func (r *serviceAccountResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	ctx = resourceOperation(ctx, r, "create")
 	var data serviceAccountResourceModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -161,6 +162,7 @@ func (r *serviceAccountResource) Create(ctx context.Context, req resource.Create
 
 // Read refreshes the Terraform state with the latest data.
 func (r *serviceAccountResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	ctx = resourceOperation(ctx, r, "read")
 	var data serviceAccountResourceModel
 
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -189,6 +191,7 @@ func (r *serviceAccountResource) Read(ctx context.Context, req resource.ReadRequ
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *serviceAccountResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	ctx = resourceOperation(ctx, r, "update")
 	var data serviceAccountResourceModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -224,6 +227,7 @@ func (r *serviceAccountResource) Update(ctx context.Context, req resource.Update
 
 // Delete deletes the resource and removes the Terraform state on success.
 func (r *serviceAccountResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	ctx = resourceOperation(ctx, r, "delete")
 	var data serviceAccountResourceModel
 
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
