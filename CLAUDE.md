@@ -130,7 +130,7 @@ Resources must implement terraform-plugin-framework interfaces:
 - `ImportState()` - Support terraform import
 
 Every method that calls the API starts by tagging the context so requests carry `X-Kosli-Operation` (see `internal/provider/operation.go`):
-- Resources: `ctx = resourceOperation(ctx, r, "create")` (`read`, `update`, `delete`, `import`)
+- Resources: `ctx = resourceOperation(ctx, r, opCreate)` (`opRead`, `opUpdate`, `opDelete`, `opImport`)
 - Data sources: `ctx = dataSourceOperation(ctx, d)`
 - List resources: `ctx = listResourceOperation(ctx, l)`
 

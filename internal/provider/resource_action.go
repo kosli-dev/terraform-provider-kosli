@@ -121,7 +121,7 @@ func (r *actionResource) Configure(ctx context.Context, req resource.ConfigureRe
 
 // Create creates the resource and sets the initial Terraform state.
 func (r *actionResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	ctx = resourceOperation(ctx, r, "create")
+	ctx = resourceOperation(ctx, r, opCreate)
 	var data actionResourceModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -164,7 +164,7 @@ func (r *actionResource) Create(ctx context.Context, req resource.CreateRequest,
 
 // Read refreshes the Terraform state with the latest data.
 func (r *actionResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	ctx = resourceOperation(ctx, r, "read")
+	ctx = resourceOperation(ctx, r, opRead)
 	var data actionResourceModel
 
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -197,7 +197,7 @@ func (r *actionResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *actionResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	ctx = resourceOperation(ctx, r, "update")
+	ctx = resourceOperation(ctx, r, opUpdate)
 	var data actionResourceModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -248,7 +248,7 @@ func (r *actionResource) Update(ctx context.Context, req resource.UpdateRequest,
 
 // Delete deletes the resource and removes the Terraform state on success.
 func (r *actionResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	ctx = resourceOperation(ctx, r, "delete")
+	ctx = resourceOperation(ctx, r, opDelete)
 	var data actionResourceModel
 
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -270,7 +270,7 @@ func (r *actionResource) Delete(ctx context.Context, req resource.DeleteRequest,
 // by the server-assigned number, not the name. We use a full list scan via
 // GetActionByName (the API has no direct GET-by-name endpoint) to resolve the number.
 func (r *actionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	ctx = resourceOperation(ctx, r, "import")
+	ctx = resourceOperation(ctx, r, opImport)
 	action, err := r.client.GetActionByName(ctx, req.ID)
 	if err != nil {
 		resp.Diagnostics.AddError(

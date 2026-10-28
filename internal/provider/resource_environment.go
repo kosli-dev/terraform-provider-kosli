@@ -98,7 +98,7 @@ func (r *environmentResource) Configure(ctx context.Context, req resource.Config
 
 // Create creates the resource and sets the initial Terraform state.
 func (r *environmentResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	ctx = resourceOperation(ctx, r, "create")
+	ctx = resourceOperation(ctx, r, opCreate)
 	var data environmentResourceModel
 
 	// Read Terraform plan data into the model
@@ -164,7 +164,7 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 
 // Read refreshes the Terraform state with the latest data.
 func (r *environmentResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	ctx = resourceOperation(ctx, r, "read")
+	ctx = resourceOperation(ctx, r, opRead)
 	var data environmentResourceModel
 
 	// Read Terraform prior state data into the model
@@ -197,7 +197,7 @@ func (r *environmentResource) Read(ctx context.Context, req resource.ReadRequest
 // Uses PATCH /environments/{org}/{env_name} so that fields like description
 // can be cleared by sending empty values (see issue #122).
 func (r *environmentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	ctx = resourceOperation(ctx, r, "update")
+	ctx = resourceOperation(ctx, r, opUpdate)
 	var data environmentResourceModel
 	var oldData environmentResourceModel
 
@@ -256,7 +256,7 @@ func (r *environmentResource) Update(ctx context.Context, req resource.UpdateReq
 // Delete deletes the resource and removes the Terraform state on success.
 // Per the API behavior, this archives the environment (soft delete).
 func (r *environmentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	ctx = resourceOperation(ctx, r, "delete")
+	ctx = resourceOperation(ctx, r, opDelete)
 	var data environmentResourceModel
 
 	// Read Terraform prior state data into the model

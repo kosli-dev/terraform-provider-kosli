@@ -166,7 +166,7 @@ func (r *customAttestationTypeResource) Configure(ctx context.Context, req resou
 
 // Create creates the resource and sets the initial Terraform state.
 func (r *customAttestationTypeResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	ctx = resourceOperation(ctx, r, "create")
+	ctx = resourceOperation(ctx, r, opCreate)
 	var data customAttestationTypeResourceModel
 
 	// Read Terraform plan data into the model
@@ -223,7 +223,7 @@ func (r *customAttestationTypeResource) Create(ctx context.Context, req resource
 
 // Read refreshes the Terraform state with the latest data.
 func (r *customAttestationTypeResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	ctx = resourceOperation(ctx, r, "read")
+	ctx = resourceOperation(ctx, r, opRead)
 	var data customAttestationTypeResourceModel
 
 	// Read Terraform prior state data into the model
@@ -255,7 +255,7 @@ func (r *customAttestationTypeResource) Read(ctx context.Context, req resource.R
 // Update updates the resource and sets the updated Terraform state on success.
 // Per the API behavior, updates create a new version of the attestation type.
 func (r *customAttestationTypeResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	ctx = resourceOperation(ctx, r, "update")
+	ctx = resourceOperation(ctx, r, opUpdate)
 	var data customAttestationTypeResourceModel
 
 	// Read Terraform plan data into the model
@@ -302,7 +302,7 @@ func (r *customAttestationTypeResource) Update(ctx context.Context, req resource
 // Delete deletes the resource and removes the Terraform state on success.
 // Per the API behavior, this archives the attestation type (soft delete).
 func (r *customAttestationTypeResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	ctx = resourceOperation(ctx, r, "delete")
+	ctx = resourceOperation(ctx, r, opDelete)
 	var data customAttestationTypeResourceModel
 
 	// Read Terraform prior state data into the model

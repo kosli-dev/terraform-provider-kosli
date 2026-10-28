@@ -39,11 +39,11 @@ func TestOperationNames(t *testing.T) {
 		ctx  context.Context
 		want string
 	}{
-		{resourceOperation(ctx, &environmentResource{}, "create"), "kosli_environment create"},
-		{resourceOperation(ctx, &environmentResource{}, "read"), "kosli_environment read"},
-		{resourceOperation(ctx, &flowResource{}, "update"), "kosli_flow update"},
-		{resourceOperation(ctx, &customAttestationTypeResource{}, "delete"), "kosli_custom_attestation_type delete"},
-		{resourceOperation(ctx, &actionResource{}, "import"), "kosli_action import"},
+		{resourceOperation(ctx, &environmentResource{}, opCreate), "kosli_environment create"},
+		{resourceOperation(ctx, &environmentResource{}, opRead), "kosli_environment read"},
+		{resourceOperation(ctx, &flowResource{}, opUpdate), "kosli_flow update"},
+		{resourceOperation(ctx, &customAttestationTypeResource{}, opDelete), "kosli_custom_attestation_type delete"},
+		{resourceOperation(ctx, &actionResource{}, opImport), "kosli_action import"},
 		{dataSourceOperation(ctx, &flowDataSource{}), "data.kosli_flow read"},
 		{dataSourceOperation(ctx, &serviceAccountAPIKeysDataSource{}), "data.kosli_service_account_api_keys read"},
 		{listResourceOperation(ctx, &controlListResource{}), "list.kosli_control list"},
