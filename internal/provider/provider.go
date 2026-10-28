@@ -44,7 +44,7 @@ type KosliProviderModel struct {
 
 // Metadata returns the provider type name.
 func (p *KosliProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "kosli"
+	resp.TypeName = providerTypeName
 	resp.Version = p.version
 }
 
@@ -140,6 +140,8 @@ func (p *KosliProvider) Configure(ctx context.Context, req provider.ConfigureReq
 	// Set user agent with provider version
 	userAgent := fmt.Sprintf("terraform-provider-kosli/%s", p.version)
 	opts = append(opts, client.WithUserAgent(userAgent))
+	opts = append(opts, client.WithClientName("terraform/"+p.version))
+	opts = append(opts, client.WithInvocationID(invocationID()))
 
 	opts = append(opts, client.WithLogger(tflogClientLogger{}))
 

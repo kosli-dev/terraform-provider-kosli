@@ -132,6 +132,7 @@ func (d *controlDataSource) Configure(ctx context.Context, req datasource.Config
 
 // Read refreshes the Terraform state with the latest data.
 func (d *controlDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	ctx = dataSourceOperation(ctx, d)
 	var data controlDataSourceModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)

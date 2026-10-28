@@ -80,6 +80,7 @@ func (d *flowDataSource) Configure(ctx context.Context, req datasource.Configure
 
 // Read refreshes the Terraform state with the latest data.
 func (d *flowDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	ctx = dataSourceOperation(ctx, d)
 	var data flowDataSourceModel
 
 	// Read Terraform configuration data into the model

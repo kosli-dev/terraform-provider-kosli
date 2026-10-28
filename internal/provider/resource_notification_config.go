@@ -150,6 +150,7 @@ func (r *notificationConfigResource) Configure(ctx context.Context, req resource
 
 // Create creates the resource and sets the initial Terraform state.
 func (r *notificationConfigResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	ctx = resourceOperation(ctx, r, opCreate)
 	var data notificationConfigResourceModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -187,6 +188,7 @@ func (r *notificationConfigResource) Create(ctx context.Context, req resource.Cr
 
 // Read refreshes the Terraform state with the latest data.
 func (r *notificationConfigResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	ctx = resourceOperation(ctx, r, opRead)
 	var data notificationConfigResourceModel
 
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -224,6 +226,7 @@ func (r *notificationConfigResource) Read(ctx context.Context, req resource.Read
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *notificationConfigResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	ctx = resourceOperation(ctx, r, opUpdate)
 	var data notificationConfigResourceModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -246,6 +249,7 @@ func (r *notificationConfigResource) Update(ctx context.Context, req resource.Up
 
 // Delete deletes the resource and removes the Terraform state on success.
 func (r *notificationConfigResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	ctx = resourceOperation(ctx, r, opDelete)
 	var data notificationConfigResourceModel
 
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)

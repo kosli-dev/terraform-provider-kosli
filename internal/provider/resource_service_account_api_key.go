@@ -138,6 +138,7 @@ func (r *serviceAccountAPIKeyResource) Configure(ctx context.Context, req resour
 
 // Create creates the resource and sets the initial Terraform state.
 func (r *serviceAccountAPIKeyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	ctx = resourceOperation(ctx, r, opCreate)
 	var data serviceAccountAPIKeyResourceModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -206,6 +207,7 @@ func (r *serviceAccountAPIKeyResource) Create(ctx context.Context, req resource.
 
 // Read refreshes the Terraform state with the latest data.
 func (r *serviceAccountAPIKeyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	ctx = resourceOperation(ctx, r, opRead)
 	var data serviceAccountAPIKeyResourceModel
 
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -239,6 +241,7 @@ func (r *serviceAccountAPIKeyResource) Read(ctx context.Context, req resource.Re
 // every configurable attribute forces replacement, so Update is never invoked
 // in practice. It carries the plan through to state defensively.
 func (r *serviceAccountAPIKeyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	ctx = resourceOperation(ctx, r, opUpdate)
 	var plan serviceAccountAPIKeyResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
@@ -262,6 +265,7 @@ func (r *serviceAccountAPIKeyResource) Update(ctx context.Context, req resource.
 
 // Delete revokes the API key.
 func (r *serviceAccountAPIKeyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	ctx = resourceOperation(ctx, r, opDelete)
 	var data serviceAccountAPIKeyResourceModel
 
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)

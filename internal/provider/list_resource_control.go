@@ -81,6 +81,7 @@ func (l *controlListResource) Configure(ctx context.Context, req resource.Config
 
 // List streams one result per control matching the configured filters.
 func (l *controlListResource) List(ctx context.Context, req list.ListRequest, stream *list.ListResultsStream) {
+	ctx = listResourceOperation(ctx, l)
 	var config controlListModel
 
 	if diags := req.Config.Get(ctx, &config); diags.HasError() {

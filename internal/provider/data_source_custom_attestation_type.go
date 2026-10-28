@@ -98,6 +98,7 @@ func (d *customAttestationTypeDataSource) Configure(ctx context.Context, req dat
 
 // Read refreshes the Terraform state with the latest data.
 func (d *customAttestationTypeDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	ctx = dataSourceOperation(ctx, d)
 	var data customAttestationTypeDataSourceModel
 
 	// Read Terraform configuration data into the model

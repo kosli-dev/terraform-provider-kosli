@@ -85,6 +85,7 @@ The client supports:
 - Configurable timeouts (default 30s)
 - Automatic retry with exponential backoff (3 retries by default)
 - Custom User-Agent with provider version
+- First-party analytics headers (`X-Kosli-Client`, `X-Kosli-Operation`, `X-Kosli-Invocation-Id`, see `pkg/client/analytics.go`). They carry static type names and verbs only, never configuration values
 
 ### Initial Resources
 
@@ -127,6 +128,11 @@ Resources must implement terraform-plugin-framework interfaces:
 - `Schema()` - Define Terraform schema
 - `Create()`, `Read()`, `Update()`, `Delete()` - CRUD operations
 - `ImportState()` - Support terraform import
+
+Every method that calls the API starts by tagging the context so requests carry `X-Kosli-Operation` (see `internal/provider/operation.go`):
+- Resources: `ctx = resourceOperation(ctx, r, opCreate)` (`opRead`, `opUpdate`, `opDelete`, `opImport`)
+- Data sources: `ctx = dataSourceOperation(ctx, d)`
+- List resources: `ctx = listResourceOperation(ctx, l)`
 
 ### Error Handling
 - Client returns structured errors with HTTP status codes

@@ -87,6 +87,7 @@ func (r *policyAttachmentResource) Configure(ctx context.Context, req resource.C
 
 // Create attaches the policy to the environment.
 func (r *policyAttachmentResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	ctx = resourceOperation(ctx, r, opCreate)
 	var data policyAttachmentResourceModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -110,6 +111,7 @@ func (r *policyAttachmentResource) Create(ctx context.Context, req resource.Crea
 
 // Read verifies the policy attachment still exists.
 func (r *policyAttachmentResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	ctx = resourceOperation(ctx, r, opRead)
 	var data policyAttachmentResourceModel
 
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -159,6 +161,7 @@ func (r *policyAttachmentResource) Update(ctx context.Context, req resource.Upda
 
 // Delete detaches the policy from the environment.
 func (r *policyAttachmentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	ctx = resourceOperation(ctx, r, opDelete)
 	var data policyAttachmentResourceModel
 
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)

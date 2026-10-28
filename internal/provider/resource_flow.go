@@ -98,6 +98,7 @@ func (r *flowResource) Configure(ctx context.Context, req resource.ConfigureRequ
 
 // Create creates the resource and sets the initial Terraform state.
 func (r *flowResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	ctx = resourceOperation(ctx, r, opCreate)
 	var data flowResourceModel
 
 	// Read Terraform plan data into the model
@@ -164,6 +165,7 @@ func (r *flowResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 // Read refreshes the Terraform state with the latest data.
 func (r *flowResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	ctx = resourceOperation(ctx, r, opRead)
 	var data flowResourceModel
 
 	// Read Terraform prior state data into the model
@@ -200,6 +202,7 @@ func (r *flowResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *flowResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	ctx = resourceOperation(ctx, r, opUpdate)
 	var data flowResourceModel
 	var oldData flowResourceModel
 
@@ -261,6 +264,7 @@ func (r *flowResource) Update(ctx context.Context, req resource.UpdateRequest, r
 // Delete deletes the resource and removes the Terraform state on success.
 // Per the API behavior, this archives the flow (soft delete).
 func (r *flowResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	ctx = resourceOperation(ctx, r, opDelete)
 	var data flowResourceModel
 
 	// Read Terraform prior state data into the model
