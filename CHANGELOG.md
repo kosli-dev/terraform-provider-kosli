@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.10.2 (October 28, 2026)
+
+IMPROVEMENTS:
+
+* client: Added first-party analytics headers to outgoing API requests, carrying only static resource and operation names, never configuration values [GH-293]
+
 ## v0.10.1 (October 26, 2026)
 
 IMPROVEMENTS:
