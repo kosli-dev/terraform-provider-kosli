@@ -5,6 +5,7 @@ subcategory: ""
 description: |-
   Manages a Kosli flow. A Kosli Flow represents a business or software process that requires change tracking. It allows you to monitor changes across all steps within a process or focus specifically on a subset of critical steps.
   ~> Note: The template attribute accepts a YAML string defining the flow template structure. You can load it from a file using the file() function: template = file("template.yml"). Minor YAML formatting differences between what you provide and what the API returns may result in a no-op change being shown in plans.
+  ~> Note: Changing name renames the flow in place (see kosli rename flow): it keeps its identity and history, and the old name keeps resolving to the renamed flow until another flow is created with, or renamed to, that name.
 ---
 
 # kosli_flow (Resource)
@@ -12,6 +13,8 @@ description: |-
 Manages a Kosli flow. A Kosli Flow represents a business or software process that requires change tracking. It allows you to monitor changes across all steps within a process or focus specifically on a subset of critical steps.
 
 ~> **Note:** The `template` attribute accepts a YAML string defining the flow template structure. You can load it from a file using the `file()` function: `template = file("template.yml")`. Minor YAML formatting differences between what you provide and what the API returns may result in a no-op change being shown in plans.
+
+~> **Note:** Changing `name` renames the flow in place (see `kosli rename flow`): it keeps its identity and history, and the old name keeps resolving to the renamed flow until another flow is created with, or renamed to, that name.
 
 ## Example Usage
 
@@ -76,7 +79,7 @@ resource "kosli_flow" "tagged" {
 
 ### Required
 
-- `name` (String) Name of the flow. Must be unique within the organization. Changing this will force recreation of the resource.
+- `name` (String) Name of the flow. Must be unique within the organization. Changing this renames the flow in place, keeping its trails and history; the old name keeps resolving to the renamed flow until another flow is created with, or renamed to, that name.
 
 ### Optional
 

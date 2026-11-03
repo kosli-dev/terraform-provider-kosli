@@ -8,8 +8,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
@@ -47,15 +45,15 @@ func (r *flowResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 		MarkdownDescription: "Manages a Kosli flow. A Kosli Flow represents a business or software process that requires change tracking. It allows you to monitor changes across all steps within a process or focus specifically on a subset of critical steps.\n\n" +
 			"~> **Note:** The `template` attribute accepts a YAML string defining the flow template structure. " +
 			"You can load it from a file using the `file()` function: `template = file(\"template.yml\")`. " +
-			"Minor YAML formatting differences between what you provide and what the API returns may result in a no-op change being shown in plans.",
+			"Minor YAML formatting differences between what you provide and what the API returns may result in a no-op change being shown in plans.\n\n" +
+			"~> **Note:** Changing `name` renames the flow in place (see `kosli rename flow`): it keeps its identity and history, and the old name keeps resolving to the renamed flow until another flow is created with, or renamed to, that name.",
 
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Name of the flow. Must be unique within the organization. Changing this will force recreation of the resource.",
-				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
+				MarkdownDescription: "Name of the flow. Must be unique within the organization. " +
+					"Changing this renames the flow in place, keeping its trails and history; " +
+					"the old name keeps resolving to the renamed flow until another flow is created with, or renamed to, that name.",
+				Required: true,
 			},
 			"description": schema.StringAttribute{
 				MarkdownDescription: "Description of the flow. Explains the purpose and context of this pipeline.",
@@ -201,6 +199,8 @@ func (r *flowResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
+// A changed name is applied first as an in-place rename (see ADR 005), then
+// the remaining attributes are updated against the new name.
 func (r *flowResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	ctx = resourceOperation(ctx, r, opUpdate)
 	var data flowResourceModel
@@ -216,6 +216,28 @@ func (r *flowResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	resp.Diagnostics.Append(req.State.Get(ctx, &oldData)...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	// Rename first, using the prior-state name: the API requires the current
+	// name, and the PUT below would otherwise create a second flow under the
+	// new name instead of updating this one.
+	if !data.Name.Equal(oldData.Name) {
+		oldName, newName := oldData.Name.ValueString(), data.Name.ValueString()
+		if err := r.client.RenameFlow(ctx, oldName, newName); err != nil {
+			resp.Diagnostics.AddError(
+				"Error Renaming Flow",
+				fmt.Sprintf("Could not rename flow %q to %q: %s", oldName, newName, err.Error()),
+			)
+			// Nothing changed server-side; the framework keeps the prior state.
+			return
+		}
+		// The rename is applied. Persist it right away so a failure in the
+		// remaining update does not leave state pointing at the old name.
+		oldData.Name = data.Name
+		resp.Diagnostics.Append(resp.State.Set(ctx, &oldData)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 
 	// Build API request (PUT is idempotent)
