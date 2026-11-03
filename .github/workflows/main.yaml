@@ -37,7 +37,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Kosli CLI
-        uses: kosli-dev/setup-cli-action@15b43acd0374a4b5311978d7ea59269edd131dfc # v5.2.2
+        uses: kosli-dev/setup-cli-action@b90ac9b0ddfce708c687f198430f54dfa960f80d # v5.2.3
         with:
           version: ${{ env.KOSLI_VERSION }}
 
@@ -65,7 +65,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Kosli CLI
-        uses: kosli-dev/setup-cli-action@15b43acd0374a4b5311978d7ea59269edd131dfc # v5.2.2
+        uses: kosli-dev/setup-cli-action@b90ac9b0ddfce708c687f198430f54dfa960f80d # v5.2.3
         with:
           version: ${{ env.KOSLI_VERSION }}
 
@@ -89,7 +89,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Kosli CLI
-        uses: kosli-dev/setup-cli-action@15b43acd0374a4b5311978d7ea59269edd131dfc # v5.2.2
+        uses: kosli-dev/setup-cli-action@b90ac9b0ddfce708c687f198430f54dfa960f80d # v5.2.3
         with:
           version: ${{ env.KOSLI_VERSION }}
 
@@ -173,7 +173,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Kosli CLI
-        uses: kosli-dev/setup-cli-action@15b43acd0374a4b5311978d7ea59269edd131dfc # v5.2.2
+        uses: kosli-dev/setup-cli-action@b90ac9b0ddfce708c687f198430f54dfa960f80d # v5.2.3
         with:
           version: ${{ env.KOSLI_VERSION }}
 
@@ -238,7 +238,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Kosli CLI
-        uses: kosli-dev/setup-cli-action@15b43acd0374a4b5311978d7ea59269edd131dfc # v5.2.2
+        uses: kosli-dev/setup-cli-action@b90ac9b0ddfce708c687f198430f54dfa960f80d # v5.2.3
         with:
           version: ${{ env.KOSLI_VERSION }}
 
