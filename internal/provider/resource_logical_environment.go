@@ -50,15 +50,15 @@ func (r *logicalEnvironmentResource) Schema(ctx context.Context, req resource.Sc
 			"~> **Important:** Logical environments can ONLY contain physical environments (K8S, ECS, S3, docker, server, lambda), not other logical environments. " +
 			"Attempting to include a logical environment will result in an error from the Kosli API. See [ADR-004](https://github.com/kosli-dev/terraform-provider-kosli/blob/main/adrs/004-logical-environment-validation.md) for validation strategy.\n\n" +
 			"~> **Note:** This resource manages logical environment configuration only. For querying environment metadata such as `last_modified_at` and `archived` status, use the `kosli_logical_environment` data source.\n\n" +
-			"~> **Note:** Destroying this resource archives the logical environment in Kosli. Archiving requires an API token with the **Admin** role; a Member token can create and update logical environments but `terraform destroy` fails with `403 Forbidden`.",
+			"~> **Note:** Destroying this resource archives the logical environment in Kosli. Archiving requires an API token with the **Admin** role; a Member token can create and update logical environments but `terraform destroy` fails with `403 Forbidden`.\n\n" +
+			"~> **Note:** Changing `name` renames the logical environment in place (see `kosli rename environment`): it keeps its identity and history, and the old name keeps resolving to the renamed environment until another environment is created with, or renamed to, that name.",
 
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Name of the logical environment. Must be unique within the organization. Changing this will force recreation of the resource.",
-				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
+				MarkdownDescription: "Name of the logical environment. Must be unique within the organization. " +
+					"Changing this renames the logical environment in place, keeping its snapshot history; " +
+					"the old name keeps resolving to the renamed environment until another environment is created with, or renamed to, that name.",
+				Required: true,
 			},
 			"type": schema.StringAttribute{
 				MarkdownDescription: "Type of the environment. Always set to `logical` (computed by provider, not user-configurable).",
@@ -221,6 +221,8 @@ func (r *logicalEnvironmentResource) Read(ctx context.Context, req resource.Read
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
+// A changed name is applied first as an in-place rename (see ADR 005), then
+// the remaining attributes are updated against the new name.
 // Uses PATCH /environments/{org}/{env_name} so that fields like description
 // can be cleared by sending empty values (see issue #122).
 func (r *logicalEnvironmentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -238,6 +240,27 @@ func (r *logicalEnvironmentResource) Update(ctx context.Context, req resource.Up
 	resp.Diagnostics.Append(req.State.Get(ctx, &oldData)...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	// Rename first, using the prior-state name: the API requires the current
+	// name for a rename, and the remaining calls then target the new name.
+	if !data.Name.Equal(oldData.Name) {
+		oldName, newName := oldData.Name.ValueString(), data.Name.ValueString()
+		if err := r.client.RenameEnvironment(ctx, oldName, newName); err != nil {
+			resp.Diagnostics.AddError(
+				"Error Renaming Logical Environment",
+				fmt.Sprintf("Could not rename logical environment %q to %q: %s", oldName, newName, err.Error()),
+			)
+			// Nothing changed server-side; the framework keeps the prior state.
+			return
+		}
+		// The rename is applied. Persist it right away so a failure in the
+		// remaining update does not leave state pointing at the old name.
+		oldData.Name = data.Name
+		resp.Diagnostics.Append(resp.State.Set(ctx, &oldData)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 
 	// Extract included_environments from types.List to []string. Always send a

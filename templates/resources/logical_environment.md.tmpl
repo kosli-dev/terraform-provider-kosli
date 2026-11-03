@@ -98,6 +98,12 @@ Logical environments can be imported using their name:
 
 {{codefile "shell" "examples/resources/kosli_logical_environment/import.sh"}}
 
+## Renaming Logical Environments
+
+Changing `name` renames the logical environment in place, the same as `kosli rename environment`. The logical environment keeps its identity, snapshot history, included environments and tags, and the plan shows an update rather than a replacement.
+
+After a rename the old name still resolves to the renamed logical environment for both reads and writes. The old name stops resolving once another environment is created with, or renamed to, that name.
+
 ## Destroying Logical Environments
 
 Kosli never hard-deletes environments. When you run `terraform destroy` or remove a `kosli_logical_environment` from your configuration, the provider archives the logical environment. The physical environments it included are not affected.
