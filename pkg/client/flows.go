@@ -134,3 +134,24 @@ func (c *Client) ArchiveFlow(ctx context.Context, name string) error {
 
 	return nil
 }
+
+// RenameFlow renames a flow via PUT /api/v2/flows/{org}/{name}/rename.
+// The flow keeps its identity, trails and history. After the rename the old
+// name still resolves to the renamed flow for reads and writes until another
+// flow is created with, or renamed to, that name; only a further rename
+// requires the current name.
+func (c *Client) RenameFlow(ctx context.Context, name, newName string) error {
+	path := apiPath("flows", c.Organization(), name, "rename")
+
+	body := map[string]any{
+		"new_name": newName,
+	}
+
+	resp, err := c.Put(ctx, path, body)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
+}

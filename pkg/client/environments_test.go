@@ -959,3 +959,119 @@ func TestUpdateEnvironment_NotFound(t *testing.T) {
 func floatPtr(f float64) *float64 {
 	return &f
 }
+
+func TestRenameEnvironment_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Errorf("expected PUT, got %s", r.Method)
+		}
+		// The current (old) name goes in the path; the new name goes in the body.
+		if r.URL.Path != "/environments/test-org/old-env/rename" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if ct := r.Header.Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {
+			t.Errorf("expected application/json content type, got %s", ct)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("failed to decode body: %v", err)
+		}
+		if body["new_name"] != "new-env" {
+			t.Errorf("expected new_name 'new-env', got %v", body["new_name"])
+		}
+		if len(body) != 1 {
+			t.Errorf("expected only new_name in body, got %v", body)
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`"OK"`))
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	if err := client.RenameEnvironment(context.Background(), "old-env", "new-env"); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestRenameEnvironment_EscapesName(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.EscapedPath() != "/environments/test-org/old%2Fenv/rename" {
+			t.Errorf("unexpected escaped path: %s", r.URL.EscapedPath())
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`"OK"`))
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	if err := client.RenameEnvironment(context.Background(), "old/env", "new-env"); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestRenameEnvironment_NotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`{"message": "Environment not found"}`))
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	err = client.RenameEnvironment(context.Background(), "missing-env", "new-env")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !IsNotFound(err) {
+		t.Errorf("expected not found error, got %v", err)
+	}
+}
+
+func TestRenameEnvironment_NameTaken(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"message": "Environment with name 'taken-env' already exists"}`))
+	}))
+	defer server.Close()
+
+	client, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	err = client.RenameEnvironment(context.Background(), "old-env", "taken-env")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !IsBadRequest(err) {
+		t.Errorf("expected bad request error, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "already exists") {
+		t.Errorf("expected API message to be surfaced, got %v", err)
+	}
+}
