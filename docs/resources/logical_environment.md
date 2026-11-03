@@ -207,6 +207,8 @@ Changing `name` renames the logical environment in place, the same as `kosli ren
 
 After a rename the old name still resolves to the renamed logical environment for both reads and writes. The old name stops resolving once another environment is created with, or renamed to, that name.
 
+Terraform has no ordering between two resources that are both renamed in one plan. If one resource takes the name another is giving up, such as `a` to `b` together with `b` to `c`, or a swap, the rename that runs first can hit a name that still exists. Apply chained renames in separate steps.
+
 ## Destroying Logical Environments
 
 Kosli never hard-deletes environments. When you run `terraform destroy` or remove a `kosli_logical_environment` from your configuration, the provider archives the logical environment. The physical environments it included are not affected.

@@ -5,7 +5,7 @@ subcategory: ""
 description: |-
   Manages a Kosli flow. A Kosli Flow represents a business or software process that requires change tracking. It allows you to monitor changes across all steps within a process or focus specifically on a subset of critical steps.
   ~> Note: The template attribute accepts a YAML string defining the flow template structure. You can load it from a file using the file() function: template = file("template.yml"). Minor YAML formatting differences between what you provide and what the API returns may result in a no-op change being shown in plans.
-  ~> Note: Changing name renames the flow in place (see kosli rename flow): it keeps its identity and history, and the old name keeps resolving to the renamed flow until another flow is created with, or renamed to, that name.
+  ~> Note: Changing name renames the flow in place (see kosli rename flow): it keeps its identity and history, and the old name keeps resolving to the renamed flow until another flow is created with, or renamed to, that name. Terraform has no ordering between two flows that are both renamed in one plan, so if one takes the name another is giving up (a to b together with b to c, or a swap), apply the renames in separate steps.
 ---
 
 # kosli_flow (Resource)
@@ -14,7 +14,7 @@ Manages a Kosli flow. A Kosli Flow represents a business or software process tha
 
 ~> **Note:** The `template` attribute accepts a YAML string defining the flow template structure. You can load it from a file using the `file()` function: `template = file("template.yml")`. Minor YAML formatting differences between what you provide and what the API returns may result in a no-op change being shown in plans.
 
-~> **Note:** Changing `name` renames the flow in place (see `kosli rename flow`): it keeps its identity and history, and the old name keeps resolving to the renamed flow until another flow is created with, or renamed to, that name.
+~> **Note:** Changing `name` renames the flow in place (see `kosli rename flow`): it keeps its identity and history, and the old name keeps resolving to the renamed flow until another flow is created with, or renamed to, that name. Terraform has no ordering between two flows that are both renamed in one plan, so if one takes the name another is giving up (`a` to `b` together with `b` to `c`, or a swap), apply the renames in separate steps.
 
 ## Example Usage
 
