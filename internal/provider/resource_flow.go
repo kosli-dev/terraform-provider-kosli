@@ -46,7 +46,8 @@ func (r *flowResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"~> **Note:** The `template` attribute accepts a YAML string defining the flow template structure. " +
 			"You can load it from a file using the `file()` function: `template = file(\"template.yml\")`. " +
 			"Minor YAML formatting differences between what you provide and what the API returns may result in a no-op change being shown in plans.\n\n" +
-			"~> **Note:** Changing `name` renames the flow in place (see `kosli rename flow`): it keeps its identity and history, and the old name keeps resolving to the renamed flow until another flow is created with, or renamed to, that name.",
+			"~> **Note:** Changing `name` renames the flow in place (see `kosli rename flow`): it keeps its identity and history, and the old name keeps resolving to the renamed flow until another flow is created with, or renamed to, that name. " +
+			"Terraform has no ordering between two flows that are both renamed in one plan, so if one takes the name another is giving up (`a` to `b` together with `b` to `c`, or a swap), apply the renames in separate steps.",
 
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
@@ -221,23 +222,12 @@ func (r *flowResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	// Rename first, using the prior-state name: the API requires the current
 	// name, and the PUT below would otherwise create a second flow under the
 	// new name instead of updating this one.
-	if !data.Name.Equal(oldData.Name) {
-		oldName, newName := oldData.Name.ValueString(), data.Name.ValueString()
-		if err := r.client.RenameFlow(ctx, oldName, newName); err != nil {
-			resp.Diagnostics.AddError(
-				"Error Renaming Flow",
-				fmt.Sprintf("Could not rename flow %q to %q: %s", oldName, newName, err.Error()),
-			)
-			// Nothing changed server-side; the framework keeps the prior state.
-			return
-		}
-		// The rename is applied. Persist it right away so a failure in the
-		// remaining update does not leave state pointing at the old name.
-		oldData.Name = data.Name
-		resp.Diagnostics.Append(resp.State.Set(ctx, &oldData)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
+	if !renameInPlace(ctx, "Flow", oldData.Name, data.Name, r.client.RenameFlow,
+		func(ctx context.Context) diag.Diagnostics {
+			oldData.Name = data.Name
+			return resp.State.Set(ctx, &oldData)
+		}, &resp.Diagnostics) {
+		return
 	}
 
 	// Build API request (PUT is idempotent)

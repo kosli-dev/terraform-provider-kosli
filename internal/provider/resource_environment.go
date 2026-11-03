@@ -217,23 +217,12 @@ func (r *environmentResource) Update(ctx context.Context, req resource.UpdateReq
 
 	// Rename first, using the prior-state name: the API requires the current
 	// name for a rename, and the remaining calls then target the new name.
-	if !data.Name.Equal(oldData.Name) {
-		oldName, newName := oldData.Name.ValueString(), data.Name.ValueString()
-		if err := r.client.RenameEnvironment(ctx, oldName, newName); err != nil {
-			resp.Diagnostics.AddError(
-				"Error Renaming Environment",
-				fmt.Sprintf("Could not rename environment %q to %q: %s", oldName, newName, err.Error()),
-			)
-			// Nothing changed server-side; the framework keeps the prior state.
-			return
-		}
-		// The rename is applied. Persist it right away so a failure in the
-		// remaining update does not leave state pointing at the old name.
-		oldData.Name = data.Name
-		resp.Diagnostics.Append(resp.State.Set(ctx, &oldData)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
+	if !renameInPlace(ctx, "Environment", oldData.Name, data.Name, r.client.RenameEnvironment,
+		func(ctx context.Context) diag.Diagnostics {
+			oldData.Name = data.Name
+			return resp.State.Set(ctx, &oldData)
+		}, &resp.Diagnostics) {
+		return
 	}
 
 	description := data.Description.ValueString()
