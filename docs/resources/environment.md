@@ -5,6 +5,7 @@ description: |-
   Manages a Kosli environment. Environments represent deployment targets where artifacts are deployed. Supports physical environment types: K8S, ECS, S3, docker, server, and lambda.
   ~> Note: Environment policies will be available in a future release. For querying environment metadata such as last_modified_at, last_reported_at, and archived status, use the kosli_environment data source.
   ~> Note: Destroying this resource archives the environment in Kosli. Archiving requires an API token with the Admin role; a Member token can create and update environments but terraform destroy fails with 403 Forbidden.
+  ~> Note: Changing name renames the environment in place (see kosli rename environment): it keeps its identity and history, and the old name keeps resolving to the renamed environment until another environment is created with, or renamed to, that name.
 ---
 
 # Resource: kosli_environment
@@ -14,6 +15,8 @@ Manages a Kosli environment. Environments represent deployment targets where art
 ~> **Note:** Environment policies will be available in a future release. For querying environment metadata such as `last_modified_at`, `last_reported_at`, and `archived` status, use the `kosli_environment` data source.
 
 ~> **Note:** Destroying this resource archives the environment in Kosli. Archiving requires an API token with the **Admin** role; a Member token can create and update environments but `terraform destroy` fails with `403 Forbidden`.
+
+~> **Note:** Changing `name` renames the environment in place (see `kosli rename environment`): it keeps its identity and history, and the old name keeps resolving to the renamed environment until another environment is created with, or renamed to, that name.
 
 Kosli environments track deployments and provide visibility into what's running in your infrastructure. Physical environments represent actual runtime locations such as:
 
@@ -121,6 +124,14 @@ terraform import kosli_environment.staging_ecs staging-ecs
 terraform import kosli_environment.data_lake data-lake-s3
 ```
 
+## Renaming Environments
+
+Changing `name` renames the environment in place, the same as `kosli rename environment`. The environment keeps its identity, snapshot history and tags, and the plan shows an update rather than a replacement.
+
+After a rename the old name still resolves to the renamed environment for both reads and writes, so `kosli snapshot` commands that still use the old name report into it. The old name stops resolving once another environment is created with, or renamed to, that name.
+
+~> **Note:** `type` cannot be changed in Kosli. A plan that changes `type` still replaces the environment, even when `name` changes in the same plan.
+
 ## Destroying Environments
 
 Kosli never hard-deletes environments. When you run `terraform destroy` or remove a `kosli_environment` from your configuration, the provider archives the environment: it disappears from the environment list in Kosli, but its snapshot history is kept.
@@ -136,7 +147,7 @@ For querying environment metadata such as `last_modified_at` and `last_reported_
 
 ### Required
 
-- `name` (String) Name of the environment. Must be unique within the organization. Changing this will force recreation of the resource.
+- `name` (String) Name of the environment. Must be unique within the organization. Changing this renames the environment in place, keeping its snapshot history; the old name keeps resolving to the renamed environment until another environment is created with, or renamed to, that name.
 - `type` (String) Type of the environment. Valid values: `K8S`, `ECS`, `S3`, `docker`, `server`, `lambda`. Changing this will force recreation of the resource.
 
 ### Optional
