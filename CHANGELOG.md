@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.11.0 (November 4, 2026)
+
+IMPROVEMENTS:
+
+* resource/kosli_environment: Renaming via `name` now plans as an in-place update instead of destroying and recreating the resource, preserving its identity, snapshots and tags, and keeping the old name resolvable until reused [GH-297]
+* resource/kosli_flow: Renaming via `name` now plans as an in-place update instead of destroying and recreating the resource, preserving its identity and trails, and keeping the old name resolvable until reused [GH-297]
+* resource/kosli_logical_environment: Renaming via `name` now plans as an in-place update instead of destroying and recreating the resource, preserving its identity, tags and included environments, and keeping the old name resolvable until reused [GH-297]
+
 ## v0.10.2 (October 28, 2026)
 
 IMPROVEMENTS:
