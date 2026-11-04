@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 )
 
 // TestAccEnvironmentResource_basic tests minimal required configuration
@@ -110,37 +111,107 @@ func TestAccEnvironmentResource_import(t *testing.T) {
 	})
 }
 
-// TestAccEnvironmentResource_forceRecreate tests ForceNew behavior when name or type changes
-func TestAccEnvironmentResource_forceRecreate(t *testing.T) {
+// TestAccEnvironmentResource_rename tests that changing name renames the
+// environment in place (an Update, not a replace), keeps the other attributes,
+// leaves the old name resolving to the renamed environment, and can be
+// combined with other changes.
+func TestAccEnvironmentResource_rename(t *testing.T) {
 	rName1 := acctest.RandomWithPrefix("tf-acc-test")
 	rName2 := acctest.RandomWithPrefix("tf-acc-test")
+	rName3 := acctest.RandomWithPrefix("tf-acc-test")
+	resourceName := "kosli_environment.test"
+	description1 := "Environment renamed in place"
+	description2 := "Environment renamed in place, description updated"
+	tags := map[string]string{"managed-by": "terraform", "team": "platform"}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Step 1: Create with initial name, description and tags
+			{
+				Config: testAccEnvironmentResourceConfigRename(rName1, description1, tags),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName1),
+					resource.TestCheckResourceAttr(resourceName, "type", "K8S"),
+					resource.TestCheckResourceAttr(resourceName, "description", description1),
+					resource.TestCheckResourceAttr(resourceName, "tags.%", "2"),
+				),
+			},
+			// Step 2: Change only the name. The plan must be an in-place update,
+			// the other attributes must survive, and the old name must still
+			// resolve to the renamed environment (read via the data source after apply).
+			{
+				Config: testAccEnvironmentResourceConfigRename(rName2, description1, tags) + testAccEnvironmentDataSourceByOldName(rName1),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(resourceName, plancheck.ResourceActionUpdate),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName2),
+					resource.TestCheckResourceAttr(resourceName, "type", "K8S"),
+					resource.TestCheckResourceAttr(resourceName, "description", description1),
+					resource.TestCheckResourceAttr(resourceName, "tags.%", "2"),
+					resource.TestCheckResourceAttr(resourceName, "tags.managed-by", "terraform"),
+					resource.TestCheckResourceAttr(resourceName, "tags.team", "platform"),
+					resource.TestCheckResourceAttr("data.kosli_environment.old_name", "name", rName2),
+					resource.TestCheckResourceAttr("data.kosli_environment.old_name", "description", description1),
+				),
+			},
+			// Step 3: Rename again together with a description change, still in place
+			{
+				Config: testAccEnvironmentResourceConfigRename(rName3, description2, tags),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(resourceName, plancheck.ResourceActionUpdate),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName3),
+					resource.TestCheckResourceAttr(resourceName, "description", description2),
+					resource.TestCheckResourceAttr(resourceName, "tags.%", "2"),
+				),
+			},
+			// Step 4: Import by the current name and verify state matches
+			{
+				ResourceName:                         resourceName,
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        rName3,
+				ImportStateVerifyIdentifierAttribute: "name",
+			},
+		},
+	})
+}
+
+// TestAccEnvironmentResource_forceRecreate tests ForceNew behavior when type changes
+func TestAccEnvironmentResource_forceRecreate(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc-test")
 	resourceName := "kosli_environment.test"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			// Step 1: Create with initial name and type
+			// Step 1: Create with initial type
 			{
-				Config: testAccEnvironmentResourceConfig(rName1),
+				Config: testAccEnvironmentResourceConfig(rName),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "name", rName1),
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
 					resource.TestCheckResourceAttr(resourceName, "type", "K8S"),
 				),
 			},
-			// Step 2: Change name (ForceNew should trigger recreation)
+			// Step 2: Change type (ForceNew should trigger recreation)
 			{
-				Config: testAccEnvironmentResourceConfig(rName2),
+				Config: testAccEnvironmentResourceConfigType(rName, "docker"),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(resourceName, plancheck.ResourceActionReplace),
+					},
+				},
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "name", rName2),
-					resource.TestCheckResourceAttr(resourceName, "type", "K8S"),
-				),
-			},
-			// Step 3: Change type (ForceNew should trigger recreation)
-			{
-				Config: testAccEnvironmentResourceConfigType(rName2, "docker"),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, "name", rName2),
+					resource.TestCheckResourceAttr(resourceName, "name", rName),
 					resource.TestCheckResourceAttr(resourceName, "type", "docker"),
 				),
 			},
@@ -279,6 +350,40 @@ resource "kosli_environment" "test" {
   type = %[2]q
 }
 `, name, envType)
+}
+
+// testAccEnvironmentResourceConfigRename returns a configuration with name, description and tags,
+// used to verify that everything but the name survives an in-place rename.
+func testAccEnvironmentResourceConfigRename(name, description string, tags map[string]string) string {
+	keys := make([]string, 0, len(tags))
+	for k := range tags {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	tagLines := ""
+	for _, k := range keys {
+		tagLines += fmt.Sprintf("    %s = %q\n", k, tags[k])
+	}
+	return fmt.Sprintf(`
+resource "kosli_environment" "test" {
+  name        = %[1]q
+  type        = "K8S"
+  description = %[2]q
+  tags = {
+%[3]s  }
+}
+`, name, description, tagLines)
+}
+
+// testAccEnvironmentDataSourceByOldName reads an environment by a name it was
+// renamed from. depends_on defers the read until after the rename is applied.
+func testAccEnvironmentDataSourceByOldName(oldName string) string {
+	return fmt.Sprintf(`
+data "kosli_environment" "old_name" {
+  name       = %[1]q
+  depends_on = [kosli_environment.test]
+}
+`, oldName)
 }
 
 // TestAccEnvironmentResource_tags tests tags CRUD lifecycle

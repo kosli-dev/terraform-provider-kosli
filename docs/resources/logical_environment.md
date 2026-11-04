@@ -6,6 +6,7 @@ description: |-
   ~> Important: Logical environments can ONLY contain physical environments (K8S, ECS, S3, docker, server, lambda), not other logical environments. Attempting to include a logical environment will result in an error from the Kosli API. See ADR-004 https://github.com/kosli-dev/terraform-provider-kosli/blob/main/adrs/004-logical-environment-validation.md for validation strategy.
   ~> Note: This resource manages logical environment configuration only. For querying environment metadata such as last_modified_at and archived status, use the kosli_logical_environment data source.
   ~> Note: Destroying this resource archives the logical environment in Kosli. Archiving requires an API token with the Admin role; a Member token can create and update logical environments but terraform destroy fails with 403 Forbidden.
+  ~> Note: Changing name renames the logical environment in place (see kosli rename environment): it keeps its identity and history, and the old name keeps resolving to the renamed environment until another environment is created with, or renamed to, that name.
 ---
 
 # Resource: kosli_logical_environment
@@ -17,6 +18,8 @@ Manages a Kosli logical environment. Logical environments aggregate multiple phy
 ~> **Note:** This resource manages logical environment configuration only. For querying environment metadata such as `last_modified_at` and `archived` status, use the `kosli_logical_environment` data source.
 
 ~> **Note:** Destroying this resource archives the logical environment in Kosli. Archiving requires an API token with the **Admin** role; a Member token can create and update logical environments but `terraform destroy` fails with `403 Forbidden`.
+
+~> **Note:** Changing `name` renames the logical environment in place (see `kosli rename environment`): it keeps its identity and history, and the old name keeps resolving to the renamed environment until another environment is created with, or renamed to, that name.
 
 Logical environments in Kosli aggregate multiple physical environments for organizational purposes, providing:
 
@@ -198,6 +201,14 @@ terraform import kosli_logical_environment.cloud_services cloud-services
 terraform import kosli_logical_environment.future_environments future-environments
 ```
 
+## Renaming Logical Environments
+
+Changing `name` renames the logical environment in place, the same as `kosli rename environment`. The logical environment keeps its identity, snapshot history, included environments and tags, and the plan shows an update rather than a replacement.
+
+After a rename the old name still resolves to the renamed logical environment for both reads and writes. The old name stops resolving once another environment is created with, or renamed to, that name.
+
+Terraform has no ordering between two resources that are both renamed in one plan. If one resource takes the name another is giving up, such as `a` to `b` together with `b` to `c`, or a swap, the rename that runs first can hit a name that still exists. Apply chained renames in separate steps.
+
 ## Destroying Logical Environments
 
 Kosli never hard-deletes environments. When you run `terraform destroy` or remove a `kosli_logical_environment` from your configuration, the provider archives the logical environment. The physical environments it included are not affected.
@@ -214,7 +225,7 @@ Kosli never hard-deletes environments. When you run `terraform destroy` or remov
 ### Required
 
 - `included_environments` (List of String) List of physical environment names to aggregate. Only physical environments are allowed (K8S, ECS, S3, docker, server, lambda). Can be empty.
-- `name` (String) Name of the logical environment. Must be unique within the organization. Changing this will force recreation of the resource.
+- `name` (String) Name of the logical environment. Must be unique within the organization. Changing this renames the logical environment in place, keeping its snapshot history; the old name keeps resolving to the renamed environment until another environment is created with, or renamed to, that name.
 
 ### Optional
 

@@ -281,3 +281,119 @@ func TestCreateFlowRequest_MarshalMultipart_NoTemplate(t *testing.T) {
 		t.Error("expected non-nil body")
 	}
 }
+
+func TestRenameFlow_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Errorf("expected PUT, got %s", r.Method)
+		}
+		// The current (old) name goes in the path; the new name goes in the body.
+		if r.URL.Path != "/flows/test-org/old-flow/rename" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if ct := r.Header.Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {
+			t.Errorf("expected application/json content type, got %s", ct)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("failed to decode body: %v", err)
+		}
+		if body["new_name"] != "new-flow" {
+			t.Errorf("expected new_name 'new-flow', got %v", body["new_name"])
+		}
+		if len(body) != 1 {
+			t.Errorf("expected only new_name in body, got %v", body)
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`"OK"`))
+	}))
+	defer server.Close()
+
+	c, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	if err := c.RenameFlow(context.Background(), "old-flow", "new-flow"); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestRenameFlow_EscapesName(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.EscapedPath() != "/flows/test-org/old%2Fflow/rename" {
+			t.Errorf("unexpected escaped path: %s", r.URL.EscapedPath())
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`"OK"`))
+	}))
+	defer server.Close()
+
+	c, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	if err := c.RenameFlow(context.Background(), "old/flow", "new-flow"); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestRenameFlow_NotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`{"message": "Flow not found"}`))
+	}))
+	defer server.Close()
+
+	c, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	err = c.RenameFlow(context.Background(), "missing-flow", "new-flow")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !IsNotFound(err) {
+		t.Errorf("expected not found error, got %v", err)
+	}
+}
+
+func TestRenameFlow_NameTaken(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"message": "Flow with name 'taken-flow' already exists"}`))
+	}))
+	defer server.Close()
+
+	c, err := NewClient("test-token", "test-org",
+		WithBaseURL(server.URL),
+		WithAPIPath(""),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	err = c.RenameFlow(context.Background(), "old-flow", "taken-flow")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !IsBadRequest(err) {
+		t.Errorf("expected bad request error, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "already exists") {
+		t.Errorf("expected API message to be surfaced, got %v", err)
+	}
+}

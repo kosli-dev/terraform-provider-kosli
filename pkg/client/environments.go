@@ -153,3 +153,27 @@ func (c *Client) ArchiveEnvironment(ctx context.Context, name string) error {
 
 	return nil
 }
+
+// RenameEnvironment renames an environment via
+// PUT /api/v2/environments/{org}/{name}/rename.
+// The environment keeps its identity and snapshot history. After the rename
+// the old name still resolves to the renamed environment for reads and
+// writes until another environment is created with, or renamed to, that
+// name; only a further rename requires the current name.
+func (c *Client) RenameEnvironment(ctx context.Context, name, newName string) error {
+	// Build path
+	path := apiPath("environments", c.Organization(), name, "rename")
+
+	body := map[string]any{
+		"new_name": newName,
+	}
+
+	// Call API
+	resp, err := c.Put(ctx, path, body)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
+}

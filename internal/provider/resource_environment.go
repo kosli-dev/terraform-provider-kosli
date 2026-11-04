@@ -47,15 +47,15 @@ func (r *environmentResource) Schema(ctx context.Context, req resource.SchemaReq
 		MarkdownDescription: "Manages a Kosli environment. Environments represent deployment targets where artifacts are deployed. Supports physical environment types: K8S, ECS, S3, docker, server, and lambda.\n\n" +
 			"~> **Note:** Environment policies will be available in a future release. " +
 			"For querying environment metadata such as `last_modified_at`, `last_reported_at`, and `archived` status, use the `kosli_environment` data source.\n\n" +
-			"~> **Note:** Destroying this resource archives the environment in Kosli. Archiving requires an API token with the **Admin** role; a Member token can create and update environments but `terraform destroy` fails with `403 Forbidden`.",
+			"~> **Note:** Destroying this resource archives the environment in Kosli. Archiving requires an API token with the **Admin** role; a Member token can create and update environments but `terraform destroy` fails with `403 Forbidden`.\n\n" +
+			"~> **Note:** Changing `name` renames the environment in place (see `kosli rename environment`): it keeps its identity and history, and the old name keeps resolving to the renamed environment until another environment is created with, or renamed to, that name.",
 
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
-				MarkdownDescription: "Name of the environment. Must be unique within the organization. Changing this will force recreation of the resource.",
-				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
+				MarkdownDescription: "Name of the environment. Must be unique within the organization. " +
+					"Changing this renames the environment in place, keeping its snapshot history; " +
+					"the old name keeps resolving to the renamed environment until another environment is created with, or renamed to, that name.",
+				Required: true,
 			},
 			"type": schema.StringAttribute{
 				MarkdownDescription: "Type of the environment. Valid values: `K8S`, `ECS`, `S3`, `docker`, `server`, `lambda`. Changing this will force recreation of the resource.",
@@ -194,6 +194,8 @@ func (r *environmentResource) Read(ctx context.Context, req resource.ReadRequest
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
+// A changed name is applied first as an in-place rename (see ADR 005), then
+// the remaining attributes are updated against the new name.
 // Uses PATCH /environments/{org}/{env_name} so that fields like description
 // can be cleared by sending empty values (see issue #122).
 func (r *environmentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -210,6 +212,16 @@ func (r *environmentResource) Update(ctx context.Context, req resource.UpdateReq
 	// Read prior state to compute tag diff
 	resp.Diagnostics.Append(req.State.Get(ctx, &oldData)...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Rename first, using the prior-state name: the API requires the current
+	// name for a rename, and the remaining calls then target the new name.
+	if !renameInPlace(ctx, "Environment", oldData.Name, data.Name, r.client.RenameEnvironment,
+		func(ctx context.Context) diag.Diagnostics {
+			oldData.Name = data.Name
+			return resp.State.Set(ctx, &oldData)
+		}, &resp.Diagnostics) {
 		return
 	}
 

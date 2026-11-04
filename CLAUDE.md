@@ -288,6 +288,7 @@ The `adrs/` directory contains important architectural decisions:
 - ADR-002: API client architecture and reusability
 - ADR-003: Resource schema design and API abstraction
 - ADR-004: Logical environment validation strategy
+- ADR-005: In-place rename of flows, environments and logical environments (a `name` change is an Update through the API rename endpoints, not a replacement)
 
 Review ADRs when making architectural changes.
 

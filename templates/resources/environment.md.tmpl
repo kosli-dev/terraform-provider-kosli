@@ -45,6 +45,16 @@ Environments can be imported using their name:
 
 {{codefile "shell" "examples/resources/kosli_environment/import.sh"}}
 
+## Renaming Environments
+
+Changing `name` renames the environment in place, the same as `kosli rename environment`. The environment keeps its identity, snapshot history and tags, and the plan shows an update rather than a replacement.
+
+After a rename the old name still resolves to the renamed environment for both reads and writes, so `kosli snapshot` commands that still use the old name report into it. The old name stops resolving once another environment is created with, or renamed to, that name.
+
+Terraform has no ordering between two resources that are both renamed in one plan. If one resource takes the name another is giving up, such as `a` to `b` together with `b` to `c`, or a swap, the rename that runs first can hit a name that still exists. Apply chained renames in separate steps.
+
+~> **Note:** `type` cannot be changed in Kosli. A plan that changes `type` still replaces the environment, even when `name` changes in the same plan.
+
 ## Destroying Environments
 
 Kosli never hard-deletes environments. When you run `terraform destroy` or remove a `kosli_environment` from your configuration, the provider archives the environment: it disappears from the environment list in Kosli, but its snapshot history is kept.

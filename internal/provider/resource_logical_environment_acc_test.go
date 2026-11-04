@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 )
 
 // TestAccLogicalEnvironmentResource_basic tests minimal required configuration
@@ -142,33 +143,80 @@ func TestAccLogicalEnvironmentResource_import(t *testing.T) {
 	})
 }
 
-// TestAccLogicalEnvironmentResource_forceRecreate tests ForceNew behavior when name changes
-func TestAccLogicalEnvironmentResource_forceRecreate(t *testing.T) {
+// TestAccLogicalEnvironmentResource_rename tests that changing name renames
+// the logical environment in place (an Update, not a replace), keeps the other
+// attributes, leaves the old name resolving to the renamed environment, and
+// can be combined with other changes.
+func TestAccLogicalEnvironmentResource_rename(t *testing.T) {
 	rName1 := acctest.RandomWithPrefix("tf-acc-test-logical1")
 	rName2 := acctest.RandomWithPrefix("tf-acc-test-logical2")
+	rName3 := acctest.RandomWithPrefix("tf-acc-test-logical3")
 	envName1 := acctest.RandomWithPrefix("tf-acc-test-env1")
 	envName2 := acctest.RandomWithPrefix("tf-acc-test-env2")
 	resourceName := "kosli_logical_environment.test"
+	description1 := "Logical environment renamed in place"
+	description2 := "Logical environment renamed in place, description updated"
+	tags := map[string]string{"managed-by": "terraform", "team": "platform"}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			// Step 1: Create with initial name
+			// Step 1: Create with initial name, description and tags
 			{
-				Config: testAccLogicalEnvironmentResourceConfigBasic(rName1, envName1, envName2),
+				Config: testAccLogicalEnvironmentResourceConfigRename(rName1, envName1, envName2, description1, tags),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", rName1),
 					resource.TestCheckResourceAttr(resourceName, "type", "logical"),
+					resource.TestCheckResourceAttr(resourceName, "description", description1),
+					resource.TestCheckResourceAttr(resourceName, "included_environments.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "tags.%", "2"),
 				),
 			},
-			// Step 2: Change name (ForceNew should trigger recreation)
+			// Step 2: Change only the name. The plan must be an in-place update,
+			// the other attributes must survive, and the old name must still
+			// resolve to the renamed environment (read via the data source after apply).
 			{
-				Config: testAccLogicalEnvironmentResourceConfigBasic(rName2, envName1, envName2),
+				Config: testAccLogicalEnvironmentResourceConfigRename(rName2, envName1, envName2, description1, tags) + testAccLogicalEnvironmentDataSourceByOldName(rName1),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(resourceName, plancheck.ResourceActionUpdate),
+					},
+				},
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(resourceName, "name", rName2),
 					resource.TestCheckResourceAttr(resourceName, "type", "logical"),
+					resource.TestCheckResourceAttr(resourceName, "description", description1),
+					resource.TestCheckResourceAttr(resourceName, "included_environments.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "tags.%", "2"),
+					resource.TestCheckResourceAttr(resourceName, "tags.managed-by", "terraform"),
+					resource.TestCheckResourceAttr(resourceName, "tags.team", "platform"),
+					resource.TestCheckResourceAttr("data.kosli_logical_environment.old_name", "name", rName2),
+					resource.TestCheckResourceAttr("data.kosli_logical_environment.old_name", "description", description1),
 				),
+			},
+			// Step 3: Rename again together with a description change, still in place
+			{
+				Config: testAccLogicalEnvironmentResourceConfigRename(rName3, envName1, envName2, description2, tags),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(resourceName, plancheck.ResourceActionUpdate),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "name", rName3),
+					resource.TestCheckResourceAttr(resourceName, "description", description2),
+					resource.TestCheckResourceAttr(resourceName, "included_environments.#", "2"),
+					resource.TestCheckResourceAttr(resourceName, "tags.%", "2"),
+				),
+			},
+			// Step 4: Import by the current name and verify state matches
+			{
+				ResourceName:                         resourceName,
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        rName3,
+				ImportStateVerifyIdentifierAttribute: "name",
 			},
 		},
 	})
@@ -470,4 +518,53 @@ resource "kosli_logical_environment" "test" {
   ]
 %[4]s}
 `, name, env1, env2, tagsHCL)
+}
+
+// testAccLogicalEnvironmentResourceConfigRename returns a configuration with name,
+// description and tags, used to verify that everything but the name survives an
+// in-place rename.
+func testAccLogicalEnvironmentResourceConfigRename(name, env1, env2, description string, tags map[string]string) string {
+	keys := make([]string, 0, len(tags))
+	for k := range tags {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	tagLines := ""
+	for _, k := range keys {
+		tagLines += fmt.Sprintf("    %s = %q\n", k, tags[k])
+	}
+	return fmt.Sprintf(`
+resource "kosli_environment" "env1" {
+  name = %[2]q
+  type = "K8S"
+}
+
+resource "kosli_environment" "env2" {
+  name = %[3]q
+  type = "ECS"
+}
+
+resource "kosli_logical_environment" "test" {
+  name        = %[1]q
+  description = %[4]q
+  included_environments = [
+    kosli_environment.env1.name,
+    kosli_environment.env2.name,
+  ]
+  tags = {
+%[5]s  }
+}
+`, name, env1, env2, description, tagLines)
+}
+
+// testAccLogicalEnvironmentDataSourceByOldName reads a logical environment by a
+// name it was renamed from. depends_on defers the read until after the rename
+// is applied.
+func testAccLogicalEnvironmentDataSourceByOldName(oldName string) string {
+	return fmt.Sprintf(`
+data "kosli_logical_environment" "old_name" {
+  name       = %[1]q
+  depends_on = [kosli_logical_environment.test]
+}
+`, oldName)
 }
