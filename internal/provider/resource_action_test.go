@@ -490,6 +490,36 @@ func TestMapActionResponseToModel_Targets(t *testing.T) {
 			wantWebhooks:   []string{hookA, hookB},
 		},
 		{
+			name:  "webhooks keeps its values when the API returns an empty URL",
+			prior: actionResourceModel{Emails: null, SlackWebhooks: null, Webhooks: stringSet(t, hookA, hookB)},
+			targets: []client.ActionTarget{
+				{Type: "WEBHOOK", Webhook: ""},
+				{Type: "WEBHOOK", Webhook: ""},
+			},
+			wantWebhookURL: types.StringNull(),
+			wantWebhooks:   []string{hookA, hookB},
+		},
+		{
+			name:  "slack_webhooks keeps its values when the API returns an empty URL",
+			prior: actionResourceModel{Emails: stringSet(t, "a@example.com"), SlackWebhooks: stringSet(t, slack), Webhooks: null},
+			targets: []client.ActionTarget{
+				{Type: "EMAIL", Emails: []string{"a@example.com"}},
+				{Type: "SLACK", Webhook: ""},
+			},
+			wantWebhookURL: types.StringNull(),
+			wantEmails:     []string{"a@example.com"},
+			wantSlack:      []string{slack},
+		},
+		{
+			name:  "webhook_url and webhooks keep their values when one URL comes back empty",
+			prior: actionResourceModel{WebhookURL: types.StringValue(hookA), Emails: null, SlackWebhooks: null, Webhooks: null},
+			targets: []client.ActionTarget{
+				{Type: "WEBHOOK", Webhook: ""},
+				{Type: "WEBHOOK", Webhook: hookB},
+			},
+			wantWebhookURL: types.StringValue(hookA),
+		},
+		{
 			name:           "a Slack target never lands in webhook_url",
 			prior:          actionResourceModel{},
 			targets:        []client.ActionTarget{{Type: "SLACK", Webhook: slack}},
@@ -530,5 +560,26 @@ func TestSlackAppActionImportError(t *testing.T) {
 	}
 	if msg := slackAppActionImportError(&client.ActionResponse{Name: "from-slack", IsCreatedFromSlackApp: true}); msg == "" {
 		t.Error("expected an error for an action created from the Slack app")
+	}
+}
+
+func TestGroupActionTargets(t *testing.T) {
+	got := groupActionTargets([]client.ActionTarget{
+		{Type: "EMAIL", Emails: []string{"a@example.com"}},
+		{Type: "EMAIL", Emails: []string{"b@example.com"}},
+		{Type: "SLACK", Webhook: "https://hooks.slack.com/services/T/B/X"},
+		{Type: "SLACK", Webhook: ""},
+		{Type: "WEBHOOK", Webhook: "https://hooks.example.com/a"},
+		{Type: "PAGER", Webhook: "https://pager.example.com"},
+	})
+
+	want := actionTargetValues{
+		Emails:                []string{"a@example.com", "b@example.com"},
+		SlackWebhooks:         []string{"https://hooks.slack.com/services/T/B/X"},
+		Webhooks:              []string{"https://hooks.example.com/a"},
+		SlackWebhooksWithheld: true,
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %+v, want %+v", got, want)
 	}
 }

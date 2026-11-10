@@ -159,22 +159,12 @@ func (d *actionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	}
 	data.Triggers = trigList
 
-	var emails, slackWebhooks, webhooks []string
-	for _, target := range action.Targets {
-		switch target.Type {
-		case client.ActionTargetTypeEmail:
-			emails = append(emails, target.Emails...)
-		case client.ActionTargetTypeSlack:
-			slackWebhooks = append(slackWebhooks, target.Webhook)
-		case client.ActionTargetTypeWebhook:
-			webhooks = append(webhooks, target.Webhook)
-		}
-	}
-	data.Emails, diags = stringSetOrEmpty(ctx, emails)
+	targets := groupActionTargets(action.Targets)
+	data.Emails, diags = stringSetOrEmpty(ctx, targets.Emails)
 	resp.Diagnostics.Append(diags...)
-	data.SlackWebhooks, diags = stringSetOrEmpty(ctx, slackWebhooks)
+	data.SlackWebhooks, diags = stringSetOrEmpty(ctx, targets.SlackWebhooks)
 	resp.Diagnostics.Append(diags...)
-	data.Webhooks, diags = stringSetOrEmpty(ctx, webhooks)
+	data.Webhooks, diags = stringSetOrEmpty(ctx, targets.Webhooks)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

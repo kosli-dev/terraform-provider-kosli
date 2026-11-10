@@ -475,16 +475,56 @@ func mapActionResponseToModel(ctx context.Context, action *client.ActionResponse
 	return diags
 }
 
+// actionTargetValues holds an action's target values grouped by target type.
+// A Withheld flag records that the API returned a target of that type without
+// its URL, so the returned list for the type is incomplete.
+type actionTargetValues struct {
+	Emails                []string
+	SlackWebhooks         []string
+	Webhooks              []string
+	SlackWebhooksWithheld bool
+	WebhooksWithheld      bool
+}
+
+// groupActionTargets flattens the API's typed target list. Multiple EMAIL
+// targets merge into one list, and target types this provider does not know
+// are ignored.
+func groupActionTargets(targets []client.ActionTarget) actionTargetValues {
+	var values actionTargetValues
+	for _, target := range targets {
+		switch target.Type {
+		case client.ActionTargetTypeEmail:
+			values.Emails = append(values.Emails, target.Emails...)
+		case client.ActionTargetTypeSlack:
+			if target.Webhook == "" {
+				values.SlackWebhooksWithheld = true
+				continue
+			}
+			values.SlackWebhooks = append(values.SlackWebhooks, target.Webhook)
+		case client.ActionTargetTypeWebhook:
+			if target.Webhook == "" {
+				values.WebhooksWithheld = true
+				continue
+			}
+			values.Webhooks = append(values.Webhooks, target.Webhook)
+		}
+	}
+	return values
+}
+
 // mapActionTargetsToModel writes the API's targets into the target attributes.
-// Multiple EMAIL targets merge into one set, and target types this provider
-// does not know are ignored. Where the API returns a value equivalent to one
-// already in the model, the model's spelling is kept, because the API
-// normalizes the URLs and addresses it stores.
+// Where the API returns a value equivalent to one already in the model, the
+// model's spelling is kept, because the API normalizes the URLs and addresses
+// it stores.
 //
 // A WEBHOOK target goes to webhook_url when the model already uses that
 // attribute, or when the model has no targets yet (an import) and the action
 // has exactly one webhook. Every other webhook goes to webhooks, so a target
 // added outside Terraform shows up as a diff.
+//
+// When the API withholds a URL, the attributes for that target type keep the
+// model's values: the returned list cannot be told apart from a changed one,
+// and writing it would drop URLs the configuration still declares.
 func mapActionTargetsToModel(ctx context.Context, targets []client.ActionTarget, data *actionResourceModel) diag.Diagnostics {
 	var diags diag.Diagnostics
 	var priorEmails, priorSlackWebhooks, priorWebhooks []string
@@ -496,27 +536,17 @@ func mapActionTargetsToModel(ctx context.Context, targets []client.ActionTarget,
 		return diags
 	}
 
-	var emails, slackWebhooks, webhooks []string
-	for _, target := range targets {
-		switch target.Type {
-		case client.ActionTargetTypeEmail:
-			emails = append(emails, target.Emails...)
-		case client.ActionTargetTypeSlack:
-			if target.Webhook != "" {
-				slackWebhooks = append(slackWebhooks, target.Webhook)
-			}
-		case client.ActionTargetTypeWebhook:
-			if target.Webhook != "" {
-				webhooks = append(webhooks, target.Webhook)
-			}
-		}
-	}
+	values := groupActionTargets(targets)
+	webhooks := values.Webhooks
 
 	usesWebhookURL := !data.WebhookURL.IsNull() && !data.WebhookURL.IsUnknown()
 	hasNoTargets := !usesWebhookURL && data.Emails.IsNull() && data.SlackWebhooks.IsNull() && data.Webhooks.IsNull()
 
 	switch {
+	case values.WebhooksWithheld:
 	case usesWebhookURL && len(webhooks) > 0:
+		// With no match the configured URL was changed outside Terraform, and
+		// the first webhook stands in for it so the plan shows the difference.
 		index := 0
 		for i, webhook := range webhooks {
 			if notificationValuesEquivalent(webhook, data.WebhookURL.ValueString()) {
@@ -534,12 +564,16 @@ func mapActionTargetsToModel(ctx context.Context, targets []client.ActionTarget,
 	}
 
 	var d diag.Diagnostics
-	data.Emails, d = stringSetOrNull(ctx, preferPriorSpelling(emails, priorEmails))
+	data.Emails, d = stringSetOrNull(ctx, preferPriorSpelling(values.Emails, priorEmails))
 	diags.Append(d...)
-	data.SlackWebhooks, d = stringSetOrNull(ctx, preferPriorSpelling(slackWebhooks, priorSlackWebhooks))
-	diags.Append(d...)
-	data.Webhooks, d = stringSetOrNull(ctx, preferPriorSpelling(webhooks, priorWebhooks))
-	diags.Append(d...)
+	if !values.SlackWebhooksWithheld {
+		data.SlackWebhooks, d = stringSetOrNull(ctx, preferPriorSpelling(values.SlackWebhooks, priorSlackWebhooks))
+		diags.Append(d...)
+	}
+	if !values.WebhooksWithheld {
+		data.Webhooks, d = stringSetOrNull(ctx, preferPriorSpelling(webhooks, priorWebhooks))
+		diags.Append(d...)
+	}
 
 	return diags
 }
