@@ -34,7 +34,7 @@ jobs:
       KOSLI_VERSION: 'latest'
     steps:
       - name: Setup Kosli CLI
-        uses: kosli-dev/setup-cli-action@b90ac9b0ddfce708c687f198430f54dfa960f80d # v5.2.3
+        uses: kosli-dev/setup-cli-action@9295a94031a6fc5eb1783a9027649a3cf7d1b950 # v5.2.4
         with:
           version: ${{ env.KOSLI_VERSION }}
 
