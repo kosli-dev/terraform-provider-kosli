@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.12.1 (November 10, 2026)
+
+NOTES:
+
+* No user-facing changes in this release.
+
 ## v0.12.0 (November 10, 2026)
 
 BREAKING CHANGES:
