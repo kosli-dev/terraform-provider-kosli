@@ -81,7 +81,7 @@ func TestAccEnvironmentDataSource_notFound(t *testing.T) {
 
 // TestAccEnvironmentDataSource_types tests querying different environment types
 func TestAccEnvironmentDataSource_types(t *testing.T) {
-	types := []string{"K8S", "ECS", "S3", "docker", "server", "lambda"}
+	types := []string{"K8S", "ECS", "S3", "docker", "server", "lambda", "azure-apps", "cloud-run"}
 
 	for _, envType := range types {
 		t.Run(envType, func(t *testing.T) {

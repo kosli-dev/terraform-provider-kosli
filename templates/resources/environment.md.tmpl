@@ -17,6 +17,8 @@ Kosli environments track deployments and provide visibility into what's running 
 - **docker**: Docker containers
 - **server**: Bare-metal or VM servers
 - **lambda**: AWS Lambda functions
+- **azure-apps**: Azure App Service and Function apps
+- **cloud-run**: Google Cloud Run services
 
 -> **Note:** For aggregating multiple physical environments into logical groups, use the `kosli_logical_environment` resource.
 
@@ -30,7 +32,7 @@ Kosli environments track deployments and provide visibility into what's running 
 
 ## Environment Types
 
-The `type` attribute must be one of the following physical environment types:
+The Kosli API validates `type`. The known physical environment types are:
 
 - `K8S` - Kubernetes clusters
 - `ECS` - Amazon Elastic Container Service
@@ -38,6 +40,10 @@ The `type` attribute must be one of the following physical environment types:
 - `docker` - Docker containers
 - `server` - Bare-metal or VM servers
 - `lambda` - AWS Lambda functions
+- `azure-apps` - Azure App Service and Function apps
+- `cloud-run` - Google Cloud Run services
+
+A `type` of `logical` produces a warning: use the `kosli_logical_environment` resource for logical environments.
 
 ## Import
 

@@ -7,8 +7,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -435,5 +437,51 @@ func TestEnvironmentResource_Update_UpdateFailsAfterRename_KeepsNewName(t *testi
 	}
 	if state.Description.ValueString() != "before" {
 		t.Errorf("expected state to keep prior description, got %q", state.Description.ValueString())
+	}
+}
+
+func TestEnvironmentResource_Schema_TypeValidation(t *testing.T) {
+	r := &environmentResource{}
+	resp := &resource.SchemaResponse{}
+	r.Schema(context.Background(), resource.SchemaRequest{}, resp)
+
+	typeAttr, ok := resp.Schema.Attributes["type"].(schema.StringAttribute)
+	if !ok {
+		t.Fatalf("Expected 'type' to be a schema.StringAttribute, got %T", resp.Schema.Attributes["type"])
+	}
+
+	tests := []struct {
+		name         string
+		value        types.String
+		wantWarnings int
+	}{
+		{"K8S", types.StringValue("K8S"), 0},
+		{"azure-apps", types.StringValue("azure-apps"), 0},
+		{"cloud-run", types.StringValue("cloud-run"), 0},
+		// The API owns the list of types, so an unknown one must reach it.
+		{"a-type-added-later", types.StringValue("a-type-added-later"), 0},
+		{"logical", types.StringValue("logical"), 1},
+		{"null", types.StringNull(), 0},
+		// Unknown at validate time when set from a variable or another resource.
+		{"unknown", types.StringUnknown(), 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := validator.StringRequest{
+				Path:        path.Root("type"),
+				ConfigValue: tt.value,
+			}
+			vResp := &validator.StringResponse{}
+			for _, v := range typeAttr.Validators {
+				v.ValidateString(context.Background(), req, vResp)
+			}
+			if vResp.Diagnostics.HasError() {
+				t.Errorf("type %s: unexpected error: %v", tt.name, vResp.Diagnostics)
+			}
+			if got := vResp.Diagnostics.WarningsCount(); got != tt.wantWarnings {
+				t.Errorf("type %s: got %d warnings, want %d", tt.name, got, tt.wantWarnings)
+			}
+		})
 	}
 }

@@ -115,4 +115,4 @@ Data sources provide read-only access to environment metadata. To modify environ
 - `last_modified_at` (Number) Unix timestamp (with fractional seconds) of when the environment was last modified.
 - `last_reported_at` (Number) Unix timestamp (with fractional seconds) of when the environment was last reported. May be null if never reported.
 - `tags` (Map of String) Key-value pairs tagging the environment.
-- `type` (String) The environment type (e.g., K8S, ECS, S3, docker, server, lambda).
+- `type` (String) The environment type (e.g., K8S, ECS, S3, docker, server, lambda, azure-apps, cloud-run).

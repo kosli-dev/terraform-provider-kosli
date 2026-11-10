@@ -47,7 +47,7 @@ func (r *logicalEnvironmentResource) Metadata(ctx context.Context, req resource.
 func (r *logicalEnvironmentResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Kosli logical environment. Logical environments aggregate multiple physical environments for organizational purposes.\n\n" +
-			"~> **Important:** Logical environments can ONLY contain physical environments (K8S, ECS, S3, docker, server, lambda), not other logical environments. " +
+			"~> **Important:** Logical environments can ONLY contain physical environments (K8S, ECS, S3, docker, server, lambda, azure-apps, cloud-run), not other logical environments. " +
 			"Attempting to include a logical environment will result in an error from the Kosli API. See [ADR-004](https://github.com/kosli-dev/terraform-provider-kosli/blob/main/adrs/004-logical-environment-validation.md) for validation strategy.\n\n" +
 			"~> **Note:** This resource manages logical environment configuration only. For querying environment metadata such as `last_modified_at` and `archived` status, use the `kosli_logical_environment` data source.\n\n" +
 			"~> **Note:** Destroying this resource archives the logical environment in Kosli. Archiving requires an API token with the **Admin** role; a Member token can create and update logical environments but `terraform destroy` fails with `403 Forbidden`.\n\n" +
@@ -74,7 +74,7 @@ func (r *logicalEnvironmentResource) Schema(ctx context.Context, req resource.Sc
 			},
 			"included_environments": schema.ListAttribute{
 				ElementType:         types.StringType,
-				MarkdownDescription: "List of physical environment names to aggregate. Only physical environments are allowed (K8S, ECS, S3, docker, server, lambda). Can be empty.",
+				MarkdownDescription: "List of physical environment names to aggregate. Only physical environments are allowed (K8S, ECS, S3, docker, server, lambda, azure-apps, cloud-run). Can be empty.",
 				Required:            true,
 			},
 			"tags": schema.MapAttribute{

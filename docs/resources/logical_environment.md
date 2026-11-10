@@ -3,7 +3,7 @@ page_title: "kosli_logical_environment Resource - terraform-provider-kosli"
 subcategory: ""
 description: |-
   Manages a Kosli logical environment. Logical environments aggregate multiple physical environments for organizational purposes.
-  ~> Important: Logical environments can ONLY contain physical environments (K8S, ECS, S3, docker, server, lambda), not other logical environments. Attempting to include a logical environment will result in an error from the Kosli API. See ADR-004 https://github.com/kosli-dev/terraform-provider-kosli/blob/main/adrs/004-logical-environment-validation.md for validation strategy.
+  ~> Important: Logical environments can ONLY contain physical environments (K8S, ECS, S3, docker, server, lambda, azure-apps, cloud-run), not other logical environments. Attempting to include a logical environment will result in an error from the Kosli API. See ADR-004 https://github.com/kosli-dev/terraform-provider-kosli/blob/main/adrs/004-logical-environment-validation.md for validation strategy.
   ~> Note: This resource manages logical environment configuration only. For querying environment metadata such as last_modified_at and archived status, use the kosli_logical_environment data source.
   ~> Note: Destroying this resource archives the logical environment in Kosli. Archiving requires an API token with the Admin role; a Member token can create and update logical environments but terraform destroy fails with 403 Forbidden.
   ~> Note: Changing name renames the logical environment in place (see kosli rename environment): it keeps its identity and history, and the old name keeps resolving to the renamed environment until another environment is created with, or renamed to, that name.
@@ -13,7 +13,7 @@ description: |-
 
 Manages a Kosli logical environment. Logical environments aggregate multiple physical environments for organizational purposes.
 
-~> **Important:** Logical environments can ONLY contain physical environments (K8S, ECS, S3, docker, server, lambda), not other logical environments. Attempting to include a logical environment will result in an error from the Kosli API. See [ADR-004](https://github.com/kosli-dev/terraform-provider-kosli/blob/main/adrs/004-logical-environment-validation.md) for validation strategy.
+~> **Important:** Logical environments can ONLY contain physical environments (K8S, ECS, S3, docker, server, lambda, azure-apps, cloud-run), not other logical environments. Attempting to include a logical environment will result in an error from the Kosli API. See [ADR-004](https://github.com/kosli-dev/terraform-provider-kosli/blob/main/adrs/004-logical-environment-validation.md) for validation strategy.
 
 ~> **Note:** This resource manages logical environment configuration only. For querying environment metadata such as `last_modified_at` and `archived` status, use the `kosli_logical_environment` data source.
 
@@ -30,7 +30,7 @@ Logical environments in Kosli aggregate multiple physical environments for organ
 
 ## Physical Environments Only
 
-~> **Important:** Logical environments can ONLY contain physical environments (K8S, ECS, S3, docker, server, lambda), not other logical environments. Attempting to include a logical environment will result in an API error. See [ADR-004](https://github.com/kosli-dev/terraform-provider-kosli/blob/main/adrs/004-logical-environment-validation.md) for the validation strategy.
+~> **Important:** Logical environments can ONLY contain physical environments (K8S, ECS, S3, docker, server, lambda, azure-apps, cloud-run), not other logical environments. Attempting to include a logical environment will result in an API error. See [ADR-004](https://github.com/kosli-dev/terraform-provider-kosli/blob/main/adrs/004-logical-environment-validation.md) for the validation strategy.
 
 ## Example Usage
 
@@ -224,7 +224,7 @@ Kosli never hard-deletes environments. When you run `terraform destroy` or remov
 
 ### Required
 
-- `included_environments` (List of String) List of physical environment names to aggregate. Only physical environments are allowed (K8S, ECS, S3, docker, server, lambda). Can be empty.
+- `included_environments` (List of String) List of physical environment names to aggregate. Only physical environments are allowed (K8S, ECS, S3, docker, server, lambda, azure-apps, cloud-run). Can be empty.
 - `name` (String) Name of the logical environment. Must be unique within the organization. Changing this renames the logical environment in place, keeping its snapshot history; the old name keeps resolving to the renamed environment until another environment is created with, or renamed to, that name.
 
 ### Optional

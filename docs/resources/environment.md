@@ -2,7 +2,7 @@
 page_title: "kosli_environment Resource - terraform-provider-kosli"
 subcategory: ""
 description: |-
-  Manages a Kosli environment. Environments represent deployment targets where artifacts are deployed. Supports physical environment types: K8S, ECS, S3, docker, server, and lambda.
+  Manages a Kosli environment. Environments represent deployment targets where artifacts are deployed. Supports physical environment types: K8S, ECS, S3, docker, server, lambda, azure-apps, and cloud-run.
   ~> Note: Environment policies will be available in a future release. For querying environment metadata such as last_modified_at, last_reported_at, and archived status, use the kosli_environment data source.
   ~> Note: Destroying this resource archives the environment in Kosli. Archiving requires an API token with the Admin role; a Member token can create and update environments but terraform destroy fails with 403 Forbidden.
   ~> Note: Changing name renames the environment in place (see kosli rename environment): it keeps its identity and history, and the old name keeps resolving to the renamed environment until another environment is created with, or renamed to, that name.
@@ -10,7 +10,7 @@ description: |-
 
 # Resource: kosli_environment
 
-Manages a Kosli environment. Environments represent deployment targets where artifacts are deployed. Supports physical environment types: K8S, ECS, S3, docker, server, and lambda.
+Manages a Kosli environment. Environments represent deployment targets where artifacts are deployed. Supports physical environment types: K8S, ECS, S3, docker, server, lambda, azure-apps, and cloud-run.
 
 ~> **Note:** Environment policies will be available in a future release. For querying environment metadata such as `last_modified_at`, `last_reported_at`, and `archived` status, use the `kosli_environment` data source.
 
@@ -26,6 +26,8 @@ Kosli environments track deployments and provide visibility into what's running 
 - **docker**: Docker containers
 - **server**: Bare-metal or VM servers
 - **lambda**: AWS Lambda functions
+- **azure-apps**: Azure App Service and Function apps
+- **cloud-run**: Google Cloud Run services
 
 -> **Note:** For aggregating multiple physical environments into logical groups, use the `kosli_logical_environment` resource.
 
@@ -85,6 +87,20 @@ resource "kosli_environment" "serverless_functions" {
   description = "AWS Lambda functions"
 }
 
+# Azure apps environment
+resource "kosli_environment" "azure_apps" {
+  name        = "production-azure-apps"
+  type        = "azure-apps"
+  description = "Azure App Service and Function apps"
+}
+
+# Cloud Run environment
+resource "kosli_environment" "cloud_run" {
+  name        = "production-cloud-run"
+  type        = "cloud-run"
+  description = "Google Cloud Run services"
+}
+
 # K8S environment with tags for IaC traceability
 resource "kosli_environment" "tagged" {
   name        = "production-k8s-tagged"
@@ -100,7 +116,7 @@ resource "kosli_environment" "tagged" {
 
 ## Environment Types
 
-The `type` attribute must be one of the following physical environment types:
+The Kosli API validates `type`. The known physical environment types are:
 
 - `K8S` - Kubernetes clusters
 - `ECS` - Amazon Elastic Container Service
@@ -108,6 +124,10 @@ The `type` attribute must be one of the following physical environment types:
 - `docker` - Docker containers
 - `server` - Bare-metal or VM servers
 - `lambda` - AWS Lambda functions
+- `azure-apps` - Azure App Service and Function apps
+- `cloud-run` - Google Cloud Run services
+
+A `type` of `logical` produces a warning: use the `kosli_logical_environment` resource for logical environments.
 
 ## Import
 
@@ -150,7 +170,7 @@ For querying environment metadata such as `last_modified_at` and `last_reported_
 ### Required
 
 - `name` (String) Name of the environment. Must be unique within the organization. Changing this renames the environment in place, keeping its snapshot history; the old name keeps resolving to the renamed environment until another environment is created with, or renamed to, that name.
-- `type` (String) Type of the environment. Valid values: `K8S`, `ECS`, `S3`, `docker`, `server`, `lambda`. Changing this will force recreation of the resource.
+- `type` (String) Type of the environment. Known values: `K8S`, `ECS`, `S3`, `docker`, `server`, `lambda`, `azure-apps`, `cloud-run`. The Kosli API validates the value. For `logical`, use the `kosli_logical_environment` resource. Changing this will force recreation of the resource.
 
 ### Optional
 

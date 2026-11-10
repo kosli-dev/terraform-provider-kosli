@@ -221,7 +221,7 @@ func TestAccEnvironmentResource_forceRecreate(t *testing.T) {
 
 // TestAccEnvironmentResource_types tests different environment types
 func TestAccEnvironmentResource_types(t *testing.T) {
-	types := []string{"K8S", "ECS", "S3", "docker", "server", "lambda"}
+	types := []string{"K8S", "ECS", "S3", "docker", "server", "lambda", "azure-apps", "cloud-run"}
 
 	for _, envType := range types {
 		t.Run(envType, func(t *testing.T) {

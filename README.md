@@ -74,7 +74,7 @@ For more details on attestation types, see the [Kosli documentation](https://doc
 
 ### Resources
 - `kosli_custom_attestation_type` - Create and manage custom attestation types
-- `kosli_environment` - Create and manage physical environments (K8S, ECS, S3, docker, server, lambda)
+- `kosli_environment` - Create and manage physical environments (K8S, ECS, S3, docker, server, lambda, azure-apps, cloud-run)
 - `kosli_flow` - Create and manage flows that represents a business or software process that requires change tracking. It allows you to monitor changes across all steps within a process or focus specifically on a subset of critical steps
 - `kosli_logical_environment` - Create and manage logical environments that aggregate physical environments
 - `kosli_action` - Create and manage actions that send webhook notifications when artifact or environment events occur in the monitored environments

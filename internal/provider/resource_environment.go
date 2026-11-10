@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
@@ -44,7 +45,7 @@ func (r *environmentResource) Metadata(ctx context.Context, req resource.Metadat
 // Schema defines the schema for the resource.
 func (r *environmentResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a Kosli environment. Environments represent deployment targets where artifacts are deployed. Supports physical environment types: K8S, ECS, S3, docker, server, and lambda.\n\n" +
+		MarkdownDescription: "Manages a Kosli environment. Environments represent deployment targets where artifacts are deployed. Supports physical environment types: K8S, ECS, S3, docker, server, lambda, azure-apps, and cloud-run.\n\n" +
 			"~> **Note:** Environment policies will be available in a future release. " +
 			"For querying environment metadata such as `last_modified_at`, `last_reported_at`, and `archived` status, use the `kosli_environment` data source.\n\n" +
 			"~> **Note:** Destroying this resource archives the environment in Kosli. Archiving requires an API token with the **Admin** role; a Member token can create and update environments but `terraform destroy` fails with `403 Forbidden`.\n\n" +
@@ -58,8 +59,11 @@ func (r *environmentResource) Schema(ctx context.Context, req resource.SchemaReq
 				Required: true,
 			},
 			"type": schema.StringAttribute{
-				MarkdownDescription: "Type of the environment. Valid values: `K8S`, `ECS`, `S3`, `docker`, `server`, `lambda`. Changing this will force recreation of the resource.",
+				MarkdownDescription: "Type of the environment. Known values: `K8S`, `ECS`, `S3`, `docker`, `server`, `lambda`, `azure-apps`, `cloud-run`. The Kosli API validates the value. For `logical`, use the `kosli_logical_environment` resource. Changing this will force recreation of the resource.",
 				Required:            true,
+				Validators: []validator.String{
+					logicalTypeWarning{},
+				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
