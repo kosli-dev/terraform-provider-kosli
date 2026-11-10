@@ -137,6 +137,9 @@ func TestAccActionResource_targets(t *testing.T) {
 				ImportStateVerify:                    true,
 				ImportStateId:                        rName,
 				ImportStateVerifyIdentifierAttribute: "name",
+				// Kosli stamps each delivery on the action, which moves
+				// last_modified_at between the update and the import.
+				ImportStateVerifyIgnore: []string{"last_modified_at"},
 			},
 		},
 	})
