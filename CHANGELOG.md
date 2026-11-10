@@ -9,9 +9,13 @@ BREAKING CHANGES:
 IMPROVEMENTS:
 
 * data_source/kosli_action: Added `emails`, `slack_webhooks`, and `webhooks` attributes, returning every notification target configured on an action [GH-305]
-* resource/kosli_action: Added `emails`, `slack_webhooks`, and `webhooks` attributes for Slack and email notification targets; `webhook_url` is now optional and can be combined with the new attributes [GH-305]
+* resource/kosli_action: Added `emails`, `slack_webhooks`, and `webhooks` attributes for email, Slack and multiple webhook targets; `webhook_url` is now optional and can be combined with `emails` and `slack_webhooks`, but not with `webhooks` [GH-305]
 * resource/kosli_environment: Added support for `azure-apps` and `cloud-run` environment types [GH-304]
 * resource/kosli_environment: Added a plan-time warning when `type` is set to `logical`, pointing to `kosli_logical_environment` [GH-304]
+
+BUG FIXES:
+
+* resource/kosli_action: Fixed detection of notification targets added or changed outside Terraform, which were previously ignored unless they were the first target [GH-305]
 
 ## v0.11.0 (November 4, 2026)
 
