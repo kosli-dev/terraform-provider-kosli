@@ -20,7 +20,7 @@ Thank you for your interest in contributing to the Terraform Provider for Kosli!
 
 ### Prerequisites
 
-- [Go](https://golang.org/doc/install) 1.26 or later
+- [Go](https://golang.org/doc/install) 1.27 or later
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.10
 - [Git](https://git-scm.com/downloads)
 - (Optional) [golangci-lint](https://golangci-lint.run/usage/install/) for linting
