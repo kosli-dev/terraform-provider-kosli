@@ -50,7 +50,7 @@ func (d *environmentDataSource) Schema(ctx context.Context, req datasource.Schem
 			},
 			"type": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "The environment type (e.g., K8S, ECS, S3, docker, server, lambda).",
+				MarkdownDescription: "The environment type (e.g., K8S, ECS, S3, docker, server, lambda, azure-apps, cloud-run).",
 			},
 			"description": schema.StringAttribute{
 				Computed:            true,

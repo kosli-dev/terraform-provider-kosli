@@ -92,7 +92,7 @@ The client supports:
 **Resources:**
 - `kosli_action` - Manage webhook notification actions triggered by environment compliance events
 - `kosli_custom_attestation_type` - Manage custom attestation types (JSON schema + jq rules)
-- `kosli_environment` - Manage physical environments (K8S, ECS, S3, docker, server, lambda)
+- `kosli_environment` - Manage physical environments (K8S, ECS, S3, docker, server, lambda, azure-apps, cloud-run)
 - `kosli_logical_environment` - Manage logical environments that aggregate physical environments
 - `kosli_notification_config` - Manage where Kosli-raised notifications (e.g. `api_key_expiry`) are sent; one org-wide config per notification type
 

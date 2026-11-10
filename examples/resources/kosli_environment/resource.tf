@@ -47,6 +47,20 @@ resource "kosli_environment" "serverless_functions" {
   description = "AWS Lambda functions"
 }
 
+# Azure apps environment
+resource "kosli_environment" "azure_apps" {
+  name        = "production-azure-apps"
+  type        = "azure-apps"
+  description = "Azure App Service and Function apps"
+}
+
+# Cloud Run environment
+resource "kosli_environment" "cloud_run" {
+  name        = "production-cloud-run"
+  type        = "cloud-run"
+  description = "Google Cloud Run services"
+}
+
 # K8S environment with tags for IaC traceability
 resource "kosli_environment" "tagged" {
   name        = "production-k8s-tagged"
