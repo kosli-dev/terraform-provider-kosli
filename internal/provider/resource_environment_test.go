@@ -451,32 +451,36 @@ func TestEnvironmentResource_Schema_TypeValidation(t *testing.T) {
 	}
 
 	tests := []struct {
-		value        string
+		name         string
+		value        types.String
 		wantWarnings int
 	}{
-		{"K8S", 0},
-		{"azure-apps", 0},
-		{"cloud-run", 0},
+		{"K8S", types.StringValue("K8S"), 0},
+		{"azure-apps", types.StringValue("azure-apps"), 0},
+		{"cloud-run", types.StringValue("cloud-run"), 0},
 		// The API owns the list of types, so an unknown one must reach it.
-		{"a-type-added-later", 0},
-		{"logical", 1},
+		{"a-type-added-later", types.StringValue("a-type-added-later"), 0},
+		{"logical", types.StringValue("logical"), 1},
+		{"null", types.StringNull(), 0},
+		// Unknown at validate time when set from a variable or another resource.
+		{"unknown", types.StringUnknown(), 0},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.value, func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			req := validator.StringRequest{
 				Path:        path.Root("type"),
-				ConfigValue: types.StringValue(tt.value),
+				ConfigValue: tt.value,
 			}
 			vResp := &validator.StringResponse{}
 			for _, v := range typeAttr.Validators {
 				v.ValidateString(context.Background(), req, vResp)
 			}
 			if vResp.Diagnostics.HasError() {
-				t.Errorf("type %q: unexpected error: %v", tt.value, vResp.Diagnostics)
+				t.Errorf("type %s: unexpected error: %v", tt.name, vResp.Diagnostics)
 			}
 			if got := vResp.Diagnostics.WarningsCount(); got != tt.wantWarnings {
-				t.Errorf("type %q: got %d warnings, want %d", tt.value, got, tt.wantWarnings)
+				t.Errorf("type %s: got %d warnings, want %d", tt.name, got, tt.wantWarnings)
 			}
 		})
 	}
