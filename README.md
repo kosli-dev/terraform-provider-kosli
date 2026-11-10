@@ -84,6 +84,7 @@ For more details on attestation types, see the [Kosli documentation](https://doc
 - `kosli_service_account_api_key` - Mint and revoke API keys for a service account
 - `kosli_control` - Create and manage controls, org-level definitions of SDLC requirements evaluated from attestations and enforced through environment policies (beta feature)
 - `kosli_notification_config` - Set where Kosli sends notifications it raises itself, such as API key expiry warnings (email, Slack, or webhook targets)
+- `kosli_rego_policy` - Publish versioned Rego policy bundles that Kosli evaluates trails against, and wait for each version to be validated (beta feature)
 
 ### Data Sources
 - `kosli_custom_attestation_type` - Reference existing attestation types

@@ -172,6 +172,7 @@ func (p *KosliProvider) Resources(ctx context.Context) []func() resource.Resourc
 		NewNotificationConfigResource,
 		NewPolicyResource,
 		NewPolicyAttachmentResource,
+		NewRegoPolicyResource,
 		NewServiceAccountResource,
 		NewServiceAccountAPIKeyResource,
 	}

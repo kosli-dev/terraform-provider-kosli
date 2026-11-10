@@ -305,6 +305,7 @@ jobs:
           - examples/resources/kosli_notification_config
           - examples/resources/kosli_policy
           - examples/resources/kosli_policy_attachment
+          - examples/resources/kosli_rego_policy
           - examples/resources/kosli_service_account
           - examples/resources/kosli_service_account_api_key
           - examples/data-sources/kosli_action
