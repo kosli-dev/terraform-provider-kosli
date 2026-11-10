@@ -4,7 +4,7 @@
 
 NOTES:
 
-* No user-facing changes in this release.
+* provider: Built with Go 1.27; building the provider from source or importing `pkg/client` now requires Go 1.27.3 or later [GH-308]
 
 ## v0.12.0 (November 10, 2026)
 
