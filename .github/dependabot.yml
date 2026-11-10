@@ -11,6 +11,12 @@ updates:
       interval: "weekly"
       day: "tuesday"
       time: "11:00"
+    # Indirect dependencies too: Trivy fails the Main Pipeline on a
+    # vulnerable one, and the default covers direct dependencies only.
+    allow:
+      - dependency-type: "all"
+    cooldown:
+      default-days: 1
     # Group minor and patch updates
     groups:
       go-dependencies:
@@ -30,6 +36,8 @@ updates:
       interval: "weekly"
       day: "tuesday"
       time: "11:00"
+    cooldown:
+      default-days: 1
     groups:
       tools-dependencies:
         patterns:
