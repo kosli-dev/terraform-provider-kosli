@@ -497,3 +497,22 @@ func TestDeleteAction_NotFound(t *testing.T) {
 		t.Errorf("expected error to mention 404, got: %v", err)
 	}
 }
+
+func TestActionTarget_EmailJSON(t *testing.T) {
+	target := ActionTarget{Type: "EMAIL", Emails: []string{"a@example.com"}}
+	raw, err := json.Marshal(target)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if string(raw) != `{"type":"EMAIL","emails":["a@example.com"]}` {
+		t.Errorf("unexpected JSON: %s", raw)
+	}
+
+	var decoded ActionTarget
+	if err := json.Unmarshal([]byte(`{"type":"EMAIL","emails":["a@example.com"],"last_success_at":1.5}`), &decoded); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(decoded.Emails) != 1 || decoded.Emails[0] != "a@example.com" {
+		t.Errorf("unexpected emails: %v", decoded.Emails)
+	}
+}

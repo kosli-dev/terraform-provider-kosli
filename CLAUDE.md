@@ -90,7 +90,7 @@ The client supports:
 ### Initial Resources
 
 **Resources:**
-- `kosli_action` - Manage webhook notification actions triggered by environment compliance events
+- `kosli_action` - Manage actions that notify webhooks, Slack and email on environment compliance events
 - `kosli_custom_attestation_type` - Manage custom attestation types (JSON schema + jq rules)
 - `kosli_environment` - Manage physical environments (K8S, ECS, S3, docker, server, lambda, azure-apps, cloud-run)
 - `kosli_logical_environment` - Manage logical environments that aggregate physical environments

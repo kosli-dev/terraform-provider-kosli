@@ -7,11 +7,23 @@ import (
 	"strconv"
 )
 
-// ActionTarget represents a notification target for a Kosli action.
+// Target types an action can notify.
+const (
+	ActionTargetTypeEmail   = "EMAIL"
+	ActionTargetTypeSlack   = "SLACK"
+	ActionTargetTypeWebhook = "WEBHOOK"
+
+	// ActionPayloadVersionV1 is the only webhook payload version the API accepts.
+	ActionPayloadVersionV1 = "1.0"
+)
+
+// ActionTarget represents a notification target for a Kosli action. SLACK and
+// WEBHOOK targets carry Webhook; EMAIL targets carry Emails.
 type ActionTarget struct {
-	Type           string `json:"type"`
-	Webhook        string `json:"webhook,omitempty"`
-	PayloadVersion string `json:"payload_version,omitempty"`
+	Type           string   `json:"type"`
+	Webhook        string   `json:"webhook,omitempty"`
+	PayloadVersion string   `json:"payload_version,omitempty"`
+	Emails         []string `json:"emails,omitempty"`
 }
 
 // ActionRequest represents the payload for creating or updating a Kosli action.

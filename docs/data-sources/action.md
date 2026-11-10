@@ -31,6 +31,11 @@ output "action_number" {
   value       = data.kosli_action.compliance_alerts.number
 }
 
+output "action_emails" {
+  description = "Email addresses this action notifies"
+  value       = data.kosli_action.compliance_alerts.emails
+}
+
 output "action_environments" {
   description = "Environments monitored by this action"
   value       = data.kosli_action.compliance_alerts.environments
@@ -47,7 +52,10 @@ output "action_environments" {
 ### Read-Only
 
 - `created_by` (String) User who created the action.
+- `emails` (Set of String) Email addresses the notifications are sent to.
 - `environments` (List of String) List of environment names this action monitors.
 - `last_modified_at` (Number) Unix timestamp (with fractional seconds) of when the action was last modified.
 - `number` (Number) Server-assigned numeric identifier for the action.
+- `slack_webhooks` (Set of String, Sensitive) Slack incoming webhook URLs the notifications are posted to.
 - `triggers` (List of String) List of trigger event types that activate this action. See the `kosli_action` resource for what each trigger fires on.
+- `webhooks` (Set of String, Sensitive) Generic webhook URLs the notifications are POSTed to.

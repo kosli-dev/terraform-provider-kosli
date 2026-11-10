@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -88,8 +89,116 @@ func TestAccActionResource_import(t *testing.T) {
 				ImportStateVerify:                    true,
 				ImportStateId:                        rName,
 				ImportStateVerifyIdentifierAttribute: "name",
-				// webhook_url is sensitive and not returned by the API, so skip verification
-				ImportStateVerifyIgnore: []string{"webhook_url"},
+				ImportStateVerifyIgnore:              []string{"webhook_url"},
+			},
+		},
+	})
+}
+
+// TestAccActionResource_targets tests email, Slack and webhook targets on one
+// action, an in-place change of the target set, and import of the result.
+func TestAccActionResource_targets(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc-test")
+	envName := acctest.RandomWithPrefix("tf-acc-test-env")
+	resourceName := "kosli_action.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccActionResourceConfigTargets(rName, envName, `
+  emails         = ["alerts@example.com", "oncall@example.com"]
+  slack_webhooks = ["https://hooks.example.com/kosli-test-slack"]
+  webhooks       = ["https://hooks.example.com/kosli-test-a", "https://hooks.example.com/kosli-test-b"]
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "emails.#", "2"),
+					resource.TestCheckTypeSetElemAttr(resourceName, "emails.*", "alerts@example.com"),
+					resource.TestCheckResourceAttr(resourceName, "slack_webhooks.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "webhooks.#", "2"),
+					resource.TestCheckNoResourceAttr(resourceName, "webhook_url"),
+					resource.TestCheckResourceAttrSet(resourceName, "number"),
+				),
+			},
+			{
+				Config: testAccActionResourceConfigTargets(rName, envName, `
+  emails = ["alerts@example.com"]
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "emails.#", "1"),
+					resource.TestCheckNoResourceAttr(resourceName, "slack_webhooks.#"),
+					resource.TestCheckNoResourceAttr(resourceName, "webhooks.#"),
+				),
+			},
+			{
+				ResourceName:                         resourceName,
+				ImportState:                          true,
+				ImportStateVerify:                    true,
+				ImportStateId:                        rName,
+				ImportStateVerifyIdentifierAttribute: "name",
+				// Kosli stamps each delivery on the action, which moves
+				// last_modified_at between the update and the import.
+				ImportStateVerifyIgnore: []string{"last_modified_at"},
+			},
+		},
+	})
+}
+
+// TestAccActionResource_webhookURLToWebhooks tests moving a config from
+// webhook_url to webhooks without replacing the action.
+func TestAccActionResource_webhookURLToWebhooks(t *testing.T) {
+	rName := acctest.RandomWithPrefix("tf-acc-test")
+	envName := acctest.RandomWithPrefix("tf-acc-test-env")
+	resourceName := "kosli_action.test"
+	var number string
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccActionResourceConfigTargets(rName, envName, `
+  webhook_url = "https://hooks.example.com/kosli-test"
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(resourceName, "webhook_url", "https://hooks.example.com/kosli-test"),
+					resource.TestCheckNoResourceAttr(resourceName, "webhooks.#"),
+					resource.TestCheckResourceAttrWith(resourceName, "number", func(value string) error {
+						number = value
+						return nil
+					}),
+				),
+			},
+			{
+				Config: testAccActionResourceConfigTargets(rName, envName, `
+  webhooks = ["https://hooks.example.com/kosli-test"]
+`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckNoResourceAttr(resourceName, "webhook_url"),
+					resource.TestCheckResourceAttr(resourceName, "webhooks.#", "1"),
+					resource.TestCheckResourceAttrWith(resourceName, "number", func(value string) error {
+						if value != number {
+							return fmt.Errorf("action was replaced: number changed from %s to %s", number, value)
+						}
+						return nil
+					}),
+				),
+			},
+		},
+	})
+}
+
+// TestAccActionResource_requiresTarget tests that an action without any target
+// is rejected at plan time.
+func TestAccActionResource_requiresTarget(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccActionResourceConfigTargets("tf-acc-test-no-target", "tf-acc-test-env-no-target", ""),
+				ExpectError: regexp.MustCompile(`At least one of these attributes must be configured`),
 			},
 		},
 	})
@@ -137,6 +246,24 @@ resource "kosli_action" "test" {
   webhook_url  = "https://hooks.example.com/kosli-test"
 }
 `, name, envName)
+}
+
+// testAccActionResourceConfigTargets returns an action configuration whose
+// target attributes are given verbatim.
+func testAccActionResourceConfigTargets(name, envName, targets string) string {
+	return fmt.Sprintf(`
+resource "kosli_environment" "test" {
+  name = %[2]q
+  type = "K8S"
+}
+
+resource "kosli_action" "test" {
+  name         = %[1]q
+  environments = [kosli_environment.test.name]
+  triggers     = ["ON_NON_COMPLIANT_ENV"]
+%[3]s
+}
+`, name, envName, targets)
 }
 
 // testAccActionResourceConfigUpdated returns an updated action configuration.

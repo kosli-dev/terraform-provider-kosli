@@ -11,7 +11,18 @@ resource "kosli_action" "compliance_alerts" {
   name         = "compliance-alerts"
   environments = ["production-k8s"]
   triggers     = ["ON_NON_COMPLIANT_ENV", "ON_COMPLIANT_ENV"]
-  webhook_url  = "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXX"
+  webhook_url  = "https://alerts.example.com/kosli"
+}
+
+# Action that notifies Slack, email and a generic webhook at once
+resource "kosli_action" "production_alerts" {
+  name         = "production-alerts"
+  environments = ["production-k8s"]
+  triggers     = ["ON_NON_COMPLIANT_ENV"]
+
+  slack_webhooks = ["https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXX"]
+  emails         = ["platform@example.com", "oncall@example.com"]
+  webhooks       = ["https://alerts.example.com/kosli"]
 }
 
 # Action that fires when a running artifact becomes compliant or non-compliant,
