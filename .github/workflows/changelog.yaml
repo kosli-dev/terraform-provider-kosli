@@ -112,7 +112,7 @@ jobs:
 
       - name: Generate changelog entry
         if: steps.version.outputs.version != ''
-        uses: anthropics/claude-code-action@d535f5172dec02b204866b393d6b20b9b2aaf98d # v1.0.266
+        uses: anthropics/claude-code-action@61a9c274fa7110a66dfafc1bbbced03833eb25fe # v1.0.269
         with:
           anthropic_federation_rule_id: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
           anthropic_organization_id: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
@@ -157,7 +157,7 @@ jobs:
 
       - name: Create changelog PR
         if: steps.version.outputs.version != ''
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        uses: peter-evans/create-pull-request@15733dbdfeedb4f7fdb73d13c6f5ac83b710fab8 # v8.1.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: changelog/${{ steps.version.outputs.version }}
