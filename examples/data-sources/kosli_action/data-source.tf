@@ -16,6 +16,11 @@ output "action_number" {
   value       = data.kosli_action.compliance_alerts.number
 }
 
+output "action_emails" {
+  description = "Email addresses this action notifies"
+  value       = data.kosli_action.compliance_alerts.emails
+}
+
 output "action_environments" {
   description = "Environments monitored by this action"
   value       = data.kosli_action.compliance_alerts.environments

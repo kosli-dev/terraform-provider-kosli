@@ -4,12 +4,17 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
@@ -17,6 +22,7 @@ import (
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &actionResource{}
 var _ resource.ResourceWithImportState = &actionResource{}
+var _ resource.ResourceWithConfigValidators = &actionResource{}
 
 // NewActionResource creates a new action resource.
 func NewActionResource() resource.Resource {
@@ -34,6 +40,9 @@ type actionResourceModel struct {
 	Environments   types.List    `tfsdk:"environments"`
 	Triggers       types.List    `tfsdk:"triggers"`
 	WebhookURL     types.String  `tfsdk:"webhook_url"`
+	Emails         types.Set     `tfsdk:"emails"`
+	SlackWebhooks  types.Set     `tfsdk:"slack_webhooks"`
+	Webhooks       types.Set     `tfsdk:"webhooks"`
 	Number         types.Int64   `tfsdk:"number"`
 	CreatedBy      types.String  `tfsdk:"created_by"`
 	LastModifiedAt types.Float64 `tfsdk:"last_modified_at"`
@@ -47,7 +56,8 @@ func (r *actionResource) Metadata(ctx context.Context, req resource.MetadataRequ
 // Schema defines the schema for the resource.
 func (r *actionResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a Kosli action. Actions send webhook notifications when artifact or environment events occur in the monitored environments.\n\n" +
+		MarkdownDescription: "Manages a Kosli action. Actions send notifications to webhooks, Slack and email when artifact or environment events occur in the monitored environments. " +
+			"At least one of `webhook_url`, `webhooks`, `slack_webhooks` or `emails` is required.\n\n" +
 			"~> **Note:** Actions are identified internally by a server-assigned `number`. The `name` is used during import to look up the number.",
 
 		Attributes: map[string]schema.Attribute{
@@ -75,9 +85,46 @@ func (r *actionResource) Schema(ctx context.Context, req resource.SchemaRequest,
 				Required: true,
 			},
 			"webhook_url": schema.StringAttribute{
-				MarkdownDescription: "Webhook URL to send notifications to.",
-				Required:            true,
+				MarkdownDescription: "A single generic webhook URL to send notifications to. " +
+					"Use `webhooks` for more than one; the two cannot be set together.",
+				Optional:  true,
+				Sensitive: true,
+			},
+			"emails": schema.SetAttribute{
+				ElementType:         types.StringType,
+				MarkdownDescription: "Email addresses the notifications are sent to.",
+				Optional:            true,
+				Validators: []validator.Set{
+					setvalidator.SizeAtLeast(1),
+					setvalidator.ValueStringsAre(
+						stringvalidator.RegexMatches(emailAddressRegexp, "must be an email address"),
+					),
+				},
+			},
+			"slack_webhooks": schema.SetAttribute{
+				ElementType:         types.StringType,
+				MarkdownDescription: "Slack incoming webhook URLs the notifications are posted to. Must use HTTPS.",
+				Optional:            true,
 				Sensitive:           true,
+				Validators: []validator.Set{
+					setvalidator.SizeAtLeast(1),
+					setvalidator.ValueStringsAre(
+						stringvalidator.RegexMatches(httpsURLRegexp, "must be an HTTPS URL"),
+					),
+				},
+			},
+			"webhooks": schema.SetAttribute{
+				ElementType: types.StringType,
+				MarkdownDescription: "Generic webhook URLs the notifications are POSTed to as JSON (payload version `" +
+					client.ActionPayloadVersionV1 + "`). Must use HTTPS.",
+				Optional:  true,
+				Sensitive: true,
+				Validators: []validator.Set{
+					setvalidator.SizeAtLeast(1),
+					setvalidator.ValueStringsAre(
+						stringvalidator.RegexMatches(httpsURLRegexp, "must be an HTTPS URL"),
+					),
+				},
 			},
 			"number": schema.Int64Attribute{
 				MarkdownDescription: "Server-assigned numeric identifier for the action.",
@@ -98,6 +145,24 @@ func (r *actionResource) Schema(ctx context.Context, req resource.SchemaRequest,
 				Computed:            true,
 			},
 		},
+	}
+}
+
+// ConfigValidators requires at least one target, since the API rejects an
+// action without one, and keeps webhook_url and webhooks apart so each webhook
+// target maps back to exactly one attribute.
+func (r *actionResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.AtLeastOneOf(
+			path.MatchRoot("webhook_url"),
+			path.MatchRoot("webhooks"),
+			path.MatchRoot("slack_webhooks"),
+			path.MatchRoot("emails"),
+		),
+		resourcevalidator.Conflicting(
+			path.MatchRoot("webhook_url"),
+			path.MatchRoot("webhooks"),
+		),
 	}
 }
 
@@ -280,6 +345,11 @@ func (r *actionResource) ImportState(ctx context.Context, req resource.ImportSta
 		return
 	}
 
+	if msg := slackAppActionImportError(action); msg != "" {
+		resp.Diagnostics.AddError("Error Importing Action", msg)
+		return
+	}
+
 	var data actionResourceModel
 	resp.Diagnostics.Append(mapActionResponseToModel(ctx, action, &data)...)
 	if resp.Diagnostics.HasError() {
@@ -305,19 +375,68 @@ func buildActionRequest(ctx context.Context, data *actionResourceModel) (*client
 		return nil, diags
 	}
 
+	targets, d := actionTargetsFromModel(ctx, data)
+	diags.Append(d...)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &client.ActionRequest{
 		Name: data.Name.ValueString(),
-		// Type is always "env" — the only action type currently supported by the Kosli API.
+		// Type is always "env": the API stores flow actions but never fires them.
 		Type:         "env",
 		Environments: environments,
 		Triggers:     triggers,
-		Targets: []client.ActionTarget{
-			{
-				Type:    "WEBHOOK",
-				Webhook: data.WebhookURL.ValueString(),
-			},
-		},
+		Targets:      targets,
 	}, diags
+}
+
+// actionTargetsFromModel builds the API's typed target list: one EMAIL target
+// carrying every address, and one SLACK or WEBHOOK target per URL.
+func actionTargetsFromModel(ctx context.Context, data *actionResourceModel) ([]client.ActionTarget, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	var emails, slackWebhooks, webhooks []string
+
+	diags.Append(stringSetElements(ctx, data.Emails, &emails)...)
+	diags.Append(stringSetElements(ctx, data.SlackWebhooks, &slackWebhooks)...)
+	diags.Append(stringSetElements(ctx, data.Webhooks, &webhooks)...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	if !data.WebhookURL.IsNull() && !data.WebhookURL.IsUnknown() {
+		webhooks = append([]string{data.WebhookURL.ValueString()}, webhooks...)
+	}
+
+	targets := []client.ActionTarget{}
+	if len(emails) > 0 {
+		targets = append(targets, client.ActionTarget{Type: client.ActionTargetTypeEmail, Emails: emails})
+	}
+	for _, webhook := range slackWebhooks {
+		targets = append(targets, client.ActionTarget{Type: client.ActionTargetTypeSlack, Webhook: webhook})
+	}
+	for _, webhook := range webhooks {
+		targets = append(targets, client.ActionTarget{
+			Type:           client.ActionTargetTypeWebhook,
+			Webhook:        webhook,
+			PayloadVersion: client.ActionPayloadVersionV1,
+		})
+	}
+	return targets, diags
+}
+
+// slackAppActionImportError returns why an action cannot be imported, or "" when
+// it can. An action created from the Kosli Slack app carries a channel
+// subscription on its Slack target that this resource does not model, so
+// managing it here would detach it from that channel on the first update.
+func slackAppActionImportError(action *client.ActionResponse) string {
+	if !action.IsCreatedFromSlackApp {
+		return ""
+	}
+	return fmt.Sprintf(
+		"Action %q was created from the Kosli Slack app and is tied to a Slack channel subscription. "+
+			"Manage it from Slack, or create a separate action with slack_webhooks.",
+		action.Name,
+	)
 }
 
 // mapActionResponseToModel maps an API response into the resource model.
@@ -351,13 +470,76 @@ func mapActionResponseToModel(ctx context.Context, action *client.ActionResponse
 	}
 	data.Triggers = trigList
 
-	// Extract webhook_url from the first WEBHOOK target.
-	// The API does not echo back sensitive fields (webhook URL) on GET responses,
-	// so only overwrite state when the API returns a non-empty value. This preserves
-	// the value the user configured and prevents a permanent plan diff on every refresh.
-	if len(action.Targets) > 0 && action.Targets[0].Webhook != "" {
-		data.WebhookURL = types.StringValue(action.Targets[0].Webhook)
+	diags.Append(mapActionTargetsToModel(ctx, action.Targets, data)...)
+
+	return diags
+}
+
+// mapActionTargetsToModel writes the API's targets into the target attributes.
+// Multiple EMAIL targets merge into one set, and target types this provider
+// does not know are ignored. Where the API returns a value equivalent to one
+// already in the model, the model's spelling is kept, because the API
+// normalizes the URLs and addresses it stores.
+//
+// A WEBHOOK target goes to webhook_url when the model already uses that
+// attribute, or when the model has no targets yet (an import) and the action
+// has exactly one webhook. Every other webhook goes to webhooks, so a target
+// added outside Terraform shows up as a diff.
+func mapActionTargetsToModel(ctx context.Context, targets []client.ActionTarget, data *actionResourceModel) diag.Diagnostics {
+	var diags diag.Diagnostics
+	var priorEmails, priorSlackWebhooks, priorWebhooks []string
+
+	diags.Append(stringSetElements(ctx, data.Emails, &priorEmails)...)
+	diags.Append(stringSetElements(ctx, data.SlackWebhooks, &priorSlackWebhooks)...)
+	diags.Append(stringSetElements(ctx, data.Webhooks, &priorWebhooks)...)
+	if diags.HasError() {
+		return diags
 	}
+
+	var emails, slackWebhooks, webhooks []string
+	for _, target := range targets {
+		switch target.Type {
+		case client.ActionTargetTypeEmail:
+			emails = append(emails, target.Emails...)
+		case client.ActionTargetTypeSlack:
+			if target.Webhook != "" {
+				slackWebhooks = append(slackWebhooks, target.Webhook)
+			}
+		case client.ActionTargetTypeWebhook:
+			if target.Webhook != "" {
+				webhooks = append(webhooks, target.Webhook)
+			}
+		}
+	}
+
+	usesWebhookURL := !data.WebhookURL.IsNull() && !data.WebhookURL.IsUnknown()
+	hasNoTargets := !usesWebhookURL && data.Emails.IsNull() && data.SlackWebhooks.IsNull() && data.Webhooks.IsNull()
+
+	switch {
+	case usesWebhookURL && len(webhooks) > 0:
+		index := 0
+		for i, webhook := range webhooks {
+			if notificationValuesEquivalent(webhook, data.WebhookURL.ValueString()) {
+				index = i
+				break
+			}
+		}
+		if !notificationValuesEquivalent(webhooks[index], data.WebhookURL.ValueString()) {
+			data.WebhookURL = types.StringValue(webhooks[index])
+		}
+		webhooks = append(webhooks[:index:index], webhooks[index+1:]...)
+	case hasNoTargets && len(webhooks) == 1:
+		data.WebhookURL = types.StringValue(webhooks[0])
+		webhooks = nil
+	}
+
+	var d diag.Diagnostics
+	data.Emails, d = stringSetOrNull(ctx, preferPriorSpelling(emails, priorEmails))
+	diags.Append(d...)
+	data.SlackWebhooks, d = stringSetOrNull(ctx, preferPriorSpelling(slackWebhooks, priorSlackWebhooks))
+	diags.Append(d...)
+	data.Webhooks, d = stringSetOrNull(ctx, preferPriorSpelling(webhooks, priorWebhooks))
+	diags.Append(d...)
 
 	return diags
 }

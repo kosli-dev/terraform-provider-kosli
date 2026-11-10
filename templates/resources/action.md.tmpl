@@ -32,6 +32,25 @@ The `triggers` attribute must contain one or more of the following event types:
 
 -> **Note:** `ON_SCALED_ARTIFACT` keeps its historical name for backwards compatibility. Kosli no longer records scaling events - this trigger fires on artifact changes.
 
+## Targets
+
+An action notifies one or more targets. Set at least one of the target attributes; one action can combine all of them.
+
+| Attribute | Target |
+|---|---|
+| `webhooks` | Generic webhooks, POSTed to as JSON |
+| `slack_webhooks` | Slack incoming webhooks |
+| `emails` | Email addresses |
+| `webhook_url` | A single generic webhook |
+
+`webhook_url` and `webhooks` cannot be set together. To add a second webhook to an action that uses `webhook_url`, move the URL into `webhooks`; the action is updated in place.
+
+Webhook URLs must use HTTPS and resolve to a public address. Kosli rejects a URL that points at an internal address.
+
+-> **Note:** Importing an action that has exactly one generic webhook stores the URL in `webhook_url`. A configuration that declares the same URL in `webhooks` shows a one-time in-place update on the next plan.
+
+~> **Note:** An action created from the Kosli Slack app is tied to a Slack channel subscription and cannot be imported. Manage it from Slack, or create a separate action with `slack_webhooks`.
+
 {{ .SchemaMarkdown | trimspace }}
 {{- if or .HasImport .HasImportIDConfig .HasImportIdentityConfig }}
 

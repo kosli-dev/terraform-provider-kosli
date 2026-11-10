@@ -41,6 +41,22 @@ func TestActionDataSource_Schema(t *testing.T) {
 		}
 	}
 
+	for _, name := range []string{"emails", "slack_webhooks", "webhooks"} {
+		attr, exists := attrs[name]
+		if !exists {
+			t.Errorf("Expected attribute %q to exist in schema", name)
+			continue
+		}
+		if !attr.IsComputed() {
+			t.Errorf("Expected %q to be computed", name)
+		}
+	}
+	for _, name := range []string{"slack_webhooks", "webhooks"} {
+		if attr, exists := attrs[name]; exists && !attr.IsSensitive() {
+			t.Errorf("Expected %q to be sensitive", name)
+		}
+	}
+
 	if !attrs["name"].IsRequired() {
 		t.Error("Expected 'name' to be required")
 	}

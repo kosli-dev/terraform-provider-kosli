@@ -28,6 +28,9 @@ type actionDataSourceModel struct {
 	Name           types.String  `tfsdk:"name"`
 	Environments   types.List    `tfsdk:"environments"`
 	Triggers       types.List    `tfsdk:"triggers"`
+	Emails         types.Set     `tfsdk:"emails"`
+	SlackWebhooks  types.Set     `tfsdk:"slack_webhooks"`
+	Webhooks       types.Set     `tfsdk:"webhooks"`
 	Number         types.Int64   `tfsdk:"number"`
 	CreatedBy      types.String  `tfsdk:"created_by"`
 	LastModifiedAt types.Float64 `tfsdk:"last_modified_at"`
@@ -58,6 +61,23 @@ func (d *actionDataSource) Schema(ctx context.Context, req datasource.SchemaRequ
 				Computed:    true,
 				MarkdownDescription: "List of trigger event types that activate this action. " +
 					"See the `kosli_action` resource for what each trigger fires on.",
+			},
+			"emails": schema.SetAttribute{
+				ElementType:         types.StringType,
+				Computed:            true,
+				MarkdownDescription: "Email addresses the notifications are sent to.",
+			},
+			"slack_webhooks": schema.SetAttribute{
+				ElementType:         types.StringType,
+				Computed:            true,
+				Sensitive:           true,
+				MarkdownDescription: "Slack incoming webhook URLs the notifications are posted to.",
+			},
+			"webhooks": schema.SetAttribute{
+				ElementType:         types.StringType,
+				Computed:            true,
+				Sensitive:           true,
+				MarkdownDescription: "Generic webhook URLs the notifications are POSTed to.",
 			},
 			"number": schema.Int64Attribute{
 				Computed:            true,
@@ -138,6 +158,27 @@ func (d *actionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 	data.Triggers = trigList
+
+	var emails, slackWebhooks, webhooks []string
+	for _, target := range action.Targets {
+		switch target.Type {
+		case client.ActionTargetTypeEmail:
+			emails = append(emails, target.Emails...)
+		case client.ActionTargetTypeSlack:
+			slackWebhooks = append(slackWebhooks, target.Webhook)
+		case client.ActionTargetTypeWebhook:
+			webhooks = append(webhooks, target.Webhook)
+		}
+	}
+	data.Emails, diags = stringSetOrEmpty(ctx, emails)
+	resp.Diagnostics.Append(diags...)
+	data.SlackWebhooks, diags = stringSetOrEmpty(ctx, slackWebhooks)
+	resp.Diagnostics.Append(diags...)
+	data.Webhooks, diags = stringSetOrEmpty(ctx, webhooks)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
