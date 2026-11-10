@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.12.0 (November 10, 2026)
+
+BREAKING CHANGES:
+
+* resource/kosli_action: Import now refuses an action created by the Kosli Slack app, since its channel subscription is not modeled by the resource and would be dropped on the next update [GH-305]
+
+IMPROVEMENTS:
+
+* data_source/kosli_action: Added `emails`, `slack_webhooks`, and `webhooks` attributes, returning every notification target configured on an action [GH-305]
+* resource/kosli_action: Added `emails`, `slack_webhooks`, and `webhooks` attributes for Slack and email notification targets; `webhook_url` is now optional and can be combined with the new attributes [GH-305]
+* resource/kosli_environment: Added support for `azure-apps` and `cloud-run` environment types [GH-304]
+* resource/kosli_environment: Added a plan-time warning when `type` is set to `logical`, pointing to `kosli_logical_environment` [GH-304]
+
 ## v0.11.0 (November 4, 2026)
 
 IMPROVEMENTS:
