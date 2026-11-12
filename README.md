@@ -97,6 +97,7 @@ For more details on attestation types, see the [Kosli documentation](https://doc
 - `kosli_service_account_api_keys` - List the API keys (metadata only) for a service account
 - `kosli_control` - Reference existing controls
 - `kosli_notification_config` - Read where a notification type is sent and when it was last delivered
+- `kosli_repo` - Reference one repo by its internal ID, or by name and optional VCS provider
 - `kosli_repos` - Find repos by name, namespace, VCS provider or tag and get their internal IDs for `kosli_repo_tags`
 
 ### List Resources (`terraform query`, Terraform >= 1.14)

@@ -102,6 +102,7 @@ The client supports:
 - `kosli_environment` - Reference existing physical environments
 - `kosli_logical_environment` - Reference existing logical environments
 - `kosli_notification_config` - Read a notification type's targets and delivery status
+- `kosli_repo` - Reference one repo by internal ID, or by name plus optional VCS provider
 - `kosli_repos` - List repos matching filters, returning their internal IDs
 
 **List Resources (`terraform query`, requires Terraform >= 1.14):**

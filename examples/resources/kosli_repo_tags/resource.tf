@@ -23,14 +23,14 @@ resource "kosli_repo_tags" "platform" {
   }
 }
 
-# Tag a single repo found by its exact name
-data "kosli_repos" "billing" {
+# Tag a single repo found by its name
+data "kosli_repo" "billing" {
   name         = "acme/payments/billing"
   vcs_provider = "github"
 }
 
 resource "kosli_repo_tags" "billing" {
-  repo_id = one(data.kosli_repos.billing.repos).id
+  repo_id = data.kosli_repo.billing.id
   tags = {
     team = "payments"
   }
