@@ -29,9 +29,15 @@ data "kosli_repos" "services" {
   vcs_instance = "gitlab.acme.com"
 }
 
-# Repos owned by the platform team that have any tier tag
-data "kosli_repos" "platform_tiered" {
-  tag = ["team:platform", "tier"]
+# Repos owned by the platform or payments team that have a tier tag with any value
+data "kosli_repos" "tiered" {
+  tag_filter {
+    key    = "team"
+    values = ["platform", "payments"]
+  }
+  tag_filter {
+    key = "tier"
+  }
 }
 
 output "service_repo_ids" {
@@ -39,9 +45,9 @@ output "service_repo_ids" {
   value       = data.kosli_repos.services.repos[*].id
 }
 
-output "platform_tiered_repo_names" {
-  description = "Names of the platform team's tiered repos"
-  value       = data.kosli_repos.platform_tiered.repos[*].name
+output "tiered_repo_names" {
+  description = "Names of the tiered repos owned by the platform or payments team"
+  value       = data.kosli_repos.tiered.repos[*].name
 }
 ```
 
@@ -53,13 +59,25 @@ output "platform_tiered_repo_names" {
 - `name` (String) Return only repos with exactly this name, e.g. `acme/platform/api`. Conflicts with `search`.
 - `namespace` (String) Return only repos nested anywhere under this `/`-separated namespace, e.g. `acme/platform`.
 - `search` (String) Return only repos whose name contains this string (case-insensitive). Conflicts with `name`.
-- `tag` (List of String) Return only repos with these tags. Each entry is a tag key (the repo has the tag) or `key:value` (the tag has that value). Repos must match every key; several values for one key match any of them.
+- `tag_filter` (Block List) Return only repos with a matching tag. Repos must match every `tag_filter` block. (see [below for nested schema](#nestedblock--tag_filter))
 - `vcs_instance` (String) Return only repos on this VCS host, e.g. `gitlab.company.com`.
 - `vcs_provider` (String) Return only repos hosted by this VCS provider, e.g. `github`, `gitlab`, `bitbucket` or `azure-devops`.
 
 ### Read-Only
 
 - `repos` (Attributes List) The matching repos, sorted by name and then by `id`. Empty when no repo matches. (see [below for nested schema](#nestedatt--repos))
+
+<a id="nestedblock--tag_filter"></a>
+### Nested Schema for `tag_filter`
+
+Required:
+
+- `key` (String) Tag key the repo must have.
+
+Optional:
+
+- `values` (List of String) Values the tag may have; a repo matches if its tag has any of them. Omit to match the key with any value.
+
 
 <a id="nestedatt--repos"></a>
 ### Nested Schema for `repos`

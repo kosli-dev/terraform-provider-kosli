@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"sort"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/datasourcevalidator"
@@ -38,8 +39,14 @@ type reposDataSourceModel struct {
 	VCSProvider types.String       `tfsdk:"vcs_provider"`
 	VCSInstance types.String       `tfsdk:"vcs_instance"`
 	Namespace   types.String       `tfsdk:"namespace"`
-	Tag         types.List         `tfsdk:"tag"`
+	TagFilters  []tagFilterModel   `tfsdk:"tag_filter"`
 	Repos       []repoElementModel `tfsdk:"repos"`
+}
+
+// tagFilterModel is one tag_filter block.
+type tagFilterModel struct {
+	Key    types.String `tfsdk:"key"`
+	Values types.List   `tfsdk:"values"`
 }
 
 // repoElementModel is a single repo entry in the repos list.
@@ -84,16 +91,6 @@ func (d *reposDataSource) Schema(ctx context.Context, req datasource.SchemaReque
 				Optional:            true,
 				MarkdownDescription: "Return only repos nested anywhere under this `/`-separated namespace, e.g. `acme/platform`.",
 			},
-			"tag": schema.ListAttribute{
-				Optional:    true,
-				ElementType: types.StringType,
-				Validators: []validator.List{
-					listvalidator.NoNullValues(),
-					listvalidator.ValueStringsAre(stringvalidator.LengthAtLeast(1)),
-				},
-				MarkdownDescription: "Return only repos with these tags. Each entry is a tag key (the repo has the tag) or `key:value` (the tag has that value). " +
-					"Repos must match every key; several values for one key match any of them.",
-			},
 			"repos": schema.ListNestedAttribute{
 				Computed:            true,
 				MarkdownDescription: "The matching repos, sorted by name and then by `id`. Empty when no repo matches.",
@@ -123,6 +120,33 @@ func (d *reposDataSource) Schema(ctx context.Context, req datasource.SchemaReque
 							Computed:            true,
 							ElementType:         types.StringType,
 							MarkdownDescription: "Key-value pairs tagging the repo.",
+						},
+					},
+				},
+			},
+		},
+
+		Blocks: map[string]schema.Block{
+			"tag_filter": schema.ListNestedBlock{
+				MarkdownDescription: "Return only repos with a matching tag. Repos must match every `tag_filter` block.",
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"key": schema.StringAttribute{
+							Required:            true,
+							MarkdownDescription: "Tag key the repo must have.",
+							Validators: []validator.String{
+								// The API splits each tag filter on its first colon.
+								stringvalidator.RegexMatches(regexp.MustCompile(`^[^:]+$`), "must be non-empty and must not contain a colon"),
+							},
+						},
+						"values": schema.ListAttribute{
+							Optional:            true,
+							ElementType:         types.StringType,
+							MarkdownDescription: "Values the tag may have; a repo matches if its tag has any of them. Omit to match the key with any value.",
+							Validators: []validator.List{
+								listvalidator.NoNullValues(),
+								listvalidator.ValueStringsAre(stringvalidator.LengthAtLeast(1)),
+							},
 						},
 					},
 				},
@@ -173,11 +197,9 @@ func (d *reposDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		VCSInstance: data.VCSInstance.ValueString(),
 		Namespace:   data.Namespace.ValueString(),
 	}
-	if !data.Tag.IsNull() && !data.Tag.IsUnknown() {
-		resp.Diagnostics.Append(data.Tag.ElementsAs(ctx, &opts.Tags, false)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
+	opts.Tags = tagFilterParams(ctx, data.TagFilters, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	repos, err := d.client.ListRepos(ctx, opts)
@@ -206,6 +228,30 @@ func (d *reposDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+// tagFilterParams converts tag_filter blocks to the API's tag query values:
+// "key" matches any value, "key:value" one value. Values of one key are ORed
+// by the API and different keys ANDed, as the blocks document.
+func tagFilterParams(ctx context.Context, filters []tagFilterModel, diags *diag.Diagnostics) []string {
+	var params []string
+	for _, f := range filters {
+		var values []string
+		if !f.Values.IsNull() && !f.Values.IsUnknown() {
+			diags.Append(f.Values.ElementsAs(ctx, &values, false)...)
+			if diags.HasError() {
+				return nil
+			}
+		}
+		if len(values) == 0 {
+			params = append(params, f.Key.ValueString())
+			continue
+		}
+		for _, v := range values {
+			params = append(params, f.Key.ValueString()+":"+v)
+		}
+	}
+	return params
 }
 
 func repoToElement(ctx context.Context, repo client.Repo, diags *diag.Diagnostics) repoElementModel {

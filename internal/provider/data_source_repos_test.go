@@ -10,7 +10,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
@@ -37,7 +39,7 @@ func TestReposDataSource_Schema(t *testing.T) {
 	}
 
 	attrs := resp.Schema.Attributes
-	for _, attr := range []string{"name", "search", "vcs_provider", "vcs_instance", "namespace", "tag"} {
+	for _, attr := range []string{"name", "search", "vcs_provider", "vcs_instance", "namespace"} {
 		a, exists := attrs[attr]
 		if !exists {
 			t.Errorf("Expected filter attribute %q to exist in schema", attr)
@@ -48,12 +50,23 @@ func TestReposDataSource_Schema(t *testing.T) {
 		}
 	}
 
-	tag, ok := attrs["tag"].(schema.ListAttribute)
+	tagFilter, ok := resp.Schema.Blocks["tag_filter"].(schema.ListNestedBlock)
 	if !ok {
-		t.Fatalf("Expected 'tag' to be a list attribute, got %T", attrs["tag"])
+		t.Fatalf("Expected 'tag_filter' to be a list nested block, got %T", resp.Schema.Blocks["tag_filter"])
 	}
-	if len(tag.Validators) == 0 {
-		t.Error("Expected 'tag' to reject null and empty entries")
+	key, ok := tagFilter.NestedObject.Attributes["key"].(schema.StringAttribute)
+	if !ok || !key.IsRequired() {
+		t.Error("Expected tag_filter 'key' to be a required string")
+	}
+	if len(key.Validators) == 0 {
+		t.Error("Expected tag_filter 'key' to reject empty keys and colons")
+	}
+	values, ok := tagFilter.NestedObject.Attributes["values"].(schema.ListAttribute)
+	if !ok || !values.IsOptional() {
+		t.Error("Expected tag_filter 'values' to be an optional list")
+	}
+	if len(values.Validators) == 0 {
+		t.Error("Expected tag_filter 'values' to reject null and empty entries")
 	}
 
 	repos, ok := attrs["repos"].(schema.ListNestedAttribute)
@@ -92,8 +105,14 @@ func TestNewReposDataSource(t *testing.T) {
 	}
 }
 
+// testTagFilter is one tag_filter block. Nil values are null.
+type testTagFilter struct {
+	key    string
+	values []string
+}
+
 // reposConfig builds a raw kosli_repos config. Unset filters are null.
-func reposConfig(ctx context.Context, s schema.Schema, filters map[string]string, tags []string) tftypes.Value {
+func reposConfig(ctx context.Context, s schema.Schema, filters map[string]string, tagFilters []testTagFilter) tftypes.Value {
 	attrs := map[string]tftypes.Value{}
 	for _, name := range []string{"name", "search", "vcs_provider", "vcs_instance", "namespace"} {
 		if v, ok := filters[name]; ok {
@@ -102,22 +121,31 @@ func reposConfig(ctx context.Context, s schema.Schema, filters map[string]string
 			attrs[name] = tftypes.NewValue(tftypes.String, nil)
 		}
 	}
-	tagType := tftypes.List{ElementType: tftypes.String}
-	if tags == nil {
-		attrs["tag"] = tftypes.NewValue(tagType, nil)
-	} else {
-		values := make([]tftypes.Value, 0, len(tags))
-		for _, tag := range tags {
-			values = append(values, tftypes.NewValue(tftypes.String, tag))
-		}
-		attrs["tag"] = tftypes.NewValue(tagType, values)
-	}
 	objType := s.Type().TerraformType(ctx).(tftypes.Object)
+	blockType := objType.AttributeTypes["tag_filter"].(tftypes.List)
+	filterType := blockType.ElementType.(tftypes.Object)
+	valuesType := filterType.AttributeTypes["values"]
+	blocks := make([]tftypes.Value, 0, len(tagFilters))
+	for _, f := range tagFilters {
+		values := tftypes.NewValue(valuesType, nil)
+		if f.values != nil {
+			elems := make([]tftypes.Value, 0, len(f.values))
+			for _, v := range f.values {
+				elems = append(elems, tftypes.NewValue(tftypes.String, v))
+			}
+			values = tftypes.NewValue(valuesType, elems)
+		}
+		blocks = append(blocks, tftypes.NewValue(filterType, map[string]tftypes.Value{
+			"key":    tftypes.NewValue(tftypes.String, f.key),
+			"values": values,
+		}))
+	}
+	attrs["tag_filter"] = tftypes.NewValue(blockType, blocks)
 	attrs["repos"] = tftypes.NewValue(objType.AttributeTypes["repos"], nil)
 	return tftypes.NewValue(objType, attrs)
 }
 
-func runReposRead(t *testing.T, handler http.HandlerFunc, filters map[string]string, tags []string) (*datasource.ReadResponse, reposDataSourceModel) {
+func runReposRead(t *testing.T, handler http.HandlerFunc, filters map[string]string, tagFilters []testTagFilter) (*datasource.ReadResponse, reposDataSourceModel) {
 	t.Helper()
 	ctx := context.TODO()
 
@@ -133,7 +161,7 @@ func runReposRead(t *testing.T, handler http.HandlerFunc, filters map[string]str
 	d.Schema(ctx, datasource.SchemaRequest{}, schemaResp)
 	s := schemaResp.Schema
 
-	raw := reposConfig(ctx, s, filters, tags)
+	raw := reposConfig(ctx, s, filters, tagFilters)
 	req := datasource.ReadRequest{Config: tfsdk.Config{Schema: s, Raw: raw}}
 	resp := &datasource.ReadResponse{State: tfsdk.State{Schema: s, Raw: raw}}
 	d.Read(ctx, req, resp)
@@ -155,8 +183,9 @@ func TestReposDataSource_Read_PassesFiltersAndMapsRepos(t *testing.T) {
 				t.Errorf("expected %s=%q, got %q", key, want, got)
 			}
 		}
-		if got := q["tag"]; !reflect.DeepEqual(got, []string{"team:platform"}) {
-			t.Errorf("expected tag=[team:platform], got %v", got)
+		want := []string{"team:platform", "team:payments", "tier"}
+		if got := q["tag"]; !reflect.DeepEqual(got, want) {
+			t.Errorf("expected tag=%v, got %v", want, got)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
@@ -168,7 +197,10 @@ func TestReposDataSource_Read_PassesFiltersAndMapsRepos(t *testing.T) {
 		})
 	}
 
-	resp, state := runReposRead(t, handler, map[string]string{"vcs_provider": "github", "namespace": "acme/platform"}, []string{"team:platform"})
+	resp, state := runReposRead(t, handler, map[string]string{"vcs_provider": "github", "namespace": "acme/platform"}, []testTagFilter{
+		{key: "team", values: []string{"platform", "payments"}},
+		{key: "tier"},
+	})
 	if resp.Diagnostics.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", resp.Diagnostics)
 	}
@@ -232,5 +264,36 @@ func TestReposDataSource_ConfigValidators_NameConflictsWithSearch(t *testing.T) 
 	d := &reposDataSource{}
 	if got := len(d.ConfigValidators(context.TODO())); got != 1 {
 		t.Fatalf("expected 1 config validator, got %d", got)
+	}
+}
+
+func TestTagFilterParams(t *testing.T) {
+	ctx := context.TODO()
+	list := func(values ...string) types.List {
+		v, _ := types.ListValueFrom(ctx, types.StringType, values)
+		return v
+	}
+
+	tests := []struct {
+		name    string
+		filters []tagFilterModel
+		want    []string
+	}{
+		{name: "no blocks", filters: nil, want: nil},
+		{name: "values omitted matches key", filters: []tagFilterModel{{Key: types.StringValue("tier"), Values: types.ListNull(types.StringType)}}, want: []string{"tier"}},
+		{name: "empty values matches key", filters: []tagFilterModel{{Key: types.StringValue("tier"), Values: list()}}, want: []string{"tier"}},
+		{name: "one param per value", filters: []tagFilterModel{{Key: types.StringValue("team"), Values: list("platform", "a:b")}}, want: []string{"team:platform", "team:a:b"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var diags diag.Diagnostics
+			got := tagFilterParams(ctx, tt.filters, &diags)
+			if diags.HasError() {
+				t.Fatalf("unexpected diagnostics: %v", diags)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("got %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

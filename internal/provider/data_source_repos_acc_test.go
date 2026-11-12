@@ -57,7 +57,7 @@ data "kosli_repos" "test" {
 }
 
 // TestAccReposDataSource_tagFilter tags a repo with kosli_repo_tags and finds
-// it again by that tag.
+// it again by that tag, by one of several values and by key alone.
 func TestAccReposDataSource_tagFilter(t *testing.T) {
 	repo := testAccReportRepo(t)
 
@@ -74,7 +74,18 @@ resource "kosli_repo_tags" "test" {
 }
 
 data "kosli_repos" "test" {
-  tag        = ["tf-acc-run:%[2]s"]
+  tag_filter {
+    key    = "tf-acc-run"
+    values = [%[2]q, "no-such-value"]
+  }
+  depends_on = [kosli_repo_tags.test]
+}
+
+data "kosli_repos" "by_key" {
+  search = %[2]q
+  tag_filter {
+    key = "tf-acc-run"
+  }
   depends_on = [kosli_repo_tags.test]
 }
 `, repo.ID, repo.ShortName),
@@ -82,6 +93,8 @@ data "kosli_repos" "test" {
 					resource.TestCheckResourceAttr("data.kosli_repos.test", "repos.#", "1"),
 					resource.TestCheckResourceAttr("data.kosli_repos.test", "repos.0.id", repo.ID),
 					resource.TestCheckResourceAttr("data.kosli_repos.test", "repos.0.tags.tf-acc-run", repo.ShortName),
+					resource.TestCheckResourceAttr("data.kosli_repos.by_key", "repos.#", "1"),
+					resource.TestCheckResourceAttr("data.kosli_repos.by_key", "repos.0.id", repo.ID),
 				),
 			},
 		},

@@ -13,9 +13,15 @@ data "kosli_repos" "services" {
   vcs_instance = "gitlab.acme.com"
 }
 
-# Repos owned by the platform team that have any tier tag
-data "kosli_repos" "platform_tiered" {
-  tag = ["team:platform", "tier"]
+# Repos owned by the platform or payments team that have a tier tag with any value
+data "kosli_repos" "tiered" {
+  tag_filter {
+    key    = "team"
+    values = ["platform", "payments"]
+  }
+  tag_filter {
+    key = "tier"
+  }
 }
 
 output "service_repo_ids" {
@@ -23,7 +29,7 @@ output "service_repo_ids" {
   value       = data.kosli_repos.services.repos[*].id
 }
 
-output "platform_tiered_repo_names" {
-  description = "Names of the platform team's tiered repos"
-  value       = data.kosli_repos.platform_tiered.repos[*].name
+output "tiered_repo_names" {
+  description = "Names of the tiered repos owned by the platform or payments team"
+  value       = data.kosli_repos.tiered.repos[*].name
 }
