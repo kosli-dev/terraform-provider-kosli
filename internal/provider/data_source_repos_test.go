@@ -48,6 +48,14 @@ func TestReposDataSource_Schema(t *testing.T) {
 		}
 	}
 
+	tag, ok := attrs["tag"].(schema.ListAttribute)
+	if !ok {
+		t.Fatalf("Expected 'tag' to be a list attribute, got %T", attrs["tag"])
+	}
+	if len(tag.Validators) == 0 {
+		t.Error("Expected 'tag' to reject null and empty entries")
+	}
+
 	repos, ok := attrs["repos"].(schema.ListNestedAttribute)
 	if !ok {
 		t.Fatalf("Expected 'repos' to be a list nested attribute, got %T", attrs["repos"])

@@ -6,10 +6,13 @@ import (
 	"sort"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/datasourcevalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
@@ -84,6 +87,10 @@ func (d *reposDataSource) Schema(ctx context.Context, req datasource.SchemaReque
 			"tag": schema.ListAttribute{
 				Optional:    true,
 				ElementType: types.StringType,
+				Validators: []validator.List{
+					listvalidator.NoNullValues(),
+					listvalidator.ValueStringsAre(stringvalidator.LengthAtLeast(1)),
+				},
 				MarkdownDescription: "Return only repos with these tags. Each entry is a tag key (the repo has the tag) or `key:value` (the tag has that value). " +
 					"Repos must match every key; several values for one key match any of them.",
 			},
