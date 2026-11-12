@@ -27,7 +27,7 @@ data "kosli_repos" "test" {
 					resource.TestCheckResourceAttr(dataSourceName, "repos.0.id", repo.ID),
 					resource.TestCheckResourceAttr(dataSourceName, "repos.0.name", repo.Name),
 					resource.TestCheckResourceAttr(dataSourceName, "repos.0.url", "https://github.com/"+repo.Name),
-					resource.TestCheckResourceAttr(dataSourceName, "repos.0.provider", "github"),
+					resource.TestCheckResourceAttr(dataSourceName, "repos.0.vcs_provider", "github"),
 					resource.TestCheckResourceAttr(dataSourceName, "repos.0.tags.%", "0"),
 				),
 			},

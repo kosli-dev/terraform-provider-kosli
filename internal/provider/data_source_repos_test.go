@@ -76,7 +76,7 @@ func TestReposDataSource_Schema(t *testing.T) {
 	if !repos.IsComputed() {
 		t.Error("Expected 'repos' attribute to be computed")
 	}
-	for _, attr := range []string{"id", "name", "url", "provider", "vcs_instance", "tags"} {
+	for _, attr := range []string{"id", "name", "url", "vcs_provider", "vcs_instance", "tags"} {
 		if _, exists := repos.NestedObject.Attributes[attr]; !exists {
 			t.Errorf("Expected repos attribute %q to exist in schema", attr)
 		}
@@ -213,14 +213,14 @@ func TestReposDataSource_Read_PassesFiltersAndMapsRepos(t *testing.T) {
 	if first.ID.ValueString() != "id-a" || second.ID.ValueString() != "id-b" {
 		t.Errorf("expected repos ordered by ID for equal names, got %q then %q", first.ID.ValueString(), second.ID.ValueString())
 	}
-	if !first.Provider.IsNull() || !first.VCSInstance.IsNull() {
-		t.Errorf("expected unknown provider and vcs_instance to be null, got %v and %v", first.Provider, first.VCSInstance)
+	if !first.VCSProvider.IsNull() || !first.VCSInstance.IsNull() {
+		t.Errorf("expected unknown provider and vcs_instance to be null, got %v and %v", first.VCSProvider, first.VCSInstance)
 	}
 	if got := len(first.Tags.Elements()); got != 0 || first.Tags.IsNull() {
 		t.Errorf("expected empty, non-null tags, got %v", first.Tags)
 	}
-	if second.Provider.ValueString() != "github" || second.VCSInstance.ValueString() != "github.com" {
-		t.Errorf("unexpected provider fields: %v %v", second.Provider, second.VCSInstance)
+	if second.VCSProvider.ValueString() != "github" || second.VCSInstance.ValueString() != "github.com" {
+		t.Errorf("unexpected provider fields: %v %v", second.VCSProvider, second.VCSInstance)
 	}
 	if second.URL.ValueString() != "https://github.com/acme/platform/api" {
 		t.Errorf("unexpected url: %v", second.URL)

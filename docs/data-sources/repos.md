@@ -86,7 +86,7 @@ Read-Only:
 
 - `id` (String) Internal Kosli ID of the repo. Use it as `repo_id` on `kosli_repo_tags`.
 - `name` (String) Full name of the repo, including its namespace. Names can repeat across VCS providers.
-- `provider` (String) VCS provider of the repo. Null when Kosli could not determine it.
 - `tags` (Map of String) Key-value pairs tagging the repo.
 - `url` (String) URL of the repo.
 - `vcs_instance` (String) VCS host of the repo. Null when Kosli could not determine it.
+- `vcs_provider` (String) VCS provider of the repo. Null when Kosli could not determine it.

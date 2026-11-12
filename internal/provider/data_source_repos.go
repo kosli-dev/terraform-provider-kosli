@@ -54,7 +54,7 @@ type repoElementModel struct {
 	ID          types.String `tfsdk:"id"`
 	Name        types.String `tfsdk:"name"`
 	URL         types.String `tfsdk:"url"`
-	Provider    types.String `tfsdk:"provider"`
+	VCSProvider types.String `tfsdk:"vcs_provider"`
 	VCSInstance types.String `tfsdk:"vcs_instance"`
 	Tags        types.Map    `tfsdk:"tags"`
 }
@@ -108,7 +108,7 @@ func (d *reposDataSource) Schema(ctx context.Context, req datasource.SchemaReque
 							Computed:            true,
 							MarkdownDescription: "URL of the repo.",
 						},
-						"provider": schema.StringAttribute{
+						"vcs_provider": schema.StringAttribute{
 							Computed:            true,
 							MarkdownDescription: "VCS provider of the repo. Null when Kosli could not determine it.",
 						},
@@ -259,7 +259,7 @@ func repoToElement(ctx context.Context, repo client.Repo, diags *diag.Diagnostic
 		ID:          types.StringValue(repo.ID),
 		Name:        types.StringValue(repo.Name),
 		URL:         types.StringValue(repo.URL),
-		Provider:    stringOrNull(repo.Provider),
+		VCSProvider: stringOrNull(repo.Provider),
 		VCSInstance: stringOrNull(repo.VCSInstance),
 		Tags:        repoTagsValue(ctx, repo.Tags, diags),
 	}
