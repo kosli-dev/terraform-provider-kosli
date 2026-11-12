@@ -132,6 +132,7 @@ func TestKosliProvider_Resources(t *testing.T) {
 		"kosli_notification_config",
 		"kosli_policy",
 		"kosli_policy_attachment",
+		"kosli_repo_tags",
 		"kosli_service_account",
 		"kosli_service_account_api_key",
 	}
