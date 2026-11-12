@@ -193,9 +193,10 @@ func (r *repoTagsResource) ImportState(ctx context.Context, req resource.ImportS
 	resource.ImportStatePassthroughID(ctx, path.Root("repo_id"), req, resp)
 }
 
-// replaceTags makes the repo's tags equal data.Tags and stores the result in
-// data. The diff is taken against the repo's live tags, not prior state, so
-// tags added since the last refresh are removed too.
+// replaceTags makes the repo's tags equal data.Tags. The diff is taken against
+// the repo's live tags, not prior state, so tags added since the last refresh
+// are removed too. data keeps the planned tags: tags is not computed, so state
+// must match the plan, and Read reports any later difference as drift.
 func (r *repoTagsResource) replaceTags(ctx context.Context, data *repoTagsResourceModel, diags *diag.Diagnostics) {
 	repoID := data.RepoID.ValueString()
 
@@ -221,17 +222,4 @@ func (r *repoTagsResource) replaceTags(ctx context.Context, data *repoTagsResour
 		return
 	}
 	applyTags(ctx, r.client, repoID, "repo", current, data.Tags, diags)
-	if diags.HasError() {
-		return
-	}
-
-	repo, err = r.client.GetRepo(ctx, repoID)
-	if err != nil {
-		diags.AddError(
-			"Error Reading Repo After Tagging",
-			fmt.Sprintf("Could not read repo %q after updating its tags: %s", repoID, err.Error()),
-		)
-		return
-	}
-	data.Tags = repoTagsValue(ctx, repo.Tags, diags)
 }

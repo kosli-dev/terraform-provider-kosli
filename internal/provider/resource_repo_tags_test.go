@@ -91,9 +91,10 @@ func TestNewRepoTagsResource(t *testing.T) {
 // fakeRepoAPI serves GET repo and PATCH repo tags for one repo. A nil tags map
 // means the repo does not exist.
 type fakeRepoAPI struct {
-	mu    sync.Mutex
-	tags  map[string]string
-	calls []recordedCall
+	mu          sync.Mutex
+	tags        map[string]string
+	calls       []recordedCall
+	ignorePATCH bool
 }
 
 func (f *fakeRepoAPI) currentTags() map[string]string {
@@ -138,6 +139,10 @@ func (f *fakeRepoAPI) server(t *testing.T) *httptest.Server {
 				"id": testRepoID, "name": "acme/api", "url": "https://github.com/acme/api", "provider": "github", "tags": f.tags,
 			})
 		case r.Method == http.MethodPatch && r.URL.Path == "/api/v2/tags/test-org/repo/"+testRepoID:
+			if f.ignorePATCH {
+				w.Write([]byte(`"OK"`))
+				return
+			}
 			for _, k := range body.RemoveTags {
 				delete(f.tags, k)
 			}
@@ -228,7 +233,7 @@ func TestRepoTagsResource_Create_ReplacesTagsSetOutsideTerraform(t *testing.T) {
 	if resp.Diagnostics.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", resp.Diagnostics)
 	}
-	assertCallSequence(t, api.calls, []string{getRepoCall, patchTagsCall, getRepoCall})
+	assertCallSequence(t, api.calls, []string{getRepoCall, patchTagsCall})
 
 	body := patchBody(t, api.calls[1])
 	if !reflect.DeepEqual(body.SetTags, map[string]string{"team": "platform", "tier": "1"}) {
@@ -239,6 +244,28 @@ func TestRepoTagsResource_Create_ReplacesTagsSetOutsideTerraform(t *testing.T) {
 	}
 	if got := stateTags(t, resp.State); !reflect.DeepEqual(got, want) {
 		t.Errorf("unexpected state tags: %v", got)
+	}
+}
+
+// TestRepoTagsResource_Create_StoresPlannedTags verifies state holds the plan
+// even when the repo's tags differ after the PATCH, so a normalising API or a
+// concurrent writer surfaces as drift on the next Read rather than failing the
+// apply.
+func TestRepoTagsResource_Create_StoresPlannedTags(t *testing.T) {
+	api := &fakeRepoAPI{tags: map[string]string{}, ignorePATCH: true}
+	r, s := newRepoTagsTestResource(t, api.server(t))
+	ctx := context.TODO()
+
+	want := map[string]string{"team": "platform"}
+	plan := repoTagsRaw(ctx, s, testRepoID, want)
+	resp := &resource.CreateResponse{State: tfsdk.State{Schema: s, Raw: repoTagsRaw(ctx, s, "", nil)}}
+	r.Create(ctx, resource.CreateRequest{Plan: tfsdk.Plan{Schema: s, Raw: plan}}, resp)
+
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", resp.Diagnostics)
+	}
+	if got := stateTags(t, resp.State); !reflect.DeepEqual(got, want) {
+		t.Errorf("expected planned tags in state, got %v", got)
 	}
 }
 
@@ -254,7 +281,7 @@ func TestRepoTagsResource_Create_SkipsPatchWhenTagsMatch(t *testing.T) {
 	if resp.Diagnostics.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", resp.Diagnostics)
 	}
-	assertCallSequence(t, api.calls, []string{getRepoCall, getRepoCall})
+	assertCallSequence(t, api.calls, []string{getRepoCall})
 }
 
 func TestRepoTagsResource_Create_RepoNotFound(t *testing.T) {
@@ -329,7 +356,7 @@ func TestRepoTagsResource_Update_DiffsAgainstLiveTags(t *testing.T) {
 	if resp.Diagnostics.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", resp.Diagnostics)
 	}
-	assertCallSequence(t, api.calls, []string{getRepoCall, patchTagsCall, getRepoCall})
+	assertCallSequence(t, api.calls, []string{getRepoCall, patchTagsCall})
 	body := patchBody(t, api.calls[1])
 	if !reflect.DeepEqual(body.SetTags, map[string]string{"team": "payments"}) || !reflect.DeepEqual(body.RemoveTags, []string{"manual"}) {
 		t.Errorf("unexpected PATCH body: %+v", body)
