@@ -37,7 +37,7 @@ type ListReposOptions struct {
 	Provider    string   // VCS provider, e.g. github or gitlab
 	VCSInstance string   // VCS host, e.g. gitlab.company.com
 	Namespace   string   // '/'-separated namespace prefix, e.g. acme/platform
-	Tags        []string // tag key or key:value; a repo must match every entry
+	Tags        []string // tag key or key:value; keys are ANDed, values of one key ORed
 }
 
 // reposPageSize is the API's maximum per_page value.
