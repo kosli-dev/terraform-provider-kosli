@@ -4,9 +4,9 @@
 
 FEATURES:
 
-* **New Resource**: `kosli_repo_tags` for managing the tags of a Kosli repo by its internal ID
-* **New Data Source**: `kosli_repo` for querying a single repo by internal ID, or by name and optional VCS provider
-* **New Data Source**: `kosli_repos` for listing repos matching filters and returning their internal IDs
+* **New Resource**: `kosli_repo_tags` for managing the tags of a Kosli repo by its internal ID [GH-315]
+* **New Data Source**: `kosli_repo` for querying a single repo by internal ID, or by name and optional VCS provider [GH-315]
+* **New Data Source**: `kosli_repos` for listing repos matching filters and returning their internal IDs [GH-315]
 
 ## v0.12.1 (November 10, 2026)
 
