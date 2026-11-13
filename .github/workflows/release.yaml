@@ -23,7 +23,7 @@ jobs:
   compliance:
     name: Kosli compliance gate
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     permissions:
       actions: read
       contents: read
