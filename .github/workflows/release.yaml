@@ -23,8 +23,9 @@ jobs:
   compliance:
     name: Kosli compliance gate
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     permissions:
+      actions: read
       contents: read
     env:
       ARTIFACT_NAME: ${{ github.event.repository.name }}
@@ -38,11 +39,33 @@ jobs:
         with:
           version: ${{ env.KOSLI_VERSION }}
 
-      # Capture first so a missing trail or API error fails the step
+      # The tag can land before main has attested everything. Wait for the
+      # trail, but fail as soon as one of main's runs for this commit fails.
       - name: Find attested artifact
         id: artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          trail=$(kosli get trail "${GITHUB_SHA}" --flow "${KOSLI_FLOW_NAME}" --output json)
+          while :; do
+            # A failed lookup is retried; the trail check below still runs
+            if failed=$(gh run list -R "${GITHUB_REPOSITORY}" --commit "${GITHUB_SHA}" --branch main --event push \
+                  --json workflowName,conclusion,url \
+                  --jq '.[] | select(.conclusion | IN("failure", "cancelled", "timed_out")) | "\(.workflowName): \(.url)"'); then
+              if [ -n "${failed}" ]; then
+                echo "${failed}"
+                echo "::error::A run on main for ${GITHUB_SHA} did not succeed; fix or re-run it, then re-run this workflow"
+                exit 1
+              fi
+            else
+              echo "::warning::Could not list main's runs for ${GITHUB_SHA}; retrying"
+            fi
+            if trail=$(kosli get trail "${GITHUB_SHA}" --flow "${KOSLI_FLOW_NAME}" --output json) &&
+               [ "$(jq -r '.compliance_status.status' <<< "${trail}")" != "INCOMPLETE" ]; then
+              break
+            fi
+            echo "Waiting for main's runs to attest ${GITHUB_SHA}..."
+            sleep 30
+          done
           fingerprint=$(jq -r --arg a "${ARTIFACT_NAME}" \
             '.compliance_status.artifacts_statuses[$a].artifact_fingerprint // empty' <<< "${trail}")
           if [ -z "${fingerprint}" ]; then
