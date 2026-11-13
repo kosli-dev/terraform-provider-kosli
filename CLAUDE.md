@@ -243,7 +243,7 @@ git push origin v0.1.0
 ```
 
 **Automated steps:**
-- Kosli compliance gate (runs first, fails fast): asserts the binary the Main Pipeline attested on the tagged commit's trail against the flow template (`kosli assert artifact --flow`), so every attestation must be present and compliant. Tag only after main and CodeQL are green; re-run the workflow if the gate ran too early
+- Kosli compliance gate (runs first): asserts the binary the Main Pipeline attested on the tagged commit's trail against the flow template (`kosli assert artifact --flow`), so every attestation must be present and compliant. If main's runs for the tagged commit are still going, it waits (up to 30 minutes) until the trail is no longer `INCOMPLETE`; it fails at once if one of those runs failed, was cancelled or timed out. Re-run the workflow after fixing or re-running that run
 - Multi-platform builds (macOS, Linux, Windows for amd64/arm64)
 - GPG signing of artifacts
 - SBOM generation
