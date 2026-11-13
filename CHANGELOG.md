@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.13.0 (November 13, 2026)
+## v0.13.0 (November 13, 2026)
 
 FEATURES:
 
