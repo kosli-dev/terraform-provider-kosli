@@ -47,13 +47,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           while :; do
-            failed=$(gh run list -R "${GITHUB_REPOSITORY}" --commit "${GITHUB_SHA}" --branch main --event push \
-              --json workflowName,conclusion,url \
-              --jq '.[] | select(.conclusion | IN("failure", "cancelled", "timed_out")) | "\(.workflowName): \(.url)"')
-            if [ -n "${failed}" ]; then
-              echo "${failed}"
-              echo "::error::A run on main for ${GITHUB_SHA} did not succeed; fix or re-run it, then re-run this workflow"
-              exit 1
+            # A failed lookup is retried; the trail check below still runs
+            if failed=$(gh run list -R "${GITHUB_REPOSITORY}" --commit "${GITHUB_SHA}" --branch main --event push \
+                  --json workflowName,conclusion,url \
+                  --jq '.[] | select(.conclusion | IN("failure", "cancelled", "timed_out")) | "\(.workflowName): \(.url)"'); then
+              if [ -n "${failed}" ]; then
+                echo "${failed}"
+                echo "::error::A run on main for ${GITHUB_SHA} did not succeed; fix or re-run it, then re-run this workflow"
+                exit 1
+              fi
+            else
+              echo "::warning::Could not list main's runs for ${GITHUB_SHA}; retrying"
             fi
             if trail=$(kosli get trail "${GITHUB_SHA}" --flow "${KOSLI_FLOW_NAME}" --output json) &&
                [ "$(jq -r '.compliance_status.status' <<< "${trail}")" != "INCOMPLETE" ]; then
