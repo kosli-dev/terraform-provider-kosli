@@ -87,11 +87,11 @@ func (d *controlDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 			},
 			"created_at": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "RFC3339 UTC timestamp of when the control was created. When `version` is set, this is when that version was created.",
+				MarkdownDescription: "RFC3339 UTC timestamp of when the latest version of the control was created, or the requested version when `version` is set.",
 			},
 			"created_by": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Identifier of the user who created the control. When `version` is set, this is who created that version.",
+				MarkdownDescription: "Identifier of the user who created the latest version of the control, or the requested version when `version` is set.",
 			},
 			"tags": schema.MapAttribute{
 				Computed:            true,

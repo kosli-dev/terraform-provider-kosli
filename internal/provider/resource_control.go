@@ -128,7 +128,7 @@ func (r *controlResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Computed:            true,
 			},
 			"created_by": schema.StringAttribute{
-				MarkdownDescription: "Identifier of the user who created the current version of the control.",
+				MarkdownDescription: "Identifier of the user who created the current version of the control. Set again on every update, so it is the author of the latest change, not of the control.",
 				Computed:            true,
 			},
 			"tags": schema.MapAttribute{
