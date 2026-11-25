@@ -70,8 +70,8 @@ Data sources provide read-only access to control metadata. To create or modify c
 
 ### Read-Only
 
-- `created_at` (String) RFC3339 UTC timestamp of when the control was created. When `version` is set, this is when that version was created.
-- `created_by` (String) Identifier of the user who created the control. When `version` is set, this is who created that version.
+- `created_at` (String) RFC3339 UTC timestamp of when the latest version of the control was created, or the requested version when `version` is set.
+- `created_by` (String) Identifier of the user who created the latest version of the control, or the requested version when `version` is set.
 - `description` (String) The description of the control.
 - `links` (Map of String) Named links related to the control, as a map of link name to URL.
 - `name` (String) Human-readable display name of the control.

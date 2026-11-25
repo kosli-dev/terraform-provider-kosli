@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
@@ -262,5 +263,24 @@ func TestMapControlToState(t *testing.T) {
 	}
 	if !data4.Links.IsNull() {
 		t.Error("expected unknown prior links to normalize to null")
+	}
+}
+
+// Each update of a control stores a new version, and the API returns that
+// version's created_at and created_by. A plan modifier that pins the state
+// value would make every update fail with an inconsistent result.
+func TestControlResource_Schema_VersionFieldsAreNotPinned(t *testing.T) {
+	r := &controlResource{}
+	resp := &resource.SchemaResponse{}
+	r.Schema(context.Background(), resource.SchemaRequest{}, resp)
+
+	for _, name := range []string{"created_at", "created_by"} {
+		attr, ok := resp.Schema.Attributes[name].(schema.StringAttribute)
+		if !ok {
+			t.Fatalf("Expected %q to be a schema.StringAttribute, got %T", name, resp.Schema.Attributes[name])
+		}
+		if len(attr.PlanModifiers) != 0 {
+			t.Errorf("Expected %q to have no plan modifiers, got %d", name, len(attr.PlanModifiers))
+		}
 	}
 }
