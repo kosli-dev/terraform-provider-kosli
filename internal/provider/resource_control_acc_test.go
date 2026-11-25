@@ -233,11 +233,12 @@ func TestAccControlResource_identity(t *testing.T) {
 				},
 			},
 			{
-				ResourceName:                         resourceName,
-				ImportState:                          true,
-				ImportStateKind:                      resource.ImportBlockWithResourceIdentity,
-				ImportStateVerify:                    true,
-				ImportStateVerifyIdentifierAttribute: "identifier",
+				ResourceName: resourceName,
+				ImportState:  true,
+				// A plannable import fails the step unless the plan is a
+				// no-op, and terraform-plugin-testing rejects
+				// ImportStateVerify for it.
+				ImportStateKind: resource.ImportBlockWithResourceIdentity,
 			},
 		},
 	})

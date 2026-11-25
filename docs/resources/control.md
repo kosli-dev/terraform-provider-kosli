@@ -74,7 +74,7 @@ terraform import kosli_control.binary_provenance SDLC-001
 
 ### Read-Only
 
-- `created_at` (String) RFC3339 UTC timestamp of when the control was created.
-- `created_by` (String) Identifier of the user who created the control.
+- `created_at` (String) RFC3339 UTC timestamp of when the current version of the control was created. Changes on every update.
+- `created_by` (String) Identifier of the user who created the current version of the control.
 - `policies_referencing` (List of String) Names of the environment policies that reference this control.
 - `version` (Number) Version number of the control, assigned by the server and incremented on every update.

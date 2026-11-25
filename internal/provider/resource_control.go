@@ -119,19 +119,17 @@ func (r *controlResource) Schema(ctx context.Context, req resource.SchemaRequest
 				MarkdownDescription: "Version number of the control, assigned by the server and incremented on every update.",
 				Computed:            true,
 			},
+			// created_at and created_by deliberately omit UseStateForUnknown():
+			// every update stores a new version and the API returns that
+			// version's values, so pinning the state value in the plan fails
+			// the apply with "Provider produced inconsistent result".
 			"created_at": schema.StringAttribute{
-				MarkdownDescription: "RFC3339 UTC timestamp of when the control was created.",
+				MarkdownDescription: "RFC3339 UTC timestamp of when the current version of the control was created. Changes on every update.",
 				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"created_by": schema.StringAttribute{
-				MarkdownDescription: "Identifier of the user who created the control.",
+				MarkdownDescription: "Identifier of the user who created the current version of the control.",
 				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"tags": schema.MapAttribute{
 				MarkdownDescription: "Key-value pairs to tag the control.",
