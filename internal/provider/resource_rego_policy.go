@@ -578,13 +578,19 @@ func mapRegoPolicyVersionToModel(version *client.RegoPolicyVersion, data *regoPo
 		data.Entrypoint = types.StringValue(version.Entrypoint)
 	}
 
-	data.ParamsSchema = types.StringNull()
-	if schema := bytes.TrimSpace(version.ParamsSchema); len(schema) > 0 && string(schema) != "null" {
-		var compact bytes.Buffer
-		if err := json.Compact(&compact, schema); err == nil {
-			data.ParamsSchema = types.StringValue(compact.String())
-		} else {
-			data.ParamsSchema = types.StringValue(string(schema))
-		}
+	data.ParamsSchema = regoParamsSchemaValue(version.ParamsSchema)
+}
+
+// regoParamsSchemaValue renders a version's params schema as a compact JSON
+// string, or null when the version declares none.
+func regoParamsSchemaValue(raw json.RawMessage) types.String {
+	schema := bytes.TrimSpace(raw)
+	if len(schema) == 0 || string(schema) == "null" {
+		return types.StringNull()
 	}
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, schema); err != nil {
+		return types.StringValue(string(schema))
+	}
+	return types.StringValue(compact.String())
 }

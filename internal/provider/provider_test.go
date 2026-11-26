@@ -187,6 +187,7 @@ func TestKosliProvider_DataSources(t *testing.T) {
 		"kosli_logical_environment",
 		"kosli_notification_config",
 		"kosli_policy",
+		"kosli_rego_policy",
 		"kosli_repo",
 		"kosli_repos",
 		"kosli_service_account",
