@@ -3,14 +3,11 @@ page_title: "kosli_control Data Source - terraform-provider-kosli"
 subcategory: ""
 description: |-
   Fetches details of an existing Kosli control. Use this data source to reference controls and access metadata such as the version, tags, and referencing policies.
-  ~> Note: Controls is rolled out per organization; API requests return 403 Forbidden until it is enabled for yours.
 ---
 
 # Data Source: kosli_control
 
 Fetches details of an existing Kosli control. Use this data source to reference controls and access metadata such as the version, tags, and referencing policies.
-
-~> **Note:** Controls is rolled out per organization; API requests return `403 Forbidden` until it is enabled for yours.
 
 ## Example Usage
 

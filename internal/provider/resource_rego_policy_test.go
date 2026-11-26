@@ -533,20 +533,6 @@ func TestRegoPolicyResource_Publish_TimesOutWhilePending(t *testing.T) {
 	}
 }
 
-func TestRegoPolicyResource_Publish_ForbiddenAddsRolloutHint(t *testing.T) {
-	api := &fakeRegoAPI{publishStatus: http.StatusForbidden}
-	r := newRegoPolicyTestResource(t, api)
-	data := regoPolicyModel(t, regoValidFiles)
-
-	diags := r.publish(context.Background(), &data)
-	if !diags.HasError() {
-		t.Fatal("expected an error for a forbidden publish")
-	}
-	if detail := diags.Errors()[0].Detail(); !strings.Contains(detail, "rolled out per organization") {
-		t.Errorf("expected the rollout hint, got: %s", detail)
-	}
-}
-
 // A change of name alone publishes the same bundle again, which the API
 // answers with the existing version.
 func TestRegoPolicyResource_Publish_MetadataOnlyKeepsVersion(t *testing.T) {

@@ -19,7 +19,7 @@ func TestAccRegoPolicyDataSource_basic(t *testing.T) {
 	dataSourceName := "data.kosli_rego_policy.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -55,7 +55,7 @@ func TestAccRegoPolicyDataSource_version(t *testing.T) {
 	dataSourceName := "data.kosli_rego_policy.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -85,7 +85,7 @@ func TestAccRegoPolicyDataSource_notFound(t *testing.T) {
 	rIdentifier := acctest.RandomWithPrefix("tf-acc-test-missing")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -114,7 +114,7 @@ func TestAccRegoPolicyDataSource_archived(t *testing.T) {
 	skipUnlessArchived := testAccRegoPolicyNotArchived(rIdentifier)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{

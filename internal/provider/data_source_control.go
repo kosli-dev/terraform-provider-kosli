@@ -49,8 +49,7 @@ func (d *controlDataSource) Metadata(ctx context.Context, req datasource.Metadat
 // Schema defines the schema for the data source.
 func (d *controlDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Fetches details of an existing Kosli control. Use this data source to reference controls and access metadata such as the version, tags, and referencing policies.\n\n" +
-			"~> **Note:** Controls is rolled out per organization; API requests return `403 Forbidden` until it is enabled for yours.",
+		MarkdownDescription: "Fetches details of an existing Kosli control. Use this data source to reference controls and access metadata such as the version, tags, and referencing policies.",
 
 		Attributes: map[string]schema.Attribute{
 			"identifier": schema.StringAttribute{
@@ -150,9 +149,6 @@ func (d *controlDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			return
 		}
 		detail := fmt.Sprintf("Could not read control %q: %s", data.Identifier.ValueString(), err.Error())
-		if client.IsForbidden(err) {
-			detail += controlNotEnabledHint
-		}
 		resp.Diagnostics.AddError("Error Reading Control", detail)
 		return
 	}
@@ -197,9 +193,6 @@ func (d *controlDataSource) Read(ctx context.Context, req datasource.ReadRequest
 				return
 			}
 			detail := fmt.Sprintf("Could not read version %d of control %q: %s", data.Version.ValueInt64(), data.Identifier.ValueString(), err.Error())
-			if client.IsForbidden(err) {
-				detail += controlNotEnabledHint
-			}
 			resp.Diagnostics.AddError("Error Reading Control Version", detail)
 			return
 		}

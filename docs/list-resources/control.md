@@ -3,15 +3,12 @@ page_title: "kosli_control List Resource - terraform-provider-kosli"
 subcategory: ""
 description: |-
   Lists Kosli controls in the organization for use with terraform query (Terraform >= 1.14), so existing controls can be discovered and brought under Terraform management without hand-writing one import block per control.
-  ~> Note: Controls is rolled out per organization; API requests return 403 Forbidden until it is enabled for yours.
   -> The Kosli list endpoint does not return policies_referencing, so when resource data is included in query results that attribute is always reported as an empty list. Archived controls are only returned when archived = true is set.
 ---
 
 # List Resource: kosli_control
 
 Lists Kosli controls in the organization for use with `terraform query` (Terraform >= 1.14), so existing controls can be discovered and brought under Terraform management without hand-writing one `import` block per control.
-
-~> **Note:** Controls is rolled out per organization; API requests return `403 Forbidden` until it is enabled for yours.
 
 -> The Kosli list endpoint does not return `policies_referencing`, so when resource data is included in query results that attribute is always reported as an empty list. Archived controls are only returned when `archived = true` is set.
 

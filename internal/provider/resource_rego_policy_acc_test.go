@@ -38,8 +38,6 @@ violations contains "the trail has no artifacts" if {
 `
 )
 
-// Rego policies sit behind the Controls feature flag, so these tests are skipped
-// when the test organization does not have it (see testAccControlsPreCheck).
 // Kosli cannot delete a rego policy: each run leaves its policies archived.
 
 // TestAccRegoPolicyResource_basic tests publishing a single-file policy.
@@ -48,7 +46,7 @@ func TestAccRegoPolicyResource_basic(t *testing.T) {
 	resourceName := "kosli_rego_policy.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckRegoPolicyArchived(rIdentifier),
 		Steps: []resource.TestStep{
@@ -76,7 +74,7 @@ func TestAccRegoPolicyResource_update(t *testing.T) {
 	resourceName := "kosli_rego_policy.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -109,7 +107,7 @@ func TestAccRegoPolicyResource_import(t *testing.T) {
 	resourceName := "kosli_rego_policy.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -135,7 +133,7 @@ func TestAccRegoPolicyResource_rejected(t *testing.T) {
 	rIdentifier := acctest.RandomWithPrefix("tf-acc-test")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -154,7 +152,7 @@ func TestAccRegoPolicyResource_recreateArchived(t *testing.T) {
 	resourceName := "kosli_rego_policy.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
