@@ -226,20 +226,6 @@ func TestRegoPolicyDataSource_Read_Archived(t *testing.T) {
 	})
 }
 
-func TestRegoPolicyDataSource_Read_ForbiddenAddsBetaHint(t *testing.T) {
-	api := &fakeRegoAPI{readStatus: 403}
-	d := newRegoPolicyTestDataSource(t, api)
-	data := regoPolicyDataSourceModelFor("image-provenance")
-
-	diags := d.read(context.Background(), &data)
-	if !diags.HasError() {
-		t.Fatal("expected an error for a forbidden read")
-	}
-	if detail := diags.Errors()[0].Detail(); !strings.Contains(detail, "beta feature") {
-		t.Errorf("expected the beta hint, got: %s", detail)
-	}
-}
-
 // The files must be the ones the digest describes. A bundle that does not
 // hash to the version's digest is refused, so files and digest cannot
 // disagree in state.

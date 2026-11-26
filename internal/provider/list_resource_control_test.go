@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/list"
@@ -306,7 +305,7 @@ func TestControlListResource_List_Forbidden(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
-		fmt.Fprint(w, `{"message": "Controls not enabled"}`)
+		fmt.Fprint(w, `{"message": "Forbidden"}`)
 	}))
 	defer server.Close()
 
@@ -330,14 +329,5 @@ func TestControlListResource_List_Forbidden(t *testing.T) {
 	}
 	if !results[0].Diagnostics.HasError() {
 		t.Fatal("expected an error diagnostic")
-	}
-	found := false
-	for _, d := range results[0].Diagnostics.Errors() {
-		if strings.Contains(d.Detail(), "beta feature") {
-			found = true
-		}
-	}
-	if !found {
-		t.Errorf("expected the beta hint in the error detail, got %v", results[0].Diagnostics)
 	}
 }

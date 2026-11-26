@@ -1,9 +1,7 @@
 package provider
 
 import (
-	"context"
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -11,28 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfversion"
-	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
-
-// testAccControlsPreCheck skips control acceptance tests when the Controls
-// beta feature is not enabled for the test organization (every Controls
-// endpoint returns 403 Forbidden in that case).
-func testAccControlsPreCheck(t *testing.T) {
-	testAccPreCheck(t)
-
-	var opts []client.ClientOption
-	if apiURL := os.Getenv("KOSLI_API_URL"); apiURL != "" {
-		opts = append(opts, client.WithBaseURL(apiURL))
-	}
-	c, err := client.NewClient(os.Getenv("KOSLI_API_TOKEN"), os.Getenv("KOSLI_ORG"), opts...)
-	if err != nil {
-		t.Fatalf("failed to create client for precheck: %v", err)
-	}
-
-	if _, err := c.ListControls(context.Background(), nil); client.IsForbidden(err) {
-		t.Skip("Controls is a beta feature and is not enabled for the test organization")
-	}
-}
 
 // TestAccControlResource_basic tests minimal required configuration.
 func TestAccControlResource_basic(t *testing.T) {
@@ -40,7 +17,7 @@ func TestAccControlResource_basic(t *testing.T) {
 	resourceName := "kosli_control.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -64,7 +41,7 @@ func TestAccControlResource_full(t *testing.T) {
 	description := "Control for acceptance testing"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -87,7 +64,7 @@ func TestAccControlResource_update(t *testing.T) {
 	resourceName := "kosli_control.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Step 1: Create
@@ -123,7 +100,7 @@ func TestAccControlResource_clearDescription(t *testing.T) {
 	resourceName := "kosli_control.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Step 1: Create with a description
@@ -153,7 +130,7 @@ func TestAccControlResource_tags(t *testing.T) {
 	resourceName := "kosli_control.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Step 1: Create with a tag
@@ -190,7 +167,7 @@ func TestAccControlResource_import(t *testing.T) {
 	resourceName := "kosli_control.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -217,7 +194,7 @@ func TestAccControlResource_identity(t *testing.T) {
 	resourceName := "kosli_control.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() { testAccControlsPreCheck(t) },
+		PreCheck: func() { testAccPreCheck(t) },
 		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
 			// Resource identity requires Terraform 1.12+.
 			tfversion.SkipBelow(tfversion.Version1_12_0),
@@ -252,7 +229,7 @@ func TestAccControlResource_forceRecreate(t *testing.T) {
 	resourceName := "kosli_control.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{

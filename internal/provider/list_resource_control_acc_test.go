@@ -22,7 +22,7 @@ func TestAccControlListResource_query(t *testing.T) {
 	id2 := prefix + "-b"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() { testAccControlsPreCheck(t) },
+		PreCheck: func() { testAccPreCheck(t) },
 		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
 			// terraform query / list resources require Terraform 1.14+.
 			tfversion.SkipBelow(tfversion.Version1_14_0),

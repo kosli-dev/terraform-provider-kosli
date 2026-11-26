@@ -3,15 +3,12 @@ page_title: "kosli_control Resource - terraform-provider-kosli"
 subcategory: ""
 description: |-
   Manages a Kosli control. Controls are org-level definitions of SDLC requirements (for example SDLC-001 "Binary provenance") whose compliance is evaluated from attestations and enforced through environment policies.
-  ~> Note: Controls is a beta feature and must be enabled for your organization; API requests return 403 Forbidden otherwise.
   -> Deleting this resource archives the control in Kosli rather than hard-deleting it. Creating a new control with the identifier of an archived control fails with a conflict; unarchive the control in Kosli and import it instead.
 ---
 
 # Resource: kosli_control
 
 Manages a Kosli control. Controls are org-level definitions of SDLC requirements (for example `SDLC-001` "Binary provenance") whose compliance is evaluated from attestations and enforced through environment policies.
-
-~> **Note:** Controls is a **beta** feature and must be enabled for your organization; API requests return `403 Forbidden` otherwise.
 
 -> Deleting this resource **archives** the control in Kosli rather than hard-deleting it. Creating a new control with the identifier of an archived control fails with a conflict; unarchive the control in Kosli and import it instead.
 

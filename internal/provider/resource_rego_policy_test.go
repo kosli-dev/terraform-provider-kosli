@@ -52,15 +52,11 @@ type fakeRegoAPI struct {
 	description string
 	versions    []*fakeRegoVersion
 
-	// publishStatus, when set, answers every publish with that status code.
-	publishStatus int
 	// bundleStatus, when set, answers every bundle download with that status code.
 	bundleStatus int
 	// bundleSuffix is appended to every file in a served bundle, so the
 	// bundle no longer has the digest the version reports.
 	bundleSuffix string
-	// readStatus, when set, answers every GET with that status code.
-	readStatus int
 	// pendingPolls is how many version reads a new version stays pending for.
 	pendingPolls int
 
@@ -157,12 +153,6 @@ func (f *fakeRegoAPI) handler() http.HandlerFunc {
 			return
 		}
 
-		if r.Method == http.MethodGet && f.readStatus != 0 {
-			w.WriteHeader(f.readStatus)
-			w.Write([]byte(`{"message": "Controls is not enabled for this organization"}`))
-			return
-		}
-
 		switch {
 		case r.Method == http.MethodPut && len(parts) == 1:
 			f.publish(w, r, parts[0])
@@ -256,12 +246,6 @@ func (f *fakeRegoAPI) identifierOr(fallback string) string {
 }
 
 func (f *fakeRegoAPI) publish(w http.ResponseWriter, r *http.Request, identifier string) {
-	if f.publishStatus != 0 {
-		w.WriteHeader(f.publishStatus)
-		w.Write([]byte(`{"message": "Controls is not enabled for this organization"}`))
-		return
-	}
-
 	var raw map[string]json.RawMessage
 	if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
 		f.t.Errorf("failed to decode publish body: %v", err)
@@ -530,20 +514,6 @@ func TestRegoPolicyResource_Publish_TimesOutWhilePending(t *testing.T) {
 		if !strings.Contains(detail, want) {
 			t.Errorf("expected detail to contain %q, got: %s", want, detail)
 		}
-	}
-}
-
-func TestRegoPolicyResource_Publish_ForbiddenAddsBetaHint(t *testing.T) {
-	api := &fakeRegoAPI{publishStatus: http.StatusForbidden}
-	r := newRegoPolicyTestResource(t, api)
-	data := regoPolicyModel(t, regoValidFiles)
-
-	diags := r.publish(context.Background(), &data)
-	if !diags.HasError() {
-		t.Fatal("expected an error for a forbidden publish")
-	}
-	if detail := diags.Errors()[0].Detail(); !strings.Contains(detail, "beta feature") {
-		t.Errorf("expected the beta hint, got: %s", detail)
 	}
 }
 

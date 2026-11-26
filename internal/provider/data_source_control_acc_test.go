@@ -16,7 +16,7 @@ func TestAccControlDataSource_basic(t *testing.T) {
 	dataSourceName := "data.kosli_control.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -42,7 +42,7 @@ func TestAccControlDataSource_version(t *testing.T) {
 	dataSourceName := "data.kosli_control.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Step 1: Create version 1
@@ -70,7 +70,7 @@ func TestAccControlDataSource_nonExistent(t *testing.T) {
 	rIdentifier := acctest.RandomWithPrefix("tf-acc-test-missing")
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
