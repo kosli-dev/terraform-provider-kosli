@@ -1,12 +1,16 @@
 package provider
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
 
 const (
@@ -33,7 +37,7 @@ allow if {
 
 // Rego policies sit behind the Controls beta flag, so these tests are skipped
 // when the test organization does not have it (see testAccControlsPreCheck).
-// Kosli cannot delete a rego policy: each run leaves its policies behind.
+// Kosli cannot delete a rego policy: each run leaves its policies archived.
 
 // TestAccRegoPolicyResource_basic tests publishing a single-file policy.
 func TestAccRegoPolicyResource_basic(t *testing.T) {
@@ -43,6 +47,7 @@ func TestAccRegoPolicyResource_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccControlsPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckRegoPolicyArchived(rIdentifier),
 		Steps: []resource.TestStep{
 			{
 				Config: testAccRegoPolicyResourceConfig(rIdentifier, "Acceptance test policy", "", testAccRegoPolicySource),
@@ -136,6 +141,56 @@ func TestAccRegoPolicyResource_rejected(t *testing.T) {
 			},
 		},
 	})
+}
+
+// TestAccRegoPolicyResource_recreateArchived tests that creating a policy
+// whose identifier belongs to an archived policy unarchives it and continues
+// its version numbers.
+func TestAccRegoPolicyResource_recreateArchived(t *testing.T) {
+	rIdentifier := acctest.RandomWithPrefix("tf-acc-test")
+	resourceName := "kosli_rego_policy.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRegoPolicyResourceConfig(rIdentifier, "Acceptance test policy", "", testAccRegoPolicySource),
+				Check:  resource.TestCheckResourceAttr(resourceName, "version", "1"),
+			},
+			{
+				Config:  testAccRegoPolicyResourceConfig(rIdentifier, "Acceptance test policy", "", testAccRegoPolicySource),
+				Destroy: true,
+			},
+			{
+				Config: testAccRegoPolicyResourceConfig(rIdentifier, "Acceptance test policy", "", testAccRegoPolicySourceUpdated),
+				Check:  resource.TestCheckResourceAttr(resourceName, "version", "2"),
+			},
+		},
+	})
+}
+
+// testAccCheckRegoPolicyArchived verifies that destroy archived the policy.
+func testAccCheckRegoPolicyArchived(identifier string) resource.TestCheckFunc {
+	return func(*terraform.State) error {
+		var opts []client.ClientOption
+		if apiURL := os.Getenv("KOSLI_API_URL"); apiURL != "" {
+			opts = append(opts, client.WithBaseURL(apiURL))
+		}
+		c, err := client.NewClient(os.Getenv("KOSLI_API_TOKEN"), os.Getenv("KOSLI_ORG"), opts...)
+		if err != nil {
+			return fmt.Errorf("failed to create client: %w", err)
+		}
+
+		policy, err := c.GetRegoPolicy(context.Background(), identifier)
+		if err != nil {
+			return fmt.Errorf("failed to read rego policy %q after destroy: %w", identifier, err)
+		}
+		if !policy.Archived {
+			return fmt.Errorf("rego policy %q is not archived after destroy", identifier)
+		}
+		return nil
+	}
 }
 
 // testAccRegoPolicyResourceConfig returns a single-file policy configuration.

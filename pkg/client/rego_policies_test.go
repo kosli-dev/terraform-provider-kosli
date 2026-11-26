@@ -289,3 +289,62 @@ func TestRegoPolicyDigest_DependsOnContentAndPath(t *testing.T) {
 		t.Error("expected a different digest for a different path")
 	}
 }
+
+func TestGetRegoPolicy_Archived(t *testing.T) {
+	c := newRegoTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"identifier":"p","name":"P","archived":true,"newest_version":{"version":1,"status":"valid"},"created_at":1,"created_by":"Ada","updated_at":1}`))
+	})
+
+	policy, err := c.GetRegoPolicy(context.Background(), "p")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !policy.Archived {
+		t.Error("expected the policy to be archived")
+	}
+}
+
+func TestArchiveRegoPolicy_Success(t *testing.T) {
+	c := newRegoTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/v2/rego-policies/test-org/p/archive" {
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		w.Write([]byte(`{"identifier":"p","name":"P","archived":true,"newest_version":{"version":1,"status":"valid"},"created_at":1,"created_by":"Ada","updated_at":1}`))
+	})
+
+	policy, err := c.ArchiveRegoPolicy(context.Background(), "p")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !policy.Archived || policy.Identifier != "p" {
+		t.Errorf("unexpected policy: %+v", policy)
+	}
+}
+
+func TestArchiveRegoPolicy_NotFound(t *testing.T) {
+	c := newRegoTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`{"message": "Rego policy not found"}`))
+	})
+
+	if _, err := c.ArchiveRegoPolicy(context.Background(), "p"); !IsNotFound(err) {
+		t.Errorf("expected a not-found error, got %v", err)
+	}
+}
+
+func TestUnarchiveRegoPolicy_Success(t *testing.T) {
+	c := newRegoTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/v2/rego-policies/test-org/p/unarchive" {
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		w.Write([]byte(`{"identifier":"p","name":"P","archived":false,"newest_version":{"version":1,"status":"valid"},"created_at":1,"created_by":"Ada","updated_at":1}`))
+	})
+
+	policy, err := c.UnarchiveRegoPolicy(context.Background(), "p")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if policy.Archived {
+		t.Error("expected the policy to be unarchived")
+	}
+}

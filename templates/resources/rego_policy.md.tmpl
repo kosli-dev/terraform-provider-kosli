@@ -32,7 +32,18 @@ A version published outside Terraform shows up as a change to `files` on the nex
 
 ## Destroying
 
-Kosli has no way to delete a rego policy or one of its versions. `terraform destroy` removes the resource from the Terraform state and leaves the policy in Kosli. Re-creating a resource with the same `identifier` publishes to the existing policy.
+Kosli never hard-deletes a rego policy. `terraform destroy`, or removing a `kosli_rego_policy` from the configuration, **archives** the policy:
+
+- It leaves the default policy list in Kosli.
+- Its versions, files and past evaluations stay readable.
+- An evaluation by its identifier still runs.
+- Its identifier stays taken.
+
+Creating a `kosli_rego_policy` with the identifier of an archived policy publishes to that policy and unarchives it, so the version numbers continue from where they stopped.
+
+A policy archived outside Terraform reads as deleted: the next plan proposes to create it, and the apply unarchives it.
+
+~> **Note:** Archiving requires a Kosli server with the rego policy archive API. On an older server the destroy removes the resource from the Terraform state, leaves the policy active, and says so in a warning.
 
 ## Import
 
@@ -40,6 +51,6 @@ Rego policies can be imported using their identifier:
 
 {{codefile "shell" "examples/resources/kosli_rego_policy/import.sh"}}
 
-The import reads the files of the current version into the state. `comment` is not read back from Kosli.
+The import reads the files of the current version into the state. `comment` is not read back from Kosli. An archived policy cannot be imported; unarchive it in Kosli first.
 
 {{ .SchemaMarkdown | trimspace }}

@@ -81,7 +81,8 @@ func (r *regoPolicyResource) Schema(ctx context.Context, req resource.SchemaRequ
 			"Each change to `files` or `input_schema` publishes a new version, and the apply waits until Kosli has validated it.\n\n" +
 			"~> **Note:** Rego policies are part of the Controls **beta** feature, which must be enabled for your organization; API requests return `403 Forbidden` otherwise.\n\n" +
 			"~> **Note:** Publishing requires a service account with **Admin** permissions.\n\n" +
-			"-> Kosli has no way to delete a rego policy or one of its versions. Destroying this resource only removes it from the Terraform state; the policy and every published version stay in Kosli.",
+			"-> Deleting this resource **archives** the policy in Kosli rather than hard-deleting it: the policy leaves the policy list, while its versions stay readable and an evaluation by its identifier still runs. " +
+			"Creating the resource again with the same `identifier` publishes to the archived policy and unarchives it.",
 
 		Attributes: map[string]schema.Attribute{
 			"identifier": schema.StringAttribute{
@@ -276,23 +277,50 @@ func (r *regoPolicyResource) Update(ctx context.Context, req resource.UpdateRequ
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-// Delete only removes the resource from state: the API cannot delete a rego
-// policy or its versions.
+// Delete archives the policy and removes the Terraform state on success.
+// The API has no hard delete; archiving is the delete mechanism.
 func (r *regoPolicyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	ctx = resourceOperation(ctx, r, opDelete)
 	var data regoPolicyResourceModel
+
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.Diagnostics.AddWarning(
-		"Rego Policy Left In Kosli",
-		fmt.Sprintf("Kosli cannot delete a rego policy. Policy %q and its versions remain in Kosli; only the Terraform state entry was removed.", data.Identifier.ValueString()),
-	)
+	resp.Diagnostics.Append(r.archive(ctx, data.Identifier.ValueString())...)
+}
+
+// archive archives the policy. A policy that is already gone archives
+// silently. A Kosli server that predates the archive routes answers 404 for a
+// policy that still exists; that case is a warning, so the destroy still
+// removes the resource from state.
+func (r *regoPolicyResource) archive(ctx context.Context, identifier string) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	_, err := r.client.ArchiveRegoPolicy(ctx, identifier)
+	if err == nil {
+		return diags
+	}
+	if !client.IsNotFound(err) {
+		detail := fmt.Sprintf("Could not archive rego policy %q: %s", identifier, err.Error())
+		if client.IsForbidden(err) {
+			detail += regoPolicyBetaHint
+		}
+		diags.AddError("Error Deleting Rego Policy", detail)
+		return diags
+	}
+
+	if _, err := r.client.GetRegoPolicy(ctx, identifier); err == nil {
+		diags.AddWarning("Rego Policy Left In Kosli", fmt.Sprintf(
+			"This Kosli server does not support archiving rego policies. Policy %q stays active in Kosli; only the Terraform state entry was removed.", identifier))
+	}
+	return diags
 }
 
 // ImportState imports an existing policy by identifier. The Read that follows
-// downloads the current version's files into state.
+// downloads the current version's files into state. An archived policy reads
+// as gone, so it has to be unarchived in Kosli before it can be imported.
 func (r *regoPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("identifier"), req, resp)
 }
@@ -364,6 +392,18 @@ func (r *regoPolicyResource) publish(ctx context.Context, data *regoPolicyResour
 		return diags
 	}
 
+	// A publish to an archived policy succeeds and leaves it archived, and
+	// an archived policy reads as gone. Unarchiving here is what lets a
+	// destroyed resource be created again.
+	if policy.Archived {
+		policy, err = r.client.UnarchiveRegoPolicy(ctx, identifier)
+		if err != nil {
+			diags.AddError("Error Unarchiving Rego Policy", fmt.Sprintf(
+				"Version %d of rego policy %q was published, but the archived policy could not be unarchived: %s", version.Version, identifier, err.Error()))
+			return diags
+		}
+	}
+
 	mapRegoPolicyToModel(policy, data)
 	mapRegoPolicyVersionToModel(version, data)
 	return diags
@@ -423,6 +463,13 @@ func (r *regoPolicyResource) refresh(ctx context.Context, data *regoPolicyResour
 			detail += regoPolicyBetaHint
 		}
 		diags.AddError("Error Reading Rego Policy", detail)
+		return false, diags
+	}
+
+	// Archiving is this resource's delete mechanism, and the API still
+	// returns an archived policy. Reading it as gone turns an archive made
+	// outside Terraform into a planned recreation.
+	if policy.Archived {
 		return false, diags
 	}
 

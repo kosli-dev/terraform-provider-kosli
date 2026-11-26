@@ -54,8 +54,37 @@ type fakeRegoAPI struct {
 	// pendingPolls is how many version reads a new version stays pending for.
 	pendingPolls int
 
+	// archived mirrors the policy's archive state.
+	archived bool
+	// archiveUnsupported makes the archive routes answer 404, as a server
+	// that predates them does.
+	archiveUnsupported bool
+
 	publishBodies []map[string]json.RawMessage
 	fileReads     int
+	archiveCalls  int
+	unarchives    int
+}
+
+func (f *fakeRegoAPI) policyJSON() map[string]any {
+	body := map[string]any{
+		"identifier": f.identifier, "name": f.name, "archived": f.archived,
+		"newest_version": map[string]any{
+			"version": f.versions[len(f.versions)-1].number,
+			"status":  f.versions[len(f.versions)-1].status(),
+		},
+		"created_at": 50.0, "created_by": "Ada", "updated_at": 100.0,
+	}
+	if f.description != "" {
+		body["description"] = f.description
+	}
+	if current := f.current(); current != nil {
+		body["current_version"] = map[string]any{
+			"version": current.number, "digest": client.RegoPolicyDigest(current.files),
+			"input_schema": current.inputSchema, "params_schema": map[string]any{"type": "object"},
+		}
+	}
+	return body
 }
 
 // outcomeFor decides how a bundle validates from a marker in its source.
@@ -120,27 +149,23 @@ func (f *fakeRegoAPI) handler() http.HandlerFunc {
 		switch {
 		case r.Method == http.MethodPut && len(parts) == 1:
 			f.publish(w, r, parts[0])
+		case r.Method == http.MethodPost && len(parts) == 2 && (parts[1] == "archive" || parts[1] == "unarchive"):
+			if !f.exists || f.archiveUnsupported {
+				notFound()
+				return
+			}
+			if parts[1] == "archive" {
+				f.archiveCalls++
+				f.archived = true
+			} else {
+				f.unarchives++
+				f.archived = false
+			}
+			json.NewEncoder(w).Encode(f.policyJSON())
 		case r.Method != http.MethodGet || !f.exists:
 			notFound()
 		case len(parts) == 1:
-			body := map[string]any{
-				"identifier": f.identifier, "name": f.name,
-				"newest_version": map[string]any{
-					"version": f.versions[len(f.versions)-1].number,
-					"status":  f.versions[len(f.versions)-1].status(),
-				},
-				"created_at": 50.0, "created_by": "Ada", "updated_at": 100.0,
-			}
-			if f.description != "" {
-				body["description"] = f.description
-			}
-			if current := f.current(); current != nil {
-				body["current_version"] = map[string]any{
-					"version": current.number, "digest": client.RegoPolicyDigest(current.files),
-					"input_schema": current.inputSchema, "params_schema": map[string]any{"type": "object"},
-				}
-			}
-			json.NewEncoder(w).Encode(body)
+			json.NewEncoder(w).Encode(f.policyJSON())
 		case len(parts) >= 3 && parts[1] == "versions":
 			number, _ := strconv.ParseInt(parts[2], 10, 64)
 			if number < 1 || number > int64(len(f.versions)) {
@@ -727,4 +752,108 @@ func TestKeepRegoPolicyVersionAttributes(t *testing.T) {
 			t.Errorf("expected an unknown version, got %v", plan.Version)
 		}
 	})
+}
+
+func TestRegoPolicyResource_Archive(t *testing.T) {
+	api := &fakeRegoAPI{}
+	r := newRegoPolicyTestResource(t, api)
+	data := regoPolicyModel(t, regoValidFiles)
+	if diags := r.publish(context.Background(), &data); diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	diags := r.archive(context.Background(), "image-provenance")
+	if diags.HasError() || diags.WarningsCount() != 0 {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if !api.archived || api.archiveCalls != 1 {
+		t.Errorf("expected one archive call, got archived=%v calls=%d", api.archived, api.archiveCalls)
+	}
+}
+
+func TestRegoPolicyResource_Archive_AlreadyGone(t *testing.T) {
+	api := &fakeRegoAPI{}
+	r := newRegoPolicyTestResource(t, api)
+
+	diags := r.archive(context.Background(), "image-provenance")
+	if diags.HasError() || diags.WarningsCount() != 0 {
+		t.Fatalf("expected a missing policy to archive silently, got: %v", diags)
+	}
+}
+
+// A server that predates the archive routes answers 404 for a policy that
+// still exists. The destroy goes through, with a warning that the policy stays.
+func TestRegoPolicyResource_Archive_UnsupportedByServer(t *testing.T) {
+	api := &fakeRegoAPI{archiveUnsupported: true}
+	r := newRegoPolicyTestResource(t, api)
+	data := regoPolicyModel(t, regoValidFiles)
+	if diags := r.publish(context.Background(), &data); diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	diags := r.archive(context.Background(), "image-provenance")
+	if diags.HasError() {
+		t.Fatalf("unexpected error: %v", diags)
+	}
+	if diags.WarningsCount() != 1 {
+		t.Fatalf("expected one warning, got: %v", diags)
+	}
+	if detail := diags.Warnings()[0].Detail(); !strings.Contains(detail, "does not support archiving") {
+		t.Errorf("unexpected warning: %s", detail)
+	}
+}
+
+// An archived policy reads as gone, so a policy archived outside Terraform is
+// planned for recreation.
+func TestRegoPolicyResource_Refresh_ArchivedReadsAsGone(t *testing.T) {
+	api := &fakeRegoAPI{}
+	r := newRegoPolicyTestResource(t, api)
+	data := regoPolicyModel(t, regoValidFiles)
+	if diags := r.publish(context.Background(), &data); diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	api.archived = true
+
+	exists, diags := r.refresh(context.Background(), &data)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if exists {
+		t.Error("expected an archived policy to be reported as gone")
+	}
+}
+
+// Publishing to an archived policy succeeds and leaves it archived, so the
+// resource unarchives it: destroy followed by create brings the policy back.
+func TestRegoPolicyResource_Publish_UnarchivesArchivedPolicy(t *testing.T) {
+	api := &fakeRegoAPI{}
+	api.seed("image-provenance", "Image provenance", regoValidFiles, client.RegoPolicyVersionStatusValid)
+	api.archived = true
+	r := newRegoPolicyTestResource(t, api)
+	data := regoPolicyModel(t, regoValidFiles)
+
+	if diags := r.publish(context.Background(), &data); diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if api.archived || api.unarchives != 1 {
+		t.Errorf("expected the policy to be unarchived once, got archived=%v unarchives=%d", api.archived, api.unarchives)
+	}
+
+	exists, diags := r.refresh(context.Background(), &data)
+	if diags.HasError() || !exists {
+		t.Errorf("expected the policy to read back after create: exists=%v diags=%v", exists, diags)
+	}
+}
+
+func TestRegoPolicyResource_Publish_LeavesActivePolicyAlone(t *testing.T) {
+	api := &fakeRegoAPI{}
+	r := newRegoPolicyTestResource(t, api)
+	data := regoPolicyModel(t, regoValidFiles)
+
+	if diags := r.publish(context.Background(), &data); diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if api.unarchives != 0 {
+		t.Errorf("expected no unarchive call for an active policy, got %d", api.unarchives)
+	}
 }

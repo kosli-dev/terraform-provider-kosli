@@ -51,6 +51,9 @@ type RegoPolicy struct {
 	CreatedAt      float64                   `json:"created_at"`
 	CreatedBy      string                    `json:"created_by"`
 	UpdatedAt      float64                   `json:"updated_at"`
+	// Archived policies are left out of the policy list, but stay readable
+	// and an evaluation by their identifier still runs.
+	Archived bool `json:"archived"`
 }
 
 // RegoPolicyValidationError says why a version is rejected or failed.
@@ -136,6 +139,36 @@ func (c *Client) GetRegoPolicy(ctx context.Context, identifier string) (*RegoPol
 	path := apiPath("rego-policies", c.Organization(), identifier)
 
 	resp, err := c.Get(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+
+	var result RegoPolicy
+	if err := ParseResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// ArchiveRegoPolicy archives a rego policy and returns it. Rego policies
+// cannot be deleted: an archived policy keeps its versions and its identifier,
+// and publishing to it succeeds without unarchiving it. Archiving an archived
+// policy changes nothing.
+func (c *Client) ArchiveRegoPolicy(ctx context.Context, identifier string) (*RegoPolicy, error) {
+	return c.setRegoPolicyArchived(ctx, identifier, "archive")
+}
+
+// UnarchiveRegoPolicy returns an archived rego policy to the policy list.
+// Unarchiving a policy that is not archived changes nothing.
+func (c *Client) UnarchiveRegoPolicy(ctx context.Context, identifier string) (*RegoPolicy, error) {
+	return c.setRegoPolicyArchived(ctx, identifier, "unarchive")
+}
+
+func (c *Client) setRegoPolicyArchived(ctx context.Context, identifier, action string) (*RegoPolicy, error) {
+	path := apiPath("rego-policies", c.Organization(), identifier, action)
+
+	resp, err := c.Post(ctx, path, nil)
 	if err != nil {
 		return nil, err
 	}

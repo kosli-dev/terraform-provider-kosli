@@ -95,7 +95,7 @@ The client supports:
 - `kosli_environment` - Manage physical environments (K8S, ECS, S3, docker, server, lambda, azure-apps, cloud-run)
 - `kosli_logical_environment` - Manage logical environments that aggregate physical environments
 - `kosli_notification_config` - Manage where Kosli-raised notifications (e.g. `api_key_expiry`) are sent; one org-wide config per notification type
-- `kosli_rego_policy` - Publish versioned Rego policy bundles and wait for Kosli to validate each version (Controls beta). The API has no delete, so destroy only drops the resource from state
+- `kosli_rego_policy` - Publish versioned Rego policy bundles and wait for Kosli to validate each version (Controls beta). Destroy archives the policy, and creating it again unarchives it
 - `kosli_repo_tags` - Manage the tags of a repo, keyed by its internal ID; Kosli records repos from attestations, so the repo itself is not managed
 
 **Data Sources:**
