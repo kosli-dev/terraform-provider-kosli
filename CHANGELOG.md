@@ -4,7 +4,7 @@
 
 IMPROVEMENTS:
 
-* client: Removed the "may not be enabled for your organization" hint from `403` errors on `kosli_control` and `kosli_rego_policy` endpoints; the underlying API error is still reported [GH-326]
+* provider: Removed the "may not be enabled for your organization" hint from `403` errors returned by `kosli_control` and `kosli_rego_policy` resources, data sources and list resources; the underlying API error is still reported [GH-326]
 * docs: Removed the beta notice from `kosli_control` and `kosli_rego_policy` documentation now that Controls has been released [GH-326]
 
 ## v0.14.0 (November 26, 2026)
