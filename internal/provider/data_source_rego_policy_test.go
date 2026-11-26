@@ -226,7 +226,7 @@ func TestRegoPolicyDataSource_Read_Archived(t *testing.T) {
 	})
 }
 
-func TestRegoPolicyDataSource_Read_ForbiddenAddsBetaHint(t *testing.T) {
+func TestRegoPolicyDataSource_Read_ForbiddenAddsRolloutHint(t *testing.T) {
 	api := &fakeRegoAPI{readStatus: 403}
 	d := newRegoPolicyTestDataSource(t, api)
 	data := regoPolicyDataSourceModelFor("image-provenance")
@@ -235,8 +235,8 @@ func TestRegoPolicyDataSource_Read_ForbiddenAddsBetaHint(t *testing.T) {
 	if !diags.HasError() {
 		t.Fatal("expected an error for a forbidden read")
 	}
-	if detail := diags.Errors()[0].Detail(); !strings.Contains(detail, "beta feature") {
-		t.Errorf("expected the beta hint, got: %s", detail)
+	if detail := diags.Errors()[0].Detail(); !strings.Contains(detail, "rolled out per organization") {
+		t.Errorf("expected the rollout hint, got: %s", detail)
 	}
 }
 

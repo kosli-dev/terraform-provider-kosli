@@ -55,7 +55,7 @@ func (d *regoPolicyDataSource) Schema(ctx context.Context, req datasource.Schema
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Fetches an existing Kosli rego policy and the files of one of its versions. " +
 			"Without `version` it reads the policy's current version: the highest-numbered valid version, which is the one an evaluation runs.\n\n" +
-			"~> **Note:** Rego policies are part of the Controls **beta** feature, which must be enabled for your organization; API requests return `403 Forbidden` otherwise.",
+			"~> **Note:** Rego policies are part of Controls, which is rolled out per organization; API requests return `403 Forbidden` until it is enabled for yours.",
 
 		Attributes: map[string]schema.Attribute{
 			"identifier": schema.StringAttribute{
@@ -179,7 +179,7 @@ func (d *regoPolicyDataSource) read(ctx context.Context, data *regoPolicyDataSou
 		}
 		detail := fmt.Sprintf("Could not read rego policy %q: %s", identifier, err.Error())
 		if client.IsForbidden(err) {
-			detail += regoPolicyBetaHint
+			detail += regoPolicyNotEnabledHint
 		}
 		diags.AddError("Error Reading Rego Policy", detail)
 		return diags

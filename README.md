@@ -82,9 +82,9 @@ For more details on attestation types, see the [Kosli documentation](https://doc
 - `kosli_policy_attachment` - Attach a policy to an environment (physical or logical)
 - `kosli_service_account` - Create and manage service accounts used to authenticate automation against the Kosli API
 - `kosli_service_account_api_key` - Mint and revoke API keys for a service account
-- `kosli_control` - Create and manage controls, org-level definitions of SDLC requirements evaluated from attestations and enforced through environment policies (beta feature)
+- `kosli_control` - Create and manage controls, org-level definitions of SDLC requirements evaluated from attestations and enforced through environment policies
 - `kosli_notification_config` - Set where Kosli sends notifications it raises itself, such as API key expiry warnings (email, Slack, or webhook targets)
-- `kosli_rego_policy` - Publish versioned Rego policy bundles that Kosli evaluates trails against, and wait for each version to be validated (beta feature)
+- `kosli_rego_policy` - Publish versioned Rego policy bundles that Kosli evaluates trails against, and wait for each version to be validated
 - `kosli_repo_tags` - Manage the tags of a repo that Kosli has recorded from attestations (authoritative: tags set outside Terraform are removed)
 
 ### Data Sources
@@ -98,12 +98,12 @@ For more details on attestation types, see the [Kosli documentation](https://doc
 - `kosli_service_account_api_keys` - List the API keys (metadata only) for a service account
 - `kosli_control` - Reference existing controls
 - `kosli_notification_config` - Read where a notification type is sent and when it was last delivered
-- `kosli_rego_policy` - Read a rego policy and the files of its current version, or of any version by number (beta feature)
+- `kosli_rego_policy` - Read a rego policy and the files of its current version, or of any version by number
 - `kosli_repo` - Reference one repo by its internal ID, or by name and optional VCS provider
 - `kosli_repos` - Find repos by name, namespace, VCS provider or tag and get their internal IDs for `kosli_repo_tags`
 
 ### List Resources (`terraform query`, Terraform >= 1.14)
-- `kosli_control` - Discover existing (unmanaged) controls and generate `import`/config blocks for them (beta feature)
+- `kosli_control` - Discover existing (unmanaged) controls and generate `import`/config blocks for them
 
 Place `list` blocks in a `.tfquery.hcl` file and run `terraform query`:
 

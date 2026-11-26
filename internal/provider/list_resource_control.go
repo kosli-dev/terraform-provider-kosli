@@ -44,7 +44,7 @@ func (l *controlListResource) ListResourceConfigSchema(ctx context.Context, req 
 	resp.Schema = listschema.Schema{
 		MarkdownDescription: "Lists Kosli controls in the organization for use with `terraform query` (Terraform >= 1.14), " +
 			"so existing controls can be discovered and brought under Terraform management without hand-writing one `import` block per control.\n\n" +
-			"~> **Note:** Controls is a **beta** feature and must be enabled for your organization; API requests return `403 Forbidden` otherwise.\n\n" +
+			"~> **Note:** Controls is rolled out per organization; API requests return `403 Forbidden` until it is enabled for yours.\n\n" +
 			"-> The Kosli list endpoint does not return `policies_referencing`, so when resource data is included in query results " +
 			"that attribute is always reported as an empty list. Archived controls are only returned when `archived = true` is set.",
 
@@ -101,7 +101,7 @@ func (l *controlListResource) List(ctx context.Context, req list.ListRequest, st
 	if err != nil {
 		detail := fmt.Sprintf("Could not list controls: %s", err.Error())
 		if client.IsForbidden(err) {
-			detail += controlBetaHint
+			detail += controlNotEnabledHint
 		}
 		stream.Results = list.ListResultsStreamDiagnostics(diag.Diagnostics{
 			diag.NewErrorDiagnostic("Error Listing Controls", detail),

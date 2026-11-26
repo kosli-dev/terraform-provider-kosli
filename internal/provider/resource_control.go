@@ -24,9 +24,9 @@ import (
 // hyphens, underscores, and tildes.
 var controlIdentifierRegexp = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._~-]*$`)
 
-// controlBetaHint is appended to API error diagnostics when the server
-// returns 403: Controls is a beta feature gated per organization.
-const controlBetaHint = " Note: Controls is a beta feature; a 403 response may mean it is not enabled for your organization."
+// controlNotEnabledHint is appended to API error diagnostics when the server
+// returns 403: Controls is rolled out per organization behind a feature flag.
+const controlNotEnabledHint = " Note: Controls is rolled out per organization; a 403 response may mean it is not enabled for yours."
 
 // Ensure provider defined types fully satisfy framework interfaces.
 var _ resource.Resource = &controlResource{}
@@ -83,7 +83,7 @@ func (r *controlResource) IdentitySchema(ctx context.Context, req resource.Ident
 func (r *controlResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Kosli control. Controls are org-level definitions of SDLC requirements (for example `SDLC-001` \"Binary provenance\") whose compliance is evaluated from attestations and enforced through environment policies.\n\n" +
-			"~> **Note:** Controls is a **beta** feature and must be enabled for your organization; API requests return `403 Forbidden` otherwise.\n\n" +
+			"~> **Note:** Controls is rolled out per organization; API requests return `403 Forbidden` until it is enabled for yours.\n\n" +
 			"-> Deleting this resource **archives** the control in Kosli rather than hard-deleting it. Creating a new control with the identifier of an archived control fails with a conflict; unarchive the control in Kosli and import it instead.",
 
 		Attributes: map[string]schema.Attribute{
@@ -198,7 +198,7 @@ func (r *controlResource) Create(ctx context.Context, req resource.CreateRequest
 		case client.IsConflict(err):
 			detail += " A control with this identifier already exists — possibly archived. Unarchive it in Kosli and use `terraform import` instead."
 		case client.IsForbidden(err):
-			detail += controlBetaHint
+			detail += controlNotEnabledHint
 		}
 		resp.Diagnostics.AddError("Error Creating Control", detail)
 		return
@@ -252,7 +252,7 @@ func (r *controlResource) Read(ctx context.Context, req resource.ReadRequest, re
 		}
 		detail := fmt.Sprintf("Could not read control %q: %s", data.Identifier.ValueString(), err.Error())
 		if client.IsForbidden(err) {
-			detail += controlBetaHint
+			detail += controlNotEnabledHint
 		}
 		resp.Diagnostics.AddError("Error Reading Control", detail)
 		return
@@ -316,7 +316,7 @@ func (r *controlResource) Update(ctx context.Context, req resource.UpdateRequest
 	if err != nil {
 		detail := fmt.Sprintf("Could not update control %q: %s", data.Identifier.ValueString(), err.Error())
 		if client.IsForbidden(err) {
-			detail += controlBetaHint
+			detail += controlNotEnabledHint
 		}
 		resp.Diagnostics.AddError("Error Updating Control", detail)
 		return
@@ -368,7 +368,7 @@ func (r *controlResource) Delete(ctx context.Context, req resource.DeleteRequest
 		}
 		detail := fmt.Sprintf("Could not archive control %q: %s", data.Identifier.ValueString(), err.Error())
 		if client.IsForbidden(err) {
-			detail += controlBetaHint
+			detail += controlNotEnabledHint
 		}
 		resp.Diagnostics.AddError("Error Deleting Control", detail)
 		return

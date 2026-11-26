@@ -28,9 +28,9 @@ const (
 	// a published version.
 	regoPolicyPollTimeout = 5 * time.Minute
 
-	// regoPolicyBetaHint is appended to API error diagnostics when the server
-	// returns 403: rego policies share the Controls beta flag.
-	regoPolicyBetaHint = " Note: rego policies are part of the Controls beta feature; a 403 response may mean it is not enabled for your organization."
+	// regoPolicyNotEnabledHint is appended to API error diagnostics when the server
+	// returns 403: rego policies share the Controls feature flag.
+	regoPolicyNotEnabledHint = " Note: rego policies are part of Controls, which is rolled out per organization; a 403 response may mean it is not enabled for yours."
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
@@ -79,7 +79,7 @@ func (r *regoPolicyResource) Schema(ctx context.Context, req resource.SchemaRequ
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Manages a Kosli rego policy: a versioned bundle of Rego files that Kosli evaluates trails against. " +
 			"Each change to `files` or `input_schema` publishes a new version, and the apply waits until Kosli has validated it.\n\n" +
-			"~> **Note:** Rego policies are part of the Controls **beta** feature, which must be enabled for your organization; API requests return `403 Forbidden` otherwise.\n\n" +
+			"~> **Note:** Rego policies are part of Controls, which is rolled out per organization; API requests return `403 Forbidden` until it is enabled for yours.\n\n" +
 			"~> **Note:** Publishing, archiving and unarchiving a rego policy all require a service account with **Admin** permissions, so creating, updating and destroying this resource do too.\n\n" +
 			"-> Deleting this resource **archives** the policy in Kosli rather than hard-deleting it: the policy leaves the policy list, while its versions stay readable and an evaluation by its identifier still runs. " +
 			"Creating the resource again with the same `identifier` publishes to the archived policy and unarchives it.",
@@ -309,7 +309,7 @@ func (r *regoPolicyResource) archive(ctx context.Context, identifier string) dia
 	if !client.IsNotFound(err) {
 		detail := fmt.Sprintf("Could not archive rego policy %q: %s", identifier, err.Error())
 		if client.IsForbidden(err) {
-			detail += regoPolicyBetaHint
+			detail += regoPolicyNotEnabledHint
 		}
 		diags.AddError("Error Deleting Rego Policy", detail)
 		return diags
@@ -357,7 +357,7 @@ func (r *regoPolicyResource) publish(ctx context.Context, data *regoPolicyResour
 	if err != nil {
 		detail := fmt.Sprintf("Could not publish rego policy %q: %s", identifier, err.Error())
 		if client.IsForbidden(err) {
-			detail += regoPolicyBetaHint
+			detail += regoPolicyNotEnabledHint
 		}
 		diags.AddError("Error Publishing Rego Policy", detail)
 		return diags
@@ -464,7 +464,7 @@ func (r *regoPolicyResource) refresh(ctx context.Context, data *regoPolicyResour
 		}
 		detail := fmt.Sprintf("Could not read rego policy %q: %s", identifier, err.Error())
 		if client.IsForbidden(err) {
-			detail += regoPolicyBetaHint
+			detail += regoPolicyNotEnabledHint
 		}
 		diags.AddError("Error Reading Rego Policy", detail)
 		return false, diags

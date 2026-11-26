@@ -14,8 +14,8 @@ import (
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
 
-// testAccControlsPreCheck skips control acceptance tests when the Controls
-// beta feature is not enabled for the test organization (every Controls
+// testAccControlsPreCheck skips control acceptance tests when Controls
+// is not enabled for the test organization (every Controls
 // endpoint returns 403 Forbidden in that case).
 func testAccControlsPreCheck(t *testing.T) {
 	testAccPreCheck(t)
@@ -30,7 +30,7 @@ func testAccControlsPreCheck(t *testing.T) {
 	}
 
 	if _, err := c.ListControls(context.Background(), nil); client.IsForbidden(err) {
-		t.Skip("Controls is a beta feature and is not enabled for the test organization")
+		t.Skip("Controls is not enabled for the test organization")
 	}
 }
 

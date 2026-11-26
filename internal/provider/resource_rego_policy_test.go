@@ -533,7 +533,7 @@ func TestRegoPolicyResource_Publish_TimesOutWhilePending(t *testing.T) {
 	}
 }
 
-func TestRegoPolicyResource_Publish_ForbiddenAddsBetaHint(t *testing.T) {
+func TestRegoPolicyResource_Publish_ForbiddenAddsRolloutHint(t *testing.T) {
 	api := &fakeRegoAPI{publishStatus: http.StatusForbidden}
 	r := newRegoPolicyTestResource(t, api)
 	data := regoPolicyModel(t, regoValidFiles)
@@ -542,8 +542,8 @@ func TestRegoPolicyResource_Publish_ForbiddenAddsBetaHint(t *testing.T) {
 	if !diags.HasError() {
 		t.Fatal("expected an error for a forbidden publish")
 	}
-	if detail := diags.Errors()[0].Detail(); !strings.Contains(detail, "beta feature") {
-		t.Errorf("expected the beta hint, got: %s", detail)
+	if detail := diags.Errors()[0].Detail(); !strings.Contains(detail, "rolled out per organization") {
+		t.Errorf("expected the rollout hint, got: %s", detail)
 	}
 }
 

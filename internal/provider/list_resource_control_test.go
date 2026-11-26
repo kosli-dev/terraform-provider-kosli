@@ -333,11 +333,11 @@ func TestControlListResource_List_Forbidden(t *testing.T) {
 	}
 	found := false
 	for _, d := range results[0].Diagnostics.Errors() {
-		if strings.Contains(d.Detail(), "beta feature") {
+		if strings.Contains(d.Detail(), "rolled out per organization") {
 			found = true
 		}
 	}
 	if !found {
-		t.Errorf("expected the beta hint in the error detail, got %v", results[0].Diagnostics)
+		t.Errorf("expected the rollout hint in the error detail, got %v", results[0].Diagnostics)
 	}
 }

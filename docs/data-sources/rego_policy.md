@@ -3,14 +3,14 @@ page_title: "kosli_rego_policy Data Source - terraform-provider-kosli"
 subcategory: ""
 description: |-
   Fetches an existing Kosli rego policy and the files of one of its versions. Without version it reads the policy's current version: the highest-numbered valid version, which is the one an evaluation runs.
-  ~> Note: Rego policies are part of the Controls beta feature, which must be enabled for your organization; API requests return 403 Forbidden otherwise.
+  ~> Note: Rego policies are part of Controls, which is rolled out per organization; API requests return 403 Forbidden until it is enabled for yours.
 ---
 
 # Data Source: kosli_rego_policy
 
 Fetches an existing Kosli rego policy and the files of one of its versions. Without `version` it reads the policy's current version: the highest-numbered valid version, which is the one an evaluation runs.
 
-~> **Note:** Rego policies are part of the Controls **beta** feature, which must be enabled for your organization; API requests return `403 Forbidden` otherwise.
+~> **Note:** Rego policies are part of Controls, which is rolled out per organization; API requests return `403 Forbidden` until it is enabled for yours.
 
 ## Example Usage
 

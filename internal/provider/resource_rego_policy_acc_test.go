@@ -38,7 +38,7 @@ violations contains "the trail has no artifacts" if {
 `
 )
 
-// Rego policies sit behind the Controls beta flag, so these tests are skipped
+// Rego policies sit behind the Controls feature flag, so these tests are skipped
 // when the test organization does not have it (see testAccControlsPreCheck).
 // Kosli cannot delete a rego policy: each run leaves its policies archived.
 
