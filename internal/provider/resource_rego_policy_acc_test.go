@@ -13,24 +13,27 @@ import (
 	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
 
+// Kosli type-checks a policy against its input schema, so the sources only
+// read fields the "trail" schema defines.
 const (
-	testAccRegoPolicySource = `package kosli.tf_acc_test
+	testAccRegoPolicySource = `package policy
 
 import rego.v1
 
 default allow := false
 
-allow if input.is_compliant == true
+allow if count(input.trail.compliance_status.artifacts_statuses) > 0
 `
-	testAccRegoPolicySourceUpdated = `package kosli.tf_acc_test
+	testAccRegoPolicySourceUpdated = `package policy
 
 import rego.v1
 
 default allow := false
 
-allow if {
-	input.is_compliant == true
-	input.artifact_fingerprint != ""
+allow if count(input.trail.compliance_status.artifacts_statuses) > 0
+
+violations contains "the trail has no artifacts" if {
+	count(input.trail.compliance_status.artifacts_statuses) == 0
 }
 `
 )
@@ -136,7 +139,7 @@ func TestAccRegoPolicyResource_rejected(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccRegoPolicyResourceConfig(rIdentifier, "Rejected policy", "", "package kosli.tf_acc_test\n\nallow if {\n"),
+				Config:      testAccRegoPolicyResourceConfig(rIdentifier, "Rejected policy", "", "package policy\n\nallow if {\n"),
 				ExpectError: regexp.MustCompile(`Rego Policy Version Rejected`),
 			},
 		},

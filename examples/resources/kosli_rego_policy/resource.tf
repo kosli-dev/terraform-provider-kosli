@@ -10,7 +10,7 @@ terraform {
 resource "kosli_rego_policy" "artifact_provenance" {
   identifier   = "artifact-provenance"
   name         = "Artifact provenance"
-  description  = "Requires every compliance decision to be linked to an artifact fingerprint"
+  description  = "Requires the trail to hold at least one artifact"
   input_schema = "trail"
   comment      = "Initial version"
 
@@ -23,7 +23,7 @@ resource "kosli_rego_policy" "artifact_provenance" {
 resource "kosli_rego_policy" "release_checks" {
   identifier   = "release-checks"
   name         = "Release checks"
-  input_schema = "trails"
+  input_schema = "trail"
 
   files = {
     for name in fileset("${path.module}/policies", "**/*.rego") :
