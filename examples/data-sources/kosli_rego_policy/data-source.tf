@@ -31,3 +31,25 @@ output "policy_source" {
   description = "Source of the policy's main file"
   value       = data.kosli_rego_policy.artifact_provenance.files["policy.rego"]
 }
+
+# Copy a policy: publish the files read from one policy under another
+# identifier. With a second provider configuration (an alias for another
+# organization) on the data source, this promotes a policy between organizations.
+resource "kosli_rego_policy" "artifact_provenance_copy" {
+  identifier   = "artifact-provenance-copy"
+  name         = "${data.kosli_rego_policy.artifact_provenance.name} (copy)"
+  input_schema = data.kosli_rego_policy.artifact_provenance.input_schema
+  comment      = "Copied from artifact-provenance version ${data.kosli_rego_policy.artifact_provenance.version}"
+  files        = data.kosli_rego_policy.artifact_provenance.files
+}
+
+# Pin a version: warn on every plan and apply when the version an evaluation
+# runs is no longer the reviewed one. The digest identifies the files, so it
+# stays the same when the reviewed source is published again under a new
+# version number.
+check "artifact_provenance_is_reviewed_version" {
+  assert {
+    condition     = data.kosli_rego_policy.artifact_provenance.digest == data.kosli_rego_policy.artifact_provenance_v1.digest
+    error_message = "The current version of artifact-provenance is not the reviewed version 1."
+  }
+}
