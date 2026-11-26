@@ -1,12 +1,15 @@
 package provider
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/kosli-dev/terraform-provider-kosli/pkg/client"
 )
 
 // TestAccRegoPolicyDataSource_basic publishes a policy and reads its current
@@ -95,4 +98,77 @@ data "kosli_rego_policy" "test" {
 			},
 		},
 	})
+}
+
+// TestAccRegoPolicyDataSource_archived destroys a policy, which archives it,
+// and reads it back: with archived = true the read succeeds and still returns
+// the files, and without it the read is an error.
+//
+// A data source is read while planning, before the same apply destroys
+// anything, so the destroy and the reads are separate steps. The read steps
+// skip themselves on a Kosli server that cannot archive a rego policy, where
+// the destroy leaves the policy active.
+func TestAccRegoPolicyDataSource_archived(t *testing.T) {
+	rIdentifier := acctest.RandomWithPrefix("tf-acc-test")
+	dataSourceName := "data.kosli_rego_policy.test"
+	skipUnlessArchived := testAccRegoPolicyNotArchived(rIdentifier)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccControlsPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccRegoPolicyResourceConfig(rIdentifier, "Acceptance test policy", "", testAccRegoPolicySource),
+			},
+			{
+				Config:  testAccRegoPolicyResourceConfig(rIdentifier, "Acceptance test policy", "", testAccRegoPolicySource),
+				Destroy: true,
+			},
+			{
+				SkipFunc: skipUnlessArchived,
+				Config: fmt.Sprintf(`
+data "kosli_rego_policy" "test" {
+  identifier = %q
+  archived   = true
+}
+`, rIdentifier),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dataSourceName, "archived", "true"),
+					resource.TestCheckResourceAttr(dataSourceName, "version", "1"),
+					resource.TestCheckResourceAttr(dataSourceName, "status", "valid"),
+					resource.TestCheckResourceAttr(dataSourceName, "files.policy.rego", testAccRegoPolicySource),
+				),
+			},
+			{
+				SkipFunc: skipUnlessArchived,
+				Config: fmt.Sprintf(`
+data "kosli_rego_policy" "test" {
+  identifier = %q
+}
+`, rIdentifier),
+				ExpectError: regexp.MustCompile(`Rego Policy Archived`),
+			},
+		},
+	})
+}
+
+// testAccRegoPolicyNotArchived returns a step SkipFunc that skips when the
+// policy is not archived.
+func testAccRegoPolicyNotArchived(identifier string) func() (bool, error) {
+	return func() (bool, error) {
+		var opts []client.ClientOption
+		if apiURL := os.Getenv("KOSLI_API_URL"); apiURL != "" {
+			opts = append(opts, client.WithBaseURL(apiURL))
+		}
+		c, err := client.NewClient(os.Getenv("KOSLI_API_TOKEN"), os.Getenv("KOSLI_ORG"), opts...)
+		if err != nil {
+			return false, fmt.Errorf("failed to create client: %w", err)
+		}
+
+		policy, err := c.GetRegoPolicy(context.Background(), identifier)
+		if err != nil {
+			return false, fmt.Errorf("failed to read rego policy %q: %w", identifier, err)
+		}
+		return !policy.Archived, nil
+	}
 }
