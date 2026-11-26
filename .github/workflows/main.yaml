@@ -366,6 +366,5 @@ jobs:
         run: |
           echo "Validating ${{ matrix.example }}..."
           cd "${{ matrix.example }}"
-          terraform init -backend=false
           terraform validate -query
           echo "✓ ${{ matrix.example }} validated successfully"
