@@ -239,3 +239,36 @@ func TestRegoPolicyDataSource_Read_ForbiddenAddsBetaHint(t *testing.T) {
 		t.Errorf("expected the beta hint, got: %s", detail)
 	}
 }
+
+// The files must be the ones the digest describes. A bundle that does not
+// hash to the version's digest is refused, so files and digest cannot
+// disagree in state.
+func TestRegoPolicyDataSource_Read_BundleDoesNotMatchDigest(t *testing.T) {
+	api := &fakeRegoAPI{bundleSuffix: "# altered\n"}
+	api.seed("image-provenance", "Image provenance", regoValidFiles, client.RegoPolicyVersionStatusValid)
+	d := newRegoPolicyTestDataSource(t, api)
+	data := regoPolicyDataSourceModelFor("image-provenance")
+
+	diags := d.read(context.Background(), &data)
+	if !diags.HasError() || diags.Errors()[0].Summary() != "Rego Policy Bundle Mismatch" {
+		t.Fatalf("expected a bundle mismatch error, got: %v", diags)
+	}
+	if detail := diags.Errors()[0].Detail(); !strings.Contains(detail, client.RegoPolicyDigest(regoValidFiles)) {
+		t.Errorf("expected the detail to name the digest Kosli reports, got: %s", detail)
+	}
+}
+
+func TestRegoPolicyDataSource_Read_BundleEndpointMissing(t *testing.T) {
+	api := &fakeRegoAPI{bundleStatus: 404}
+	api.seed("image-provenance", "Image provenance", regoValidFiles, client.RegoPolicyVersionStatusValid)
+	d := newRegoPolicyTestDataSource(t, api)
+	data := regoPolicyDataSourceModelFor("image-provenance")
+
+	diags := d.read(context.Background(), &data)
+	if !diags.HasError() || diags.Errors()[0].Summary() != "Rego Policy Bundle Not Found" {
+		t.Fatalf("expected a bundle-not-found error, got: %v", diags)
+	}
+	if detail := diags.Errors()[0].Detail(); !strings.Contains(detail, "does not serve") {
+		t.Errorf("expected the detail to point at the server, got: %s", detail)
+	}
+}

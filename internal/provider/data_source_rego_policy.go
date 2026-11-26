@@ -223,8 +223,24 @@ func (d *regoPolicyDataSource) read(ctx context.Context, data *regoPolicyDataSou
 
 	files, err := d.client.GetRegoPolicyBundle(ctx, identifier, versionNumber)
 	if err != nil {
+		// The version was read a moment ago, so a 404 here means the bundle
+		// route is missing, not the version.
+		if client.IsNotFound(err) {
+			diags.AddError("Rego Policy Bundle Not Found", fmt.Sprintf(
+				"Version %d of rego policy %q exists, but this Kosli server does not serve its bundle: %s", versionNumber, identifier, err.Error()))
+			return diags
+		}
 		diags.AddError("Error Reading Rego Policy Files", fmt.Sprintf(
 			"Could not read the files of version %d of rego policy %q: %s", versionNumber, identifier, err.Error()))
+		return diags
+	}
+
+	// files and digest are returned side by side, so they have to describe
+	// the same bundle.
+	if got := client.RegoPolicyDigest(files); got != version.Digest {
+		diags.AddError("Rego Policy Bundle Mismatch", fmt.Sprintf(
+			"The files downloaded for version %d of rego policy %q have digest %s, but Kosli reports %s.",
+			versionNumber, identifier, got, version.Digest))
 		return diags
 	}
 	filesValue, d2 := types.MapValueFrom(ctx, types.StringType, files)

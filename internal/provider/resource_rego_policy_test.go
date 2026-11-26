@@ -54,6 +54,11 @@ type fakeRegoAPI struct {
 
 	// publishStatus, when set, answers every publish with that status code.
 	publishStatus int
+	// bundleStatus, when set, answers every bundle download with that status code.
+	bundleStatus int
+	// bundleSuffix is appended to every file in a served bundle, so the
+	// bundle no longer has the digest the version reports.
+	bundleSuffix string
 	// readStatus, when set, answers every GET with that status code.
 	readStatus int
 	// pendingPolls is how many version reads a new version stays pending for.
@@ -193,11 +198,17 @@ func (f *fakeRegoAPI) handler() http.HandlerFunc {
 				}
 				json.NewEncoder(w).Encode(body)
 			case len(parts) == 4 && parts[3] == "bundle":
+				if f.bundleStatus != 0 {
+					w.WriteHeader(f.bundleStatus)
+					w.Write([]byte(`{"message": "not found"}`))
+					return
+				}
 				f.bundleReads++
 				var buf bytes.Buffer
 				gz := gzip.NewWriter(&buf)
 				tw := tar.NewWriter(gz)
 				for path, source := range version.files {
+					source += f.bundleSuffix
 					tw.WriteHeader(&tar.Header{Name: path, Mode: 0o644, Size: int64(len(source)), Format: tar.FormatPAX})
 					tw.Write([]byte(source))
 				}

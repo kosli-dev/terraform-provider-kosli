@@ -261,7 +261,8 @@ func (c *Client) GetRegoPolicyBundle(ctx context.Context, identifier string, ver
 	if err != nil {
 		return nil, fmt.Errorf("failed to read bundle archive: %w", err)
 	}
-	defer gz.Close()
+	// Nothing is written through gz, so its Close has no error worth acting on.
+	defer func() { _ = gz.Close() }()
 
 	files := map[string]string{}
 	remaining := int64(maxRegoPolicyBundleSize)

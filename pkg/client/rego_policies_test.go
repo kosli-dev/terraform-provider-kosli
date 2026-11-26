@@ -439,3 +439,27 @@ func TestGetRegoPolicyBundle_RefusesOversizedContent(t *testing.T) {
 		t.Error("expected an error for a bundle over the size limit")
 	}
 }
+
+// A directory entry holds no file, so it is skipped and its files still read.
+func TestGetRegoPolicyBundle_SkipsEntriesThatAreNotFiles(t *testing.T) {
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gz)
+	tw.WriteHeader(&tar.Header{Name: "lib/", Typeflag: tar.TypeDir, Mode: 0o755})
+	tw.WriteHeader(&tar.Header{Name: "lib/util.rego", Mode: 0o644, Size: 12})
+	tw.Write([]byte("package lib\n"))
+	tw.Close()
+	gz.Close()
+
+	c := newRegoTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Write(buf.Bytes())
+	})
+
+	got, err := c.GetRegoPolicyBundle(context.Background(), "p", 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 1 || got["lib/util.rego"] != "package lib\n" {
+		t.Errorf("unexpected files: %v", got)
+	}
+}
