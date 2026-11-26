@@ -1,0 +1,45 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Type}}: {{.Name}}
+
+{{ .Description | trimspace }}
+
+## Example Usage
+
+{{tffile "examples/resources/kosli_rego_policy/resource.tf"}}
+
+## Versions and Validation
+
+Kosli stores a policy as a series of immutable versions. Publishing returns a version in status `pending`, and Kosli validates it asynchronously:
+
+| Status | Meaning | What the apply does |
+|---|---|---|
+| `valid` | Kosli accepted the bundle | Succeeds; the version becomes the policy's current version |
+| `rejected` | The policy is at fault, for example a Rego syntax error | Fails with the validator's message |
+| `failed` | Kosli could not validate the version | Fails; apply again to publish the files for another validation |
+| `pending` | Validation has not finished | Waits up to 5 minutes, then fails; apply again to keep waiting |
+
+Only a change to `files` or `input_schema` creates a new version. A change to `name` or `description` updates the policy in place, and a change to `comment` alone publishes nothing.
+
+The resource tracks the policy's **current version**: the highest-numbered valid version, which is the one an evaluation runs. After an apply that ends with a rejected version, the policy keeps running its previous valid version and the next plan still shows the pending change.
+
+A version published outside Terraform shows up as a change to `files` on the next plan, once it is valid.
+
+## Destroying
+
+Kosli has no way to delete a rego policy or one of its versions. `terraform destroy` removes the resource from the Terraform state and leaves the policy in Kosli. Re-creating a resource with the same `identifier` publishes to the existing policy.
+
+## Import
+
+Rego policies can be imported using their identifier:
+
+{{codefile "shell" "examples/resources/kosli_rego_policy/import.sh"}}
+
+The import reads the files of the current version into the state. `comment` is not read back from Kosli.
+
+{{ .SchemaMarkdown | trimspace }}
