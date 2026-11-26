@@ -169,9 +169,7 @@ Every method that calls the API starts by tagging the context so requests carry 
 
 ### Example Validation
 
-All examples in `examples/` are validated in CI:
-- `terraform init -backend=false`
-- `terraform validate`
+All examples in `examples/` are validated in CI with `terraform validate -query` against the freshly built provider (a dev override). CI skips `terraform init`: with a dev override it only downloads the last released provider, so an example that needs a module or a second provider would need `init` restored.
 
 Ensure examples include:
 - `terraform.tfvars.example` for required variables
