@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.14.0 (November 26, 2026)
+
+FEATURES:
+
+* **New Resource**: `kosli_rego_policy` for publishing versioned Rego policy bundles and waiting for Kosli to validate each version [GH-312]
+* **New Data Source**: `kosli_rego_policy` for reading a Rego policy's current or a specific version, including its files and digest [GH-324]
+
+BUG FIXES:
+
+* resource/kosli_control: Fixed apply failing with an inconsistent result error after updating a control's `name`, `description`, `links`, or `tags` [GH-323]
+
 ## v0.13.0 (November 13, 2026)
 
 FEATURES:
