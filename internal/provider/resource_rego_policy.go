@@ -186,9 +186,9 @@ func (r *regoPolicyResource) Configure(ctx context.Context, req resource.Configu
 	r.client = c
 }
 
-// ModifyPlan keeps the current version's attributes known when an update
-// publishes no new version, so a change of name alone does not show them as
-// "known after apply".
+// ModifyPlan keeps digest, entrypoint and params_schema known when an update
+// publishes the bundle already in state, so a change of name alone does not
+// show them as "known after apply".
 func (r *regoPolicyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
 		return
@@ -201,17 +201,21 @@ func (r *regoPolicyResource) ModifyPlan(ctx context.Context, req resource.Modify
 		return
 	}
 
-	keepRegoPolicyVersionAttributes(&plan, &state)
+	keepRegoPolicyBundleAttributes(&plan, &state)
 	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
-// keepRegoPolicyVersionAttributes copies the version attributes from state
-// into plan when the plan publishes the bundle already in state.
-func keepRegoPolicyVersionAttributes(plan, state *regoPolicyResourceModel) {
+// keepRegoPolicyBundleAttributes copies the attributes that follow from the
+// bundle alone from state into plan, when the plan publishes the bundle
+// already in state.
+//
+// version is not kept. Publishing the current files stores a new version
+// when the newest version is rejected, failed, or holds other files, so the
+// number can move although the bundle did not.
+func keepRegoPolicyBundleAttributes(plan, state *regoPolicyResourceModel) {
 	if state.Version.IsNull() || !plan.Files.Equal(state.Files) || !plan.InputSchema.Equal(state.InputSchema) {
 		return
 	}
-	plan.Version = state.Version
 	plan.Digest = state.Digest
 	plan.Entrypoint = state.Entrypoint
 	plan.ParamsSchema = state.ParamsSchema

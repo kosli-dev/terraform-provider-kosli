@@ -71,7 +71,9 @@ Kosli stores a policy as a series of immutable versions. Publishing returns a ve
 | `failed` | Kosli could not validate the version | Fails; apply again to publish the files for another validation |
 | `pending` | Validation has not finished | Waits up to 5 minutes, then fails; apply again to keep waiting |
 
-Only a change to `files` or `input_schema` creates a new version. A change to `name` or `description` updates the policy in place, and a change to `comment` alone publishes nothing.
+Only a change to `files` or `input_schema` creates a new version. A change to `name` or `description` updates the policy in place, and a change to `comment` alone publishes nothing. Every update sends the whole bundle again, because Kosli has one publish call for both the files and the metadata.
+
+`version` shows as known after apply on every update. Kosli never reuses a rejected or failed version, so publishing the current files again can still store a new version.
 
 The resource tracks the policy's **current version**: the highest-numbered valid version, which is the one an evaluation runs. After an apply that ends with a rejected version, the policy keeps running its previous valid version and the next plan still shows the pending change.
 
@@ -87,6 +89,8 @@ Kosli never hard-deletes a rego policy. `terraform destroy`, or removing a `kosl
 - Its identifier stays taken.
 
 Creating a `kosli_rego_policy` with the identifier of an archived policy publishes to that policy and unarchives it, so the version numbers continue from where they stopped.
+
+A policy whose first version is rejected, or is still pending at the timeout, exists in Kosli but is not in the Terraform state. Applying again publishes to it. If the resource is removed from the configuration instead, the policy stays in Kosli and has to be archived there.
 
 A policy archived outside Terraform reads as deleted: the next plan proposes to create it, and the apply unarchives it.
 

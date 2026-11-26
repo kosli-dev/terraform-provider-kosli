@@ -701,7 +701,7 @@ func TestRegoPolicyResource_Refresh_NotFound(t *testing.T) {
 	}
 }
 
-func TestKeepRegoPolicyVersionAttributes(t *testing.T) {
+func TestKeepRegoPolicyBundleAttributes(t *testing.T) {
 	files := regoFilesMap(t, regoValidFiles)
 	state := regoPolicyResourceModel{
 		InputSchema: types.StringValue("trail"), Files: files,
@@ -716,19 +716,24 @@ func TestKeepRegoPolicyVersionAttributes(t *testing.T) {
 		}
 	}
 
-	t.Run("same bundle keeps the version attributes", func(t *testing.T) {
+	t.Run("same bundle keeps the bundle attributes", func(t *testing.T) {
 		plan := unknownPlan()
-		keepRegoPolicyVersionAttributes(&plan, &state)
-		if plan.Version.ValueInt64() != 3 || plan.Digest.ValueString() != "sha256:abc" ||
+		keepRegoPolicyBundleAttributes(&plan, &state)
+		if plan.Digest.ValueString() != "sha256:abc" ||
 			plan.Entrypoint.ValueString() != "data.policy" || !plan.ParamsSchema.IsNull() {
-			t.Errorf("expected state values in the plan, got %+v", plan)
+			t.Errorf("expected the bundle attributes of state in the plan, got %+v", plan)
+		}
+		// The version number depends on the policy's history, not on the
+		// bundle, so it is never taken from state.
+		if !plan.Version.IsUnknown() {
+			t.Errorf("expected version to stay unknown, got %v", plan.Version)
 		}
 	})
 
 	t.Run("changed files leave them unknown", func(t *testing.T) {
 		plan := unknownPlan()
 		plan.Files = regoFilesMap(t, map[string]string{"policy.rego": "package other"})
-		keepRegoPolicyVersionAttributes(&plan, &state)
+		keepRegoPolicyBundleAttributes(&plan, &state)
 		if !plan.Version.IsUnknown() || !plan.Digest.IsUnknown() {
 			t.Errorf("expected unknown version attributes, got %+v", plan)
 		}
@@ -737,7 +742,7 @@ func TestKeepRegoPolicyVersionAttributes(t *testing.T) {
 	t.Run("changed input schema leaves them unknown", func(t *testing.T) {
 		plan := unknownPlan()
 		plan.InputSchema = types.StringValue("trails")
-		keepRegoPolicyVersionAttributes(&plan, &state)
+		keepRegoPolicyBundleAttributes(&plan, &state)
 		if !plan.Version.IsUnknown() {
 			t.Errorf("expected an unknown version, got %v", plan.Version)
 		}
@@ -747,7 +752,7 @@ func TestKeepRegoPolicyVersionAttributes(t *testing.T) {
 		plan := unknownPlan()
 		empty := state
 		empty.Version = types.Int64Null()
-		keepRegoPolicyVersionAttributes(&plan, &empty)
+		keepRegoPolicyBundleAttributes(&plan, &empty)
 		if !plan.Version.IsUnknown() {
 			t.Errorf("expected an unknown version, got %v", plan.Version)
 		}
@@ -855,5 +860,30 @@ func TestRegoPolicyResource_Publish_LeavesActivePolicyAlone(t *testing.T) {
 	}
 	if api.unarchives != 0 {
 		t.Errorf("expected no unarchive call for an active policy, got %d", api.unarchives)
+	}
+}
+
+// Publishing the current files again stores a new version when the newest
+// version was rejected: a rejected version is never reused. The version number
+// therefore moves although the bundle in state did not change.
+func TestRegoPolicyResource_Publish_CurrentFilesAfterRejectedVersion(t *testing.T) {
+	api := &fakeRegoAPI{}
+	r := newRegoPolicyTestResource(t, api)
+	data := regoPolicyModel(t, regoValidFiles)
+	if diags := r.publish(context.Background(), &data); diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	api.seed("image-provenance", "Image provenance", map[string]string{"policy.rego": "REJECT"}, client.RegoPolicyVersionStatusRejected)
+
+	data.Name = types.StringValue("Renamed")
+	if diags := r.publish(context.Background(), &data); diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	if data.Version.ValueInt64() != 3 {
+		t.Errorf("version: got %v, want 3", data.Version)
+	}
+	if want := client.RegoPolicyDigest(regoValidFiles); data.Digest.ValueString() != want {
+		t.Errorf("digest: got %q, want %q", data.Digest.ValueString(), want)
 	}
 }
