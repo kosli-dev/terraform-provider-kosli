@@ -1,0 +1,32 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Type}}: {{.Name}}
+
+{{ .Description | trimspace }}
+
+## Example Usage
+
+{{tffile "examples/data-sources/kosli_rego_policy/data-source.tf"}}
+
+## Which Version Is Read
+
+Without `version`, the data source reads the policy's **current version**: the highest-numbered valid version, which is the one an evaluation runs. A newer version that is pending, rejected or failed is not the current version. A policy with no valid version yet is an error; the error names the newest version, which can then be read by number.
+
+With `version`, the data source reads that version whatever its status. `status` says whether it is `pending`, `valid`, `rejected` or `failed`, and `entrypoint` and `params_schema` are null unless it is `valid`.
+
+`name`, `description`, `created_at` and `created_by` belong to the policy, not to a version, so they are the same for every version.
+
+## Archived Policies
+
+Destroying a `kosli_rego_policy` archives the policy. By default the data source reads only an active policy and reports an archived one as an error. Set `archived = true` to read an archived policy.
+
+## Read-Only Access
+
+Data sources provide read-only access. To publish or change a rego policy, use the `kosli_rego_policy` resource.
+
+{{ .SchemaMarkdown | trimspace }}

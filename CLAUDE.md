@@ -103,6 +103,7 @@ The client supports:
 - `kosli_environment` - Reference existing physical environments
 - `kosli_logical_environment` - Reference existing logical environments
 - `kosli_notification_config` - Read a notification type's targets and delivery status
+- `kosli_rego_policy` - Read a rego policy and the files of its current version, or of any version by number
 - `kosli_repo` - Reference one repo by internal ID, or by name plus optional VCS provider
 - `kosli_repos` - List repos matching filters, returning their internal IDs
 

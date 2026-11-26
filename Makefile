@@ -29,7 +29,7 @@ COVERAGE_OUT=coverage.out
 # JUnit XML output for `kosli attest junit`
 JUNIT_DIR=test-results
 
-.PHONY: all build clean test test-junit test-coverage testacc testacc-junit testacc-action testacc-action-datasource testacc-control testacc-control-datasource testacc-control-list testacc-custom-attestation-type testacc-custom-attestation-type-datasource testacc-environment testacc-environment-datasource testacc-flow testacc-flow-datasource testacc-logical-environment testacc-logical-environment-datasource testacc-notification-config testacc-notification-config-datasource testacc-policy testacc-policy-datasource testacc-rego-policy testacc-policy-attachment testacc-repo-tags testacc-repos-datasource testacc-repo-datasource check-testacc-env fmt vet lint install docs help default
+.PHONY: all build clean test test-junit test-coverage testacc testacc-junit testacc-action testacc-action-datasource testacc-control testacc-control-datasource testacc-control-list testacc-custom-attestation-type testacc-custom-attestation-type-datasource testacc-environment testacc-environment-datasource testacc-flow testacc-flow-datasource testacc-logical-environment testacc-logical-environment-datasource testacc-notification-config testacc-notification-config-datasource testacc-policy testacc-policy-datasource testacc-rego-policy testacc-rego-policy-datasource testacc-policy-attachment testacc-repo-tags testacc-repos-datasource testacc-repo-datasource check-testacc-env fmt vet lint install docs help default
 
 # Default target
 default: build
@@ -183,6 +183,11 @@ testacc-rego-policy: check-testacc-env
 	@echo "Running acceptance tests for rego policy resource..."
 	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccRegoPolicyResource' -timeout 30m
 
+# Run acceptance tests for rego policy data source
+testacc-rego-policy-datasource: check-testacc-env
+	@echo "Running acceptance tests for rego policy data source..."
+	TF_ACC=1 $(GOTEST) -v ./internal/provider/... -run='TestAccRegoPolicyDataSource' -timeout 30m
+
 # Run acceptance tests for policy data source
 testacc-policy-datasource: check-testacc-env
 	@echo "Running acceptance tests for policy data source..."
@@ -322,6 +327,8 @@ help:
 	@echo "                Run acceptance tests for policy resource"
 	@echo "  testacc-rego-policy"
 	@echo "                Run acceptance tests for rego policy resource"
+	@echo "  testacc-rego-policy-datasource"
+	@echo "                Run acceptance tests for rego policy data source"
 	@echo "  testacc-policy-datasource"
 	@echo "                Run acceptance tests for policy data source"
 	@echo "  testacc-policy-attachment"

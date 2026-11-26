@@ -1,6 +1,9 @@
 package provider
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -51,6 +54,8 @@ type fakeRegoAPI struct {
 
 	// publishStatus, when set, answers every publish with that status code.
 	publishStatus int
+	// readStatus, when set, answers every GET with that status code.
+	readStatus int
 	// pendingPolls is how many version reads a new version stays pending for.
 	pendingPolls int
 
@@ -62,6 +67,7 @@ type fakeRegoAPI struct {
 
 	publishBodies []map[string]json.RawMessage
 	fileReads     int
+	bundleReads   int
 	archiveCalls  int
 	unarchives    int
 }
@@ -146,6 +152,12 @@ func (f *fakeRegoAPI) handler() http.HandlerFunc {
 			return
 		}
 
+		if r.Method == http.MethodGet && f.readStatus != 0 {
+			w.WriteHeader(f.readStatus)
+			w.Write([]byte(`{"message": "Controls is not enabled for this organization"}`))
+			return
+		}
+
 		switch {
 		case r.Method == http.MethodPut && len(parts) == 1:
 			f.publish(w, r, parts[0])
@@ -180,6 +192,19 @@ func (f *fakeRegoAPI) handler() http.HandlerFunc {
 					version.pendingPolls--
 				}
 				json.NewEncoder(w).Encode(body)
+			case len(parts) == 4 && parts[3] == "bundle":
+				f.bundleReads++
+				var buf bytes.Buffer
+				gz := gzip.NewWriter(&buf)
+				tw := tar.NewWriter(gz)
+				for path, source := range version.files {
+					tw.WriteHeader(&tar.Header{Name: path, Mode: 0o644, Size: int64(len(source)), Format: tar.FormatPAX})
+					tw.Write([]byte(source))
+				}
+				tw.Close()
+				gz.Close()
+				w.Header().Set("Content-Type", "application/gzip")
+				w.Write(buf.Bytes())
 			case len(parts) == 4 && parts[3] == "files":
 				paths := make([]string, 0, len(version.files))
 				for path := range version.files {
