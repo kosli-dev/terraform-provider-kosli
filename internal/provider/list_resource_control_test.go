@@ -305,7 +305,7 @@ func TestControlListResource_List_Forbidden(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
-		fmt.Fprint(w, `{"message": "Controls not enabled"}`)
+		fmt.Fprint(w, `{"message": "Forbidden"}`)
 	}))
 	defer server.Close()
 
