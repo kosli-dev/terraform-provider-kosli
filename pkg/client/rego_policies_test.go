@@ -1,6 +1,9 @@
 package client
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -346,5 +349,93 @@ func TestUnarchiveRegoPolicy_Success(t *testing.T) {
 	}
 	if policy.Archived {
 		t.Error("expected the policy to be unarchived")
+	}
+}
+
+// regoBundleTarball builds a gzipped tar the way the API serves a bundle.
+func regoBundleTarball(t *testing.T, files map[string]string) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gz)
+	for path, source := range files {
+		if err := tw.WriteHeader(&tar.Header{Name: path, Mode: 0o644, Size: int64(len(source)), Format: tar.FormatPAX}); err != nil {
+			t.Fatalf("writing tar header: %v", err)
+		}
+		if _, err := tw.Write([]byte(source)); err != nil {
+			t.Fatalf("writing tar body: %v", err)
+		}
+	}
+	if err := tw.Close(); err != nil {
+		t.Fatalf("closing tar: %v", err)
+	}
+	if err := gz.Close(); err != nil {
+		t.Fatalf("closing gzip: %v", err)
+	}
+	return buf.Bytes()
+}
+
+func TestGetRegoPolicyBundle_Success(t *testing.T) {
+	files := map[string]string{
+		"policy.rego":      "package policy\n\nallow := true\n",
+		"lib/my util.rego": "package lib\n# café\n",
+		"empty.rego":       "",
+	}
+	c := newRegoTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/v2/rego-policies/test-org/p/versions/3/bundle" {
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/gzip")
+		w.Write(regoBundleTarball(t, files))
+	})
+
+	got, err := c.GetRegoPolicyBundle(context.Background(), "p", 3)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != len(files) {
+		t.Fatalf("expected %d files, got %d: %v", len(files), len(got), got)
+	}
+	for path, source := range files {
+		if got[path] != source {
+			t.Errorf("file %q: got %q, want %q", path, got[path], source)
+		}
+	}
+	if RegoPolicyDigest(got) != RegoPolicyDigest(files) {
+		t.Error("expected the downloaded bundle to have the digest of the published files")
+	}
+}
+
+func TestGetRegoPolicyBundle_NotFound(t *testing.T) {
+	c := newRegoTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`{"message": "not found"}`))
+	})
+
+	if _, err := c.GetRegoPolicyBundle(context.Background(), "p", 3); !IsNotFound(err) {
+		t.Errorf("expected a not-found error, got %v", err)
+	}
+}
+
+func TestGetRegoPolicyBundle_NotAnArchive(t *testing.T) {
+	c := newRegoTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("this is not gzip"))
+	})
+
+	if _, err := c.GetRegoPolicyBundle(context.Background(), "p", 3); err == nil {
+		t.Error("expected an error for a body that is not a gzipped tar")
+	}
+}
+
+// A small archive that inflates far beyond what a bundle can hold must be
+// refused, not read into memory.
+func TestGetRegoPolicyBundle_RefusesOversizedContent(t *testing.T) {
+	huge := map[string]string{"big.rego": string(bytes.Repeat([]byte("a"), maxRegoPolicyBundleSize+1))}
+	c := newRegoTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Write(regoBundleTarball(t, huge))
+	})
+
+	if _, err := c.GetRegoPolicyBundle(context.Background(), "p", 3); err == nil {
+		t.Error("expected an error for a bundle over the size limit")
 	}
 }

@@ -1,11 +1,15 @@
 package client
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"sort"
 	"strconv"
 	"strings"
@@ -235,6 +239,55 @@ func (c *Client) GetRegoPolicyFile(ctx context.Context, identifier string, versi
 	}
 
 	return string(body), nil
+}
+
+// maxRegoPolicyBundleSize caps the uncompressed size of a downloaded bundle.
+// The API limits a bundle to 1 MiB, so a larger archive is not one of its own.
+const maxRegoPolicyBundleSize = 4 << 20
+
+// GetRegoPolicyBundle downloads every file of a version in one request and
+// returns them as a map of path to source. The API serves the bundle as a
+// gzipped tar holding each file at its path, whatever the version's status.
+func (c *Client) GetRegoPolicyBundle(ctx context.Context, identifier string, version int64) (map[string]string, error) {
+	path := apiPath("rego-policies", c.Organization(), identifier, "versions", strconv.FormatInt(version, 10), "bundle")
+
+	resp, err := c.Get(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	gz, err := gzip.NewReader(io.LimitReader(resp.Body, MaxResponseBodySize))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read bundle archive: %w", err)
+	}
+	defer gz.Close()
+
+	files := map[string]string{}
+	remaining := int64(maxRegoPolicyBundleSize)
+	archive := tar.NewReader(gz)
+	for {
+		header, err := archive.Next()
+		if errors.Is(err, io.EOF) {
+			return files, nil
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to read bundle archive: %w", err)
+		}
+		if header.Typeflag != tar.TypeReg {
+			continue
+		}
+
+		source, err := io.ReadAll(io.LimitReader(archive, remaining+1))
+		if err != nil {
+			return nil, fmt.Errorf("failed to read %q from bundle archive: %w", header.Name, err)
+		}
+		remaining -= int64(len(source))
+		if remaining < 0 {
+			return nil, fmt.Errorf("bundle archive exceeds %d bytes uncompressed", maxRegoPolicyBundleSize)
+		}
+		files[header.Name] = string(source)
+	}
 }
 
 // RegoPolicyDigest computes the digest Kosli gives a bundle: "sha256:" and
